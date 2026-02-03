@@ -1,0 +1,78 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix startup initialization blocking and make actor init resilient",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Remove the timeout-based render gate so the Home page never renders a blank/null UI after mount.",
+      "acceptanceCriteria": [
+        "On a cold page load, the app renders either the login screen (when unauthenticated) or the main UI/loading state (when authenticated) immediately, without a deliberate timeout-based delay.",
+        "There is no period where the page renders nothing due solely to a startup timer gate."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Remove the `showContent` state and the timed `setTimeout` gate that currently returns `null` on first render; restructure rendering so HomePage always returns a visible UI immediately after mount (login, loading, error, or app shell)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Make actor initialization fail-fast with explicit error UI, plus working Retry and Sign Out recovery actions to avoid infinite 'Initializing…'.",
+      "acceptanceCriteria": [
+        "If actor creation or `_initializeAccessControlWithSecret` fails, the app exits the loading spinner state and displays a clear error UI (English) rather than remaining stuck on 'Initializing…'.",
+        "The error UI provides a working 'Retry' action that re-attempts actor initialization and returns to a functional state if the retry succeeds.",
+        "The error UI provides a working 'Sign Out' action that clears the identity/session and returns the user to the unauthenticated login screen."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/contexts/ActorContext.tsx",
+          "operation": "create",
+          "description": "Create an ActorProvider/ActorContext that owns authenticated actor initialization state (loading/ready/error), captures initialization errors, exposes a `retry()` action (re-attempt actor creation) and a `signOut()` action (clears identity and React Query cache) so the UI can recover instead of staying stuck."
+        },
+        {
+          "path": "frontend/src/hooks/useBackendActor.ts",
+          "operation": "create",
+          "description": "Add a small hook that reads from ActorContext (actor, status, error, retry, signOut) for consumption across pages/components without directly depending on the immutable `useActor` hook."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Wire the existing `ActorInitErrorState` into the authenticated startup flow: when actor initialization is in an error state, render `ActorInitErrorState` with working `onRetry` (calls context retry) and `onLogout` (calls context signOut) rather than showing an infinite 'Initializing...' spinner."
+        },
+        {
+          "path": "frontend/src/components/ActorInitErrorState.tsx",
+          "operation": "modify",
+          "description": "Ensure the error state copy remains clear English and that the component API matches the new wiring (Retry + Sign Out). Keep it presentational and driven by props."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Avoid actor creation during unauthenticated startup and keep authenticated-only queries disabled until identity + actor initialization success.",
+      "acceptanceCriteria": [
+        "When the user is unauthenticated, the login screen is shown without waiting for actor creation/initialization.",
+        "Authenticated-only React Query calls (folders/files) remain disabled until both identity is present and actor initialization has succeeded."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wrap the application content with the new ActorProvider so actor initialization can be deferred and centrally managed without modifying immutable hooks."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Split unauthenticated vs authenticated rendering into separate subtrees so unauthenticated startup renders the login screen immediately and does not mount any components/hooks that would trigger actor initialization; authenticated subtree should mount actor-dependent UI only after identity exists."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Refactor query hooks to use the new ActorContext-backed hook instead of the immutable `useActor` hook, and gate query `enabled` conditions on both identity presence and actor initialization success so folders/files queries remain disabled until the actor is ready."
+        }
+      ]
+    }
+  ]
+}

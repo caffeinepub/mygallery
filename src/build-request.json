@@ -1,0 +1,72 @@
+{
+  "kind": "build_request",
+  "title": "Fix app startup stuck on “Initializing” and improve immediate load behavior",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Eliminate any artificial startup delay that prevents the Home page from rendering immediately after the app mounts (e.g., remove the timed `showContent` gate) so users do not see blank/blocked UI on first load.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Fix the initializing problem when I open the app so it loads correctly and immediately without delays and works properly"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On a cold page load, the app renders either the login screen (when unauthenticated) or the main UI/loading state (when authenticated) immediately, without a deliberate timeout-based delay.",
+        "There is no period where the page renders nothing due solely to a startup timer gate."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Make actor initialization fail-fast and non-blocking: ensure that backend actor creation and access-control initialization cannot leave the UI stuck in an infinite 'Initializing…' state. Surface actor initialization errors to the UI as an explicit error state with recovery actions.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Fix the initializing problem when I open the app so it loads correctly and immediately without delays and works properly"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If actor creation or `_initializeAccessControlWithSecret` fails, the app exits the loading spinner state and displays a clear error UI (English) rather than remaining stuck on 'Initializing…'.",
+        "The error UI provides a working 'Retry' action that re-attempts actor initialization and returns to a functional state if the retry succeeds.",
+        "The error UI provides a working 'Sign Out' action that clears the identity/session and returns the user to the unauthenticated login screen."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Prevent unnecessary actor initialization work during unauthenticated startup to improve perceived load time: do not create/initialize the backend actor until it is required for an authenticated session or an authenticated-only action.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "loads correctly and immediately without delays"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When the user is unauthenticated, the login screen is shown without waiting for actor creation/initialization.",
+        "Authenticated-only React Query calls (folders/files) remain disabled until both identity is present and actor initialization has succeeded."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files under frontend/immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui). If changes are needed, implement safe alternatives via new wrapper hooks/components or by modifying non-immutable consumers only.",
+    "Backend must remain single-actor; do not introduce additional canisters/services.",
+    "All user-facing text introduced/changed by this build request must be in English."
+  ],
+  "nonGoals": [
+    "Do not add new product features beyond fixing initialization/loading reliability and speed.",
+    "Do not change backend schemas, file/folder data models, or storage behavior."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
