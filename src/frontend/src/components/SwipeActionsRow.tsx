@@ -26,7 +26,6 @@ export default function SwipeActionsRow({
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
   const [translateX, setTranslateX] = useState(0);
-  const [showActions, setShowActions] = useState(false);
 
   const SWIPE_THRESHOLD = 60; // Minimum swipe distance to reveal actions
   const MAX_SWIPE = 140; // Maximum swipe distance (width of action buttons)
@@ -36,10 +35,8 @@ export default function SwipeActionsRow({
     if (!isOpen) {
       setTranslateX(0);
       setCurrentX(0);
-      setShowActions(false);
     } else {
       setTranslateX(-MAX_SWIPE);
-      setShowActions(true);
     }
   }, [isOpen]);
 
@@ -85,10 +82,6 @@ export default function SwipeActionsRow({
     // Only allow swiping left (negative values)
     if (newTranslate <= 0 && newTranslate >= -MAX_SWIPE) {
       setTranslateX(newTranslate);
-      // Show actions when swipe passes threshold
-      if (newTranslate < -SWIPE_THRESHOLD && !showActions) {
-        setShowActions(true);
-      }
     }
   };
 
@@ -100,12 +93,10 @@ export default function SwipeActionsRow({
     if (translateX < -SWIPE_THRESHOLD) {
       // Open actions
       setTranslateX(-MAX_SWIPE);
-      setShowActions(true);
       onOpenChange(true);
     } else {
       // Close actions
       setTranslateX(0);
-      setShowActions(false);
       onOpenChange(false);
     }
   };
@@ -132,10 +123,6 @@ export default function SwipeActionsRow({
     // Only allow swiping left (negative values)
     if (newTranslate <= 0 && newTranslate >= -MAX_SWIPE) {
       setTranslateX(newTranslate);
-      // Show actions when swipe passes threshold
-      if (newTranslate < -SWIPE_THRESHOLD && !showActions) {
-        setShowActions(true);
-      }
     }
   };
 
@@ -147,12 +134,10 @@ export default function SwipeActionsRow({
     if (translateX < -SWIPE_THRESHOLD) {
       // Open actions
       setTranslateX(-MAX_SWIPE);
-      setShowActions(true);
       onOpenChange(true);
     } else {
       // Close actions
       setTranslateX(0);
-      setShowActions(false);
       onOpenChange(false);
     }
   };
@@ -191,39 +176,37 @@ export default function SwipeActionsRow({
       className="relative overflow-hidden touch-pan-y"
       style={{ touchAction: 'pan-y' }}
     >
-      {/* Action buttons (revealed on swipe) - positioned above content, hidden by default */}
-      {showActions && (
-        <div 
-          ref={actionsRef}
-          className="absolute right-0 top-0 bottom-0 flex items-stretch z-10 pointer-events-auto"
+      {/* Action buttons (revealed on swipe) - positioned above content */}
+      <div 
+        ref={actionsRef}
+        className="absolute right-0 top-0 bottom-0 flex items-stretch z-10 pointer-events-auto"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleEditClick}
+          onTouchEnd={handleEditTouch}
+          className="h-full rounded-none px-4 bg-muted hover:bg-muted/80 border-l touch-manipulation"
+          style={{ pointerEvents: 'auto' }}
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleEditClick}
-            onTouchEnd={handleEditTouch}
-            className="h-full rounded-none px-4 bg-muted hover:bg-muted/80 border-l touch-manipulation"
-            style={{ pointerEvents: 'auto' }}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDeleteClick}
-            onTouchEnd={handleDeleteTouch}
-            className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground touch-manipulation"
-            style={{ pointerEvents: 'auto' }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDeleteClick}
+          onTouchEnd={handleDeleteTouch}
+          className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground touch-manipulation"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
       {/* Swipeable content */}
       <div
         ref={contentRef}
-        className="relative bg-background z-20"
+        className="relative bg-background z-0"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',

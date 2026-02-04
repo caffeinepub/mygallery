@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Hide Edit/Rename/Delete swipe actions in Folders, Notes, and Missions until the user swipes left to reveal them, ensuring actions do not overlay row content when closed.
+**Goal:** Fix folder creation so it works reliably in all states and update the folders list to show rename/delete actions only after a swipe reveal.
 
 **Planned changes:**
-- Update the shared SwipeActionsRow behavior so action buttons are fully hidden by default and only appear after a sufficient left-swipe reveal.
-- Ensure closing the swipe (swiping back or resetting) fully hides actions again with no overlap on the row content.
-- Apply the same swipe-to-reveal behavior consistently wherever SwipeActionsRow is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices) without backend changes.
+- Fix the folder creation flow so creating a folder works whether the folders list is empty or already populated, and the newly created folder appears in the list immediately without requiring reload/navigation/refresh.
+- Ensure folder creation does not depend on a previously populated folders query (works on first-time use).
+- Add error handling so failed folder creation shows an error and does not insert a phantom folder entry into the list.
+- Update the folders list rows so rename and delete actions are hidden by default and only revealed via a left-swipe gesture.
+- Ensure swipe actions behavior supports: one row open at a time, tapping/clicking outside closes, and works on touch (and remains usable with pointer input) without showing actions by default.
 
-**User-visible outcome:** In Folders, Notes (on mobile/coarse pointer), and Missions (on mobile/coarse pointer), list rows no longer show Edit/Rename/Delete buttons until you swipe left; closing the swipe hides the buttons completely and tapping the row behaves normally.
+**User-visible outcome:** Users can always create new folders and see them appear instantly in the folders list, and folder rename/delete actions are only shown after swiping a folder row (with proper open/close behavior).

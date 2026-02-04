@@ -2,9 +2,31 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-shared-swipe-actions-row-ui-so-the-edit-rename-and-delete-buttons-are-not-visible-by-default-and-only-become-visible-after-the-user-swipes-left-far-enough-to-reveal-them-when-the-row-is-closed-no-swipe-the-action-buttons-must-be-fully-hidden-behind-the-row-content-and-must-not-overlay-it",
-      "featureTitle": "Update the shared swipe-actions row UI so the Edit/Rename and Delete buttons are not visible by default and only become visible after the user swipes left far enough to reveal them; when the row is closed (no swipe), the action buttons must be fully hidden behind the row content and must not overlay it.",
+      "featureId": "feature-fix-the-folder-creation-flow-so-a-user-can-always-create-a-new-folder-both-when-they-have-zero-folders-and-when-they-already-have-folders-and-the-newly-created-folder-reliably-appears-in-the-folders-list-immediately-after-creation-without-requiring-app-reload-navigation-or-manual-refresh",
+      "featureTitle": "Fix the folder creation flow so a user can always create a new folder (both when they have zero folders and when they already have folders), and the newly created folder reliably appears in the folders list immediately after creation (without requiring app reload, navigation, or manual refresh).",
       "files": [
+        "frontend/src/components/FoldersDialog.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-folders-list-ui-so-the-delete-and-rename-edit-title-actions-are-only-visible-after-a-swipe-gesture-reveals-them-the-actions-must-not-be-visible-by-default-before-the-swipe-reveal",
+      "featureTitle": "Update the folders list UI so the delete and rename (edit title) actions are only visible after a swipe gesture reveals them; the actions must not be visible by default before the swipe reveal.",
+      "files": [
+        "frontend/src/components/FoldersDialog.tsx",
         "frontend/src/components/SwipeActionsRow.tsx"
       ],
       "components": [
@@ -17,7 +39,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-7"
+        "REQ-6"
       ],
       "confidence": "high"
     }

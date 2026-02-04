@@ -1,55 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Show swipe Edit/Delete actions only after left-swipe in Folders, Notes, and Missions",
-  "priority": "normal",
+  "title": "Fix folder creation flow and show folder actions only after swipe",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-7",
-      "text": "Update the shared swipe-actions row UI so the Edit/Rename and Delete buttons are not visible by default and only become visible after the user swipes left far enough to reveal them; when the row is closed (no swipe), the action buttons must be fully hidden behind the row content and must not overlay it.",
-      "target": "frontend",
+      "id": "REQ-5",
+      "text": "Fix the folder creation flow so a user can always create a new folder (both when they have zero folders and when they already have folders), and the newly created folder reliably appears in the folders list immediately after creation (without requiring app reload, navigation, or manual refresh).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-3"
         ],
         "quotes": [
-          "Η επιλογές διαγραφής και επεξεργασίας με swipe σε folders , notes και missions να εμφανίζονται μόνο μετά το swipe προς τα αριστερά και όχι απευθείας χωρίς να έχει γίνει swipe ."
+          "Διόρθωσε την δημιουργία νέου φακέλου . Όταν δεν έχω δημιουργήσει ακόμα φάκελο στην εφαρμογη να μπορώ να δημιουργήσω νέο φάκελο και αν έχω ήδη δημιουηρφγιμενους φακέλους να μπορώ να δημιουργήσω νέους . Η δημιουργία φακέλου να λειτουργεί σωστά ώστε οπότε να να δημιουργήσω φάκελο να εμφανίζεται στην λίστα"
         ]
       },
       "acceptanceCriteria": [
-        "In Folders, Notes (mobile/coarse pointer), and Missions (mobile/coarse pointer), when a list row is initially rendered and not swiped, no Edit/Rename/Delete buttons are visible on screen.",
-        "After swiping a row to the left past the reveal threshold, the Edit/Rename and Delete buttons become visible for that row.",
-        "When the row is swiped back (or otherwise closed), the action buttons are no longer visible and do not overlay the content.",
-        "Tapping/clicking the row content when the row is closed behaves the same as before (e.g., select/open), with no accidental interaction with hidden action buttons."
+        "When the folders list is empty, creating a folder succeeds and the new folder appears in the list immediately.",
+        "When the folders list already contains folders, creating an additional folder succeeds and the new folder appears in the list immediately.",
+        "Folder creation does not rely on the folder list query being previously populated (i.e., it works even on first-time use).",
+        "If folder creation fails (backend error / actor not ready), the UI shows an error and does not add a phantom folder entry to the list."
       ]
     },
     {
-      "id": "REQ-8",
-      "text": "Ensure the updated swipe-to-reveal behavior is consistently applied anywhere the shared SwipeActionsRow component is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices), without changing any backend behavior.",
+      "id": "REQ-6",
+      "text": "Update the folders list UI so the delete and rename (edit title) actions are only visible after a swipe gesture reveals them; the actions must not be visible by default before the swipe reveal.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-3"
         ],
         "quotes": [
-          "...σε folders , notes και missions..."
+          "Η επιλογή διαγραφης φακέλου η επεξεργασιας τίτλου να εμφανίζεται μόνο μετά από swipe"
         ]
       },
       "acceptanceCriteria": [
-        "Folders list rows do not show swipe actions until a left swipe reveals them.",
-        "Notes list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
-        "Missions list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
-        "No backend API changes are introduced as part of this work."
+        "In the folders list, rename and delete actions are hidden by default for each folder row.",
+        "Swiping left on a folder row reveals the rename and delete actions for that row.",
+        "Only one folder row’s swipe actions can be open at a time; opening one closes any previously open row.",
+        "Tapping/clicking outside an open swipe row closes it.",
+        "The swipe behavior works on touch devices; if pointer input is supported (mouse/trackpad), the same reveal interaction remains usable without showing actions by default."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (shadcn/ui components are read-only).",
-    "Do not change the backend canister interface or persistence; this is a frontend-only behavior fix."
+    "Do not edit files under frontend/src/components/ui (shadcn/ui); compose them instead.",
+    "Do not modify any frontend files listed in frontend.immutablePaths.",
+    "Keep all backend logic in the single Motoko actor (backend/main.mo); only add migration code if existing stable state requires it."
   ],
   "nonGoals": [
-    "Redesigning the folders/notes/missions screens beyond fixing swipe action visibility.",
-    "Adding new actions beyond the existing Edit/Rename and Delete actions.",
-    "Changing authentication, authorization, or any actor initialization logic."
+    "Do not add new folder features beyond creation, listing, rename, delete, and swipe-to-reveal behavior.",
+    "Do not change unrelated file/gallery behaviors (uploads, viewer, notes, missions) except as needed to keep folder creation/listing consistent."
   ],
   "imageRequirements": {
     "required": [],
