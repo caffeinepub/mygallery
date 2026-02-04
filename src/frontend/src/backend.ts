@@ -108,6 +108,15 @@ export interface Mission {
     owner: Principal;
 }
 export type Time = bigint;
+export interface UserProfile {
+    name: string;
+}
+export interface UploadResponse {
+    id: string;
+}
+export interface _CaffeineStorageRefillInformation {
+    proposed_top_up_amount?: bigint;
+}
 export interface FileMetadata {
     id: string;
     owner: Principal;
@@ -118,15 +127,6 @@ export interface FileMetadata {
     mimeType: string;
     folderId?: bigint;
 }
-export interface UserProfile {
-    name: string;
-}
-export interface _CaffeineStorageRefillInformation {
-    proposed_top_up_amount?: bigint;
-}
-export interface UploadResponse {
-    id: string;
-}
 export interface Task {
     task: string;
     completed: boolean;
@@ -135,6 +135,10 @@ export interface Task {
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
+}
+export interface HealthResult {
+    cycles: bigint;
+    build: string;
 }
 export interface DiagnosticResult {
     cycles: bigint;
@@ -186,6 +190,7 @@ export interface backendInterface {
     getDiagnostics(): Promise<DiagnosticResult>;
     getFile(fileId: string): Promise<FileMetadata | null>;
     getFilesInFolder(folderId: bigint, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
+    getHealth(): Promise<HealthResult>;
     getMission(missionId: bigint): Promise<Mission | null>;
     getNote(noteId: bigint): Promise<Note | null>;
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
@@ -525,6 +530,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getFilesInFolder(arg0, arg1, arg2);
             return from_candid_PaginatedFiles_n19(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getHealth(): Promise<HealthResult> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getHealth();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getHealth();
+            return result;
         }
     }
     async getMission(arg0: bigint): Promise<Mission | null> {

@@ -2,12 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-identify-the-root-cause-of-the-frequent-service-unavailable-backend-service-is-currently-unavailable-error-shown-when-opening-the-draft-or-live-app-after-each-deploy-prompt-and-implement-a-fix-so-the-app-opens-normally-and-remains-functional",
-      "featureTitle": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
+      "featureId": "feature-update-the-subtitle-intro-text-displayed-directly-under-the-welcome-to-mygallery-heading-on-the-unauthenticated-welcome-screen-frontend-src-components-welcomeintroscreen-tsx-to-exactly-this-english-copy-preserve-the-two-sentences-this-is-your-personal-space-for-organization-and-self-improvement-create-missions-break-them-into-tasks-and-complete-them-step-by-step",
+      "featureTitle": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
       "files": [
-        "frontend/src/contexts/ActorContext.tsx",
-        "frontend/src/pages/HomePage.tsx",
-        "frontend/src/utils/actorInitializationMessaging.ts"
+        "frontend/src/components/WelcomeIntroScreen.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -19,70 +17,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-17"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-change-the-actor-initialization-flow-so-that-on-the-first-app-open-only-cold-start-initialization-failures-consistent-with-canister-warm-up-unavailability-are-handled-via-silent-background-retry-with-backoff-keeping-the-ui-in-a-loading-state-instead-of-rendering-actoriniterrorstate",
-      "featureTitle": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
-      "files": [
-        "frontend/src/contexts/ActorContext.tsx",
-        "frontend/src/utils/actorInitializationMessaging.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-18"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-the-silent-retry-behavior-is-applied-only-on-the-first-open-in-a-session-and-after-the-app-has-successfully-initialized-once-subsequent-actor-initialization-failures-show-the-existing-error-ui-actoriniterrorstate-immediately-or-after-the-normal-non-cold-start-retry-behavior",
-      "featureTitle": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
-      "files": [
-        "frontend/src/contexts/ActorContext.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-19"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-unify-error-classification-for-canister-stopped-detection-so-that-actoriniterrorstate-uses-the-standardized-detection-logic-rather-than-summary-string-heuristics-and-ensure-the-cold-start-silent-retry-triggers-off-the-same-standardized-classification",
-      "featureTitle": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
-      "files": [
-        "frontend/src/components/ActorInitErrorState.tsx",
-        "frontend/src/contexts/ActorContext.tsx",
-        "frontend/src/utils/actorInitializationMessaging.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-20"
+        "REQ-1"
       ],
       "confidence": "high"
     }

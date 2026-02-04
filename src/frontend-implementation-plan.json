@@ -1,92 +1,20 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Cold-start silent retry for backend actor initialization to avoid first-open Service Unavailable",
+  "title": "Update welcome screen intro subtitle copy",
   "requirements": [
     {
-      "id": "REQ-17",
-      "summary": "Add frontend diagnostics around actor initialization failures and prevent first-open 'Service Unavailable' UI during transient backend warm-up, while still surfacing real errors after a bounded window.",
+      "id": "REQ-1",
+      "summary": "Replace the unauthenticated welcome screen subtitle under “Welcome to MyGallery” with the provided two-sentence English copy and preserved line break.",
       "acceptanceCriteria": [
-        "On first open after a deploy/prompt, the app does not present a user-facing 'Service Unavailable' error screen during backend warm-up.",
-        "A clear technical diagnosis is captured in logs/diagnostics (frontend console + any available backend logs/diagnostics endpoints) indicating whether failures are canister-stopped, transient network, or access-control init related.",
-        "If the backend is genuinely unavailable for an extended period, the app eventually transitions to a real error state (does not retry forever)."
+        "When logged out, the welcome screen shows the heading \"Welcome to MyGallery\" and the subtitle text exactly matches the provided English copy (including sentence text and line break/paragraph split).",
+        "No other user-facing text is changed."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/contexts/ActorContext.tsx",
+          "path": "frontend/src/components/WelcomeIntroScreen.tsx",
           "operation": "modify",
-          "description": "Instrument actor initialization with structured console diagnostics (attempt number, elapsed time, standardized error classification, and serialized error details) and ensure the UI remains functional by keeping status in an initializing/loading state during transient cold-start failures, then transitioning to error after a bounded retry window."
-        },
-        {
-          "path": "frontend/src/utils/actorInitializationMessaging.ts",
-          "operation": "modify",
-          "description": "Introduce a single standardized error-classification helper (shared across actor init + error UI) that distinguishes canister-stopped/unavailable vs transient network vs authorization/access-control init vs unknown, and expose a stable diagnostic payload for logging."
-        },
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Ensure the actor initialization/loading state is used as the primary UI during cold-start retries (no early error screen), and that once the bounded retry window is exceeded the existing ActorInitErrorState is shown."
-        }
-      ]
-    },
-    {
-      "id": "REQ-18",
-      "summary": "Implement session-cold-start-only silent background retry with bounded backoff for actor initialization failures consistent with canister warm-up/unavailability.",
-      "acceptanceCriteria": [
-        "When the first initialization attempt fails with canister-stopped/unavailable indicators, the app stays on a loading/initializing screen and retries automatically without showing ActorInitErrorState.",
-        "Retries use a bounded policy (e.g., capped exponential backoff and a max overall retry window).",
-        "Once the backend becomes available, the actor initializes successfully and the user is taken into the normal app UI without any manual action."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/contexts/ActorContext.tsx",
-          "operation": "modify",
-          "description": "Add a cold-start silent retry loop that triggers only for the standardized transient/canister-unavailable error class, using capped exponential backoff with jitter and a max overall retry window; keep context status='initializing' during retries and only set status='error' after the window is exceeded."
-        },
-        {
-          "path": "frontend/src/utils/actorInitializationMessaging.ts",
-          "operation": "modify",
-          "description": "Add/adjust classification helpers so the cold-start retry decision is based on standardized detection (e.g., stopped/stopping/destination invalid/unavailable), not summary-string heuristics."
-        }
-      ]
-    },
-    {
-      "id": "REQ-19",
-      "summary": "Scope silent retry to first open in a session; after a successful init in the session, subsequent init failures show ActorInitErrorState normally.",
-      "acceptanceCriteria": [
-        "A session-scoped flag (or equivalent) records that the app has completed a successful actor initialization at least once during the current session.",
-        "If the user later encounters a real initialization failure (after the session has already initialized successfully once), the ActorInitErrorState screen appears as it does today (with Retry/Sign Out actions)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/contexts/ActorContext.tsx",
-          "operation": "modify",
-          "description": "Implement a session-scoped 'hasInitializedSuccessfully' flag (e.g., sessionStorage + in-memory) set after the first successful actor init; allow silent retry only when false, and when true fall back to the current behavior (set error immediately on failure). Also clear/reset the flag appropriately on sign-out."
-        }
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "summary": "Unify canister-stopped/unavailable error detection so both ActorInitErrorState and cold-start silent retry use the same standardized classification logic.",
-      "acceptanceCriteria": [
-        "Canister-stopped/unavailable errors are detected using a single shared method (not by checking if the summary string contains specific phrases).",
-        "Cold-start silent retry is triggered only for the intended transient/cold-start class of errors (e.g., stopped/stopping/destination invalid), not for authorization or permanent failures."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/actorInitializationMessaging.ts",
-          "operation": "modify",
-          "description": "Refactor to export a single shared canister-unavailable/transient detector and a top-level classify function (e.g., returning a small union/enum) used by both the actor init flow and the error UI, avoiding summary-string heuristics."
-        },
-        {
-          "path": "frontend/src/components/ActorInitErrorState.tsx",
-          "operation": "modify",
-          "description": "Update stopped-canister detection to rely on the standardized classification output (passed from the actor init flow) instead of checking whether the summary contains specific phrases."
-        },
-        {
-          "path": "frontend/src/contexts/ActorContext.tsx",
-          "operation": "modify",
-          "description": "Store and expose the standardized classification alongside summary/technicalDetails so ActorInitErrorState rendering and cold-start silent retry both trigger off the same shared classification logic."
+          "description": "Update only the subtitle/intro text directly under the \"Welcome to MyGallery\" heading to exactly: \"This is your personal space for organization and self-improvement.\\nCreate missions, break them into tasks, and complete them step by step.\" Ensure the UI preserves the two-sentence split via an explicit line break within the rendered subtitle block, without changing any other user-facing copy."
         }
       ]
     }

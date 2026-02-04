@@ -5,25 +5,14 @@
 export const ACTOR_NOT_READY_MESSAGE = 'Please wait while the app initializes...';
 export const ACTOR_ERROR_MESSAGE = 'Unable to connect. Please try again.';
 export const ACTOR_INIT_FAILED_MESSAGE = 'Connection failed. Please retry or sign in again.';
-export const CANISTER_STOPPED_MESSAGE = 'The backend service is currently unavailable. This usually means the canister needs to be restarted by the administrator.';
+export const CANISTER_STOPPED_MESSAGE = 'The backend service is temporarily unavailable. Please try again or contact your administrator if the issue persists.';
+export const INVALID_ADMIN_TOKEN_MESSAGE = 'Invalid or expired admin token. Please sign out, remove the token from the URL, and try again.';
 
-/**
- * Error classification for actor initialization failures.
- */
-export type ErrorClassification = 
-  | 'transient-canister-unavailable'  // Cold start, stopped canister, destination invalid
-  | 'authorization'                    // Access control, permission errors
-  | 'network'                          // Network connectivity issues
-  | 'unknown';                         // Other errors
-
-/**
- * Standardized error information for actor initialization.
- */
-export interface ClassifiedError {
-  classification: ErrorClassification;
-  summary: string;
-  technicalDetails: string;
-  isRetryable: boolean;
+export interface ErrorClassification {
+  isStoppedCanister: boolean;
+  isActorNotReady: boolean;
+  isInitializationError: boolean;
+  isInvalidAdminToken: boolean;
 }
 
 /**
@@ -53,15 +42,30 @@ export function isActorInitializationError(error: unknown): boolean {
   
   return (
     errorMessage.includes('initialization failed') ||
-    errorMessage.includes('Failed to initialize') ||
-    errorMessage.includes('Unauthorized') ||
-    errorMessage.includes('access control')
+    errorMessage.includes('Failed to initialize')
   );
 }
 
 /**
- * Checks if an error is related to a stopped/unavailable canister (transient cold-start error).
- * This is the standardized detector used by both cold-start retry and error UI.
+ * Checks if an error is related to invalid admin token/secret.
+ */
+export function isInvalidAdminTokenError(error: unknown): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const lowerErrorMessage = errorMessage.toLowerCase();
+  
+  return (
+    lowerErrorMessage.includes('unauthorized') ||
+    lowerErrorMessage.includes('access control') ||
+    lowerErrorMessage.includes('invalid secret') ||
+    lowerErrorMessage.includes('invalid token') ||
+    lowerErrorMessage.includes('authentication failed')
+  );
+}
+
+/**
+ * Checks if an error is related to a stopped canister (IC0508).
  */
 export function isCanisterStoppedError(error: unknown): boolean {
   if (!error) return false;
@@ -79,63 +83,20 @@ export function isCanisterStoppedError(error: unknown): boolean {
     return true;
   }
   
-  // Check for "stopping" state
-  if (lowerErrorString.includes('is stopping') || lowerErrorString.includes('canister stopping')) {
-    return true;
-  }
-  
   // Check for reject code 5 (which indicates canister stopped/stopping)
   if (errorString.includes('"reject_code":5') || 
       errorString.includes('"reject_code": 5') ||
-      errorString.includes('reject_code: 5')) {
+      errorString.includes('reject_code: 5') ||
+      errorString.includes('Reject code: 5')) {
     return true;
   }
   
-  // Check for destination invalid (often means canister is stopped or warming up)
+  // Check for destination invalid (often means canister is stopped)
   if (lowerErrorString.includes('destination invalid')) {
     return true;
   }
   
-  // Check for "unavailable" or "not available"
-  if (lowerErrorString.includes('unavailable') || lowerErrorString.includes('not available')) {
-    return true;
-  }
-  
   return false;
-}
-
-/**
- * Checks if an error is authorization-related.
- */
-export function isAuthorizationError(error: unknown): boolean {
-  if (!error) return false;
-  
-  const errorString = error instanceof Error ? error.message : String(error);
-  const lowerErrorString = errorString.toLowerCase();
-  
-  return (
-    lowerErrorString.includes('unauthorized') ||
-    lowerErrorString.includes('permission denied') ||
-    lowerErrorString.includes('access denied') ||
-    lowerErrorString.includes('forbidden')
-  );
-}
-
-/**
- * Checks if an error is network-related.
- */
-export function isNetworkError(error: unknown): boolean {
-  if (!error) return false;
-  
-  const errorString = error instanceof Error ? error.message : String(error);
-  const lowerErrorString = errorString.toLowerCase();
-  
-  return (
-    lowerErrorString.includes('network') ||
-    lowerErrorString.includes('timeout') ||
-    lowerErrorString.includes('connection') ||
-    lowerErrorString.includes('fetch failed')
-  );
 }
 
 /**
@@ -185,70 +146,69 @@ export function serializeErrorDetails(error: unknown): string {
 }
 
 /**
- * Classifies an actor initialization error into a standardized category.
- * This is the single source of truth for error classification used by both
- * cold-start retry logic and error UI rendering.
+ * Classifies an error into categories for UI decision-making.
  */
-export function classifyActorInitError(error: unknown): ErrorClassification {
-  // Check for transient canister unavailability first (most specific for cold start)
-  if (isCanisterStoppedError(error)) {
-    return 'transient-canister-unavailable';
-  }
-  
-  // Check for authorization errors
-  if (isAuthorizationError(error)) {
-    return 'authorization';
-  }
-  
-  // Check for network errors
-  if (isNetworkError(error)) {
-    return 'network';
-  }
-  
-  // Unknown error type
-  return 'unknown';
+export function classifyError(error: unknown): ErrorClassification {
+  return {
+    isStoppedCanister: isCanisterStoppedError(error),
+    isActorNotReady: isActorNotReadyError(error),
+    isInitializationError: isActorInitializationError(error),
+    isInvalidAdminToken: isInvalidAdminTokenError(error),
+  };
 }
 
 /**
- * Maps an actor initialization error to a user-friendly summary and technical details.
- * Now includes standardized classification for retry logic.
+ * Maps an actor initialization error to a user-friendly summary, technical details, and classification.
  */
-export function mapActorInitError(error: unknown): ClassifiedError {
+export function mapActorInitError(error: unknown): { 
+  summary: string; 
+  technicalDetails: string;
+  classification: ErrorClassification;
+} {
   const technicalDetails = serializeErrorDetails(error);
-  const classification = classifyActorInitError(error);
+  const classification = classifyError(error);
   
-  // Determine if error is retryable based on classification
-  const isRetryable = classification === 'transient-canister-unavailable' || classification === 'network';
-  
-  let summary: string;
-  
-  switch (classification) {
-    case 'transient-canister-unavailable':
-      summary = CANISTER_STOPPED_MESSAGE;
-      break;
-    case 'authorization':
-      summary = 'Authorization failed. Please sign in again.';
-      break;
-    case 'network':
-      summary = 'Network connection failed. Please check your internet connection.';
-      break;
-    case 'unknown':
-    default:
-      if (isActorNotReadyError(error)) {
-        summary = ACTOR_NOT_READY_MESSAGE;
-      } else if (isActorInitializationError(error)) {
-        summary = ACTOR_INIT_FAILED_MESSAGE;
-      } else {
-        summary = ACTOR_ERROR_MESSAGE;
-      }
-      break;
+  // Check for stopped canister first (most specific)
+  if (classification.isStoppedCanister) {
+    return {
+      summary: CANISTER_STOPPED_MESSAGE,
+      technicalDetails,
+      classification,
+    };
   }
   
+  // Check for invalid admin token
+  if (classification.isInvalidAdminToken) {
+    return {
+      summary: INVALID_ADMIN_TOKEN_MESSAGE,
+      technicalDetails,
+      classification,
+    };
+  }
+  
+  // Check for actor not ready
+  if (classification.isActorNotReady) {
+    return {
+      summary: ACTOR_NOT_READY_MESSAGE,
+      technicalDetails,
+      classification,
+    };
+  }
+  
+  // Check for initialization errors
+  if (classification.isInitializationError) {
+    return {
+      summary: ACTOR_INIT_FAILED_MESSAGE,
+      technicalDetails,
+      classification,
+    };
+  }
+  
+  // Generic error
   return {
-    classification,
-    summary,
+    summary: ACTOR_ERROR_MESSAGE,
     technicalDetails,
-    isRetryable
+    classification,
   };
 }
 
@@ -257,8 +217,27 @@ export function mapActorInitError(error: unknown): ClassifiedError {
  * @deprecated Use mapActorInitError instead for better error handling
  */
 export function getActorErrorMessage(error: unknown): string {
-  const mapped = mapActorInitError(error);
-  return mapped.summary;
+  if (isCanisterStoppedError(error)) {
+    return CANISTER_STOPPED_MESSAGE;
+  }
+  
+  if (isInvalidAdminTokenError(error)) {
+    return INVALID_ADMIN_TOKEN_MESSAGE;
+  }
+  
+  if (isActorNotReadyError(error)) {
+    return ACTOR_NOT_READY_MESSAGE;
+  }
+  
+  if (isActorInitializationError(error)) {
+    return ACTOR_INIT_FAILED_MESSAGE;
+  }
+  
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  return ACTOR_ERROR_MESSAGE;
 }
 
 /**

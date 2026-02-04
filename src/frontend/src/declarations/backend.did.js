@@ -56,6 +56,10 @@ export const PaginatedFiles = IDL.Record({
   'files' : IDL.Vec(FileMetadata),
   'hasMore' : IDL.Bool,
 });
+export const HealthResult = IDL.Record({
+  'cycles' : IDL.Nat,
+  'build' : IDL.Text,
+});
 export const Mission = IDL.Record({
   'id' : IDL.Nat,
   'tasks' : IDL.Vec(Task),
@@ -124,6 +128,7 @@ export const idlService = IDL.Service({
       [PaginatedFiles],
       ['query'],
     ),
+  'getHealth' : IDL.Func([], [HealthResult], ['query']),
   'getMission' : IDL.Func([IDL.Nat], [IDL.Opt(Mission)], ['query']),
   'getNote' : IDL.Func([IDL.Nat], [IDL.Opt(Note)], ['query']),
   'getPaginatedFiles' : IDL.Func(
@@ -204,6 +209,7 @@ export const idlFactory = ({ IDL }) => {
     'files' : IDL.Vec(FileMetadata),
     'hasMore' : IDL.Bool,
   });
+  const HealthResult = IDL.Record({ 'cycles' : IDL.Nat, 'build' : IDL.Text });
   const Mission = IDL.Record({
     'id' : IDL.Nat,
     'tasks' : IDL.Vec(Task),
@@ -269,6 +275,7 @@ export const idlFactory = ({ IDL }) => {
         [PaginatedFiles],
         ['query'],
       ),
+    'getHealth' : IDL.Func([], [HealthResult], ['query']),
     'getMission' : IDL.Func([IDL.Nat], [IDL.Opt(Mission)], ['query']),
     'getNote' : IDL.Func([IDL.Nat], [IDL.Opt(Note)], ['query']),
     'getPaginatedFiles' : IDL.Func(

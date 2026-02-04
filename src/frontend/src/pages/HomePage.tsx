@@ -9,9 +9,9 @@ import NotesButton from '@/components/NotesButton';
 import NotesFullScreenView from '@/components/NotesFullScreenView';
 import MissionsButton from '@/components/MissionsButton';
 import MissionsFullScreenView from '@/components/MissionsFullScreenView';
-import LoginButton from '@/components/LoginButton';
 import DecorativeBottomLine from '@/components/DecorativeBottomLine';
 import ActorInitErrorState from '@/components/ActorInitErrorState';
+import WelcomeIntroScreen from '@/components/WelcomeIntroScreen';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
@@ -35,8 +35,7 @@ export default function HomePage() {
 
   const isAuthenticated = !!identity;
   const isActorReady = status === 'ready';
-  const isActorError = status === 'error';
-  const isActorInitializing = status === 'initializing';
+  const isFinalFailure = status === 'error' && error;
 
   const handleFolderSelect = (folder: Folder) => {
     setSelectedFolder(folder);
@@ -48,30 +47,13 @@ export default function HomePage() {
   };
 
   const mainContent = useMemo(() => {
-    // Show login screen for unauthenticated users
+    // Show welcome intro for unauthenticated users (every time there's no active session)
     if (!isAuthenticated && !isInitializing) {
-      return (
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex flex-1 items-center justify-center bg-gradient-to-b from-background to-muted/20">
-            <div className="text-center space-y-6 px-4">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Welcome to MyGallery</h2>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  A dynamic multimedia gallery application for uploading, viewing, and organizing photos, videos, and documents.
-                </p>
-              </div>
-              <LoginButton />
-            </div>
-          </main>
-          <Footer />
-        </div>
-      );
+      return <WelcomeIntroScreen />;
     }
 
-    // Show error state only if actor initialization failed AND we're in error status
-    // (During cold-start silent retry, status stays 'initializing' so error UI won't show)
-    if (isAuthenticated && isActorError && error) {
+    // Show final failure error state only after retry budget is exhausted
+    if (isAuthenticated && isFinalFailure && error) {
       return (
         <ActorInitErrorState 
           summary={error.summary}
@@ -83,24 +65,9 @@ export default function HomePage() {
       );
     }
 
-    // Show loading state during initialization (including silent retry phase)
-    if (isInitializing || (isAuthenticated && isActorInitializing)) {
-      return (
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-              <p className="text-muted-foreground">Initializing...</p>
-            </div>
-          </main>
-          <Footer />
-        </div>
-      );
-    }
-
-    // Show main app for authenticated users with ready actor
-    if (isAuthenticated && isActorReady) {
+    // Show main app for authenticated users (even during initialization or unavailable state)
+    // No ConnectivityIndicator shown during silent retries
+    if (isAuthenticated) {
       return (
         <>
           {isNotesOpen ? (
@@ -121,9 +88,18 @@ export default function HomePage() {
                 )}
               </main>
               <DecorativeBottomLine />
-              <FoldersButton onClick={() => setIsFoldersDialogOpen(true)} />
-              <NotesButton onClick={() => setIsNotesOpen(true)} />
-              <MissionsButton onClick={() => setIsMissionsOpen(true)} />
+              <FoldersButton 
+                onClick={() => setIsFoldersDialogOpen(true)} 
+                disabled={!isActorReady}
+              />
+              <NotesButton 
+                onClick={() => setIsNotesOpen(true)} 
+                disabled={!isActorReady}
+              />
+              <MissionsButton 
+                onClick={() => setIsMissionsOpen(true)} 
+                disabled={!isActorReady}
+              />
               <FoldersDialog
                 open={isFoldersDialogOpen}
                 onOpenChange={setIsFoldersDialogOpen}
@@ -136,7 +112,7 @@ export default function HomePage() {
       );
     }
 
-    // Fallback to loading
+    // Fallback to loading (only during Internet Identity initialization)
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
@@ -149,7 +125,7 @@ export default function HomePage() {
         <Footer />
       </div>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isActorError, isActorInitializing, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isNotesOpen, isMissionsOpen]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isNotesOpen, isMissionsOpen]);
 
   return mainContent;
 }

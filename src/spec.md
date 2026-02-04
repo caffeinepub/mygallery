@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Prevent the frequent “Service Unavailable / backend service is currently unavailable” screen on first open after deploy by adding a cold-start silent retry flow for backend actor initialization, with clear diagnostics and bounded retry behavior.
+**Goal:** Update the unauthenticated welcome screen subtitle text under “Welcome to MyGallery” to the provided English copy.
 
 **Planned changes:**
-- Diagnose and log the root cause of first-open initialization failures (frontend console + any available backend diagnostics) to distinguish canister-stopped/warm-up vs network vs access-control issues.
-- Update frontend actor initialization so that on first open in a session, transient cold-start errors trigger silent background retries with capped backoff while keeping the UI in a loading/initializing state (no ActorInitErrorState).
-- Add a session-scoped “initialized once” flag so that after a successful initialization, subsequent initialization failures show the existing ActorInitErrorState behavior.
-- Unify canister-stopped/unavailable error classification into a shared detection method, used both for deciding cold-start silent retry and for ActorInitErrorState logic.
-- Ensure retries are bounded and transition to a real error state if the backend stays unavailable beyond the configured retry window.
+- Update the subtitle/intro text in `frontend/src/components/WelcomeIntroScreen.tsx` to exactly:
+  - "This is your personal space for organization and self-improvement.
+Create missions, break them into tasks, and complete them step by step."
+- Ensure no other user-facing text is changed.
 
-**User-visible outcome:** On the first open after a deploy, the app stays in a loading state and automatically recovers once the backend is ready instead of showing a “Service Unavailable” error; if the backend is genuinely down for too long, the app shows the normal error screen, and later failures (after a successful init) behave as they do today.
+**User-visible outcome:** When logged out, users see the “Welcome to MyGallery” heading with the updated two-sentence English subtitle displayed exactly as provided (including the line break).

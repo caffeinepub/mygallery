@@ -11,12 +11,12 @@ import { LogOut } from 'lucide-react';
 import AnimatedGalleryIcon from './AnimatedGalleryIcon';
 import UnifiedProgressBar from './UnifiedProgressBar';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
+import { useBackendActor } from '@/contexts/ActorContext';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
-  const { identity, clear } = useInternetIdentity();
-  const queryClient = useQueryClient();
+  const { identity } = useInternetIdentity();
+  const { signOut } = useBackendActor();
 
   const isAuthenticated = !!identity;
 
@@ -25,8 +25,7 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    await clear();
-    queryClient.clear();
+    await signOut();
   };
 
   return (

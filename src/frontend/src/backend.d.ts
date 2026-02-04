@@ -33,6 +33,12 @@ export interface Mission {
     owner: Principal;
 }
 export type Time = bigint;
+export interface UserProfile {
+    name: string;
+}
+export interface UploadResponse {
+    id: string;
+}
 export interface FileMetadata {
     id: string;
     owner: Principal;
@@ -43,16 +49,14 @@ export interface FileMetadata {
     mimeType: string;
     folderId?: bigint;
 }
-export interface UserProfile {
-    name: string;
-}
-export interface UploadResponse {
-    id: string;
-}
 export interface Task {
     task: string;
     completed: boolean;
     taskId: bigint;
+}
+export interface HealthResult {
+    cycles: bigint;
+    build: string;
 }
 export interface DiagnosticResult {
     cycles: bigint;
@@ -93,6 +97,7 @@ export interface backendInterface {
     getDiagnostics(): Promise<DiagnosticResult>;
     getFile(fileId: string): Promise<FileMetadata | null>;
     getFilesInFolder(folderId: bigint, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
+    getHealth(): Promise<HealthResult>;
     getMission(missionId: bigint): Promise<Mission | null>;
     getNote(noteId: bigint): Promise<Note | null>;
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;

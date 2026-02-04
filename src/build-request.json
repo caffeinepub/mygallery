@@ -1,90 +1,33 @@
 {
   "kind": "build_request",
-  "title": "Silent cold-start retry for backend actor initialization to prevent 'Service Unavailable' on first open",
-  "priority": "high",
+  "title": "Update welcome screen intro subtitle copy",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-17",
-      "text": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "θελω να ελεγξεις γιατι εμφανιζερται αυτο το μυνημα συχνα οταν ανοιγω draft η το live page της εφαρμογης μετα απο καθε prompt ωστε να μην εμφανιστει ξανα"
-        ]
-      },
-      "acceptanceCriteria": [
-        "On first open after a deploy/prompt, the app does not present a user-facing 'Service Unavailable' error screen during backend warm-up.",
-        "A clear technical diagnosis is captured in logs/diagnostics (frontend console + any available backend logs/diagnostics endpoints) indicating whether failures are canister-stopped, transient network, or access-control init related.",
-        "If the backend is genuinely unavailable for an extended period, the app eventually transitions to a real error state (does not retry forever)."
-      ]
-    },
-    {
-      "id": "REQ-18",
-      "text": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
+      "id": "REQ-1",
+      "text": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "sillent retry.",
-          "στο πρωτο ανοιγμα μονο"
+          "Το κείμενο intro κάτω από το welcome to my gallery να γίνει :στα αγγλικά This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step."
         ]
       },
       "acceptanceCriteria": [
-        "When the first initialization attempt fails with canister-stopped/unavailable indicators, the app stays on a loading/initializing screen and retries automatically without showing ActorInitErrorState.",
-        "Retries use a bounded policy (e.g., capped exponential backoff and a max overall retry window).",
-        "Once the backend becomes available, the actor initializes successfully and the user is taken into the normal app UI without any manual action."
-      ]
-    },
-    {
-      "id": "REQ-19",
-      "text": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "στο πρωτο ανοιγμα μονο"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A session-scoped flag (or equivalent) records that the app has completed a successful actor initialization at least once during the current session.",
-        "If the user later encounters a real initialization failure (after the session has already initialized successfully once), the ActorInitErrorState screen appears as it does today (with Retry/Sign Out actions)."
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "text": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Service Unavailable\nThe backend service is currently unavailable. This usually means the canister needs to be restarted by the administrator."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Canister-stopped/unavailable errors are detected using a single shared method (not by checking if the summary string contains specific phrases).",
-        "Cold-start silent retry is triggered only for the intended transient/cold-start class of errors (e.g., stopped/stopping/destination invalid), not for authorization or permanent failures."
+        "When logged out, the welcome screen shows the heading \"Welcome to MyGallery\" and the subtitle text exactly matches the provided English copy (including sentence text and line break/paragraph split).",
+        "No other user-facing text is changed."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
-    "Do not edit files listed in frontend.immutablePaths (must compose around them instead).",
-    "Keep the backend as a single Motoko actor (no additional backend services).",
-    "Do not mask permanent failures: if the backend remains unavailable beyond the configured retry window, show an error state."
+    "Use English for any user-facing text changed as part of this request.",
+    "Do not modify files listed as immutable in SYSTEM_CONTEXT.frontend.immutablePaths."
   ],
   "nonGoals": [
-    "Adding new authentication providers beyond Internet Identity.",
-    "Implementing real-time communication (WebSockets) or push notifications.",
-    "Introducing external databases or non-Motoko backend services."
+    "Do not change the post-login IntroScreen animation or timing.",
+    "Do not add or modify missions functionality; only update the welcome screen subtitle copy."
   ],
   "imageRequirements": {
     "required": [],

@@ -141,7 +141,7 @@ export default function FoldersDialog({
               </div>
             ) : !isActorReady ? (
               <div className="text-center text-muted-foreground py-8">
-                Initializing...
+                Loading...
               </div>
             ) : folders.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">

@@ -6,13 +6,15 @@ import Time "mo:core/Time";
 import List "mo:core/List";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
+import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
+import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Iter "mo:core/Iter";
-import Cycles "mo:core/Cycles";
+
+
 
 actor {
   include MixinStorage();
@@ -72,6 +74,11 @@ actor {
     cycles : Nat;
   };
 
+  public type HealthResult = {
+    build : Text;
+    cycles : Nat;
+  };
+
   // Authorization core
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -99,6 +106,13 @@ actor {
   // Helper: Find file by string id
   private func findFileByTextId(id : Text) : ?(Nat, FileMetadata) {
     files.toArray().find(func((_, file)) { file.id == id });
+  };
+
+  public query ({ caller }) func getHealth() : async HealthResult {
+    {
+      build = "1.1.2";
+      cycles = Cycles.balance();
+    };
   };
 
   public query ({ caller }) func getDiagnostics() : async DiagnosticResult {
@@ -456,7 +470,7 @@ actor {
         };
         case (?(_, file)) {
           if (file.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
-            Runtime.trap("Unauthorized: Can only delete your own files");
+            Runtime.trap("Unauthorized: Only can delete your own files");
           };
         };
       };
@@ -489,7 +503,7 @@ actor {
         switch (folders.get(folderId)) {
           case (?folder) {
             if (folder.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
-              Runtime.trap("Unauthorized: Only users can move files to your own folders");
+              Runtime.trap("Unauthorized: Only users can to your own folders");
             };
             let updatedFile = { file with folderId = ?folderId };
             files.add(numericFileId, updatedFile);

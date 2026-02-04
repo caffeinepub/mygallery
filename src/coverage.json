@@ -1,67 +1,24 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T07:54:30.286Z",
+  "generatedAt": "2026-02-04T11:31:31.594Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-17",
-        "summary": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
+        "id": "REQ-1",
+        "summary": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/utils/actorInitializationMessaging.ts",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/components/WelcomeIntroScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/utils/actorInitializationMessaging.ts",
-          "frontend/src/pages/HomePage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-18",
-        "summary": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/utils/actorInitializationMessaging.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/utils/actorInitializationMessaging.ts"
-        ]
-      },
-      {
-        "id": "REQ-19",
-        "summary": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/contexts/ActorContext.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/contexts/ActorContext.tsx"
-        ]
-      },
-      {
-        "id": "REQ-20",
-        "summary": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/utils/actorInitializationMessaging.ts",
-          "frontend/src/components/ActorInitErrorState.tsx",
-          "frontend/src/contexts/ActorContext.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/utils/actorInitializationMessaging.ts",
-          "frontend/src/components/ActorInitErrorState.tsx",
-          "frontend/src/contexts/ActorContext.tsx"
+          "frontend/src/components/WelcomeIntroScreen.tsx"
         ]
       }
     ]
@@ -71,10 +28,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/ActorInitErrorState.tsx",
-    "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/utils/actorInitializationMessaging.ts",
+    "frontend/src/components/WelcomeIntroScreen.tsx",
+    "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

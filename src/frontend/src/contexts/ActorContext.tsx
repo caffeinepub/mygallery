@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
+import { useQueryClient } from '@tanstack/react-query';
 import { type backendInterface } from '../backend';
 import { createActorWithConfig } from '../config';
-import { getSecretParameter } from '../utils/urlParams';
-import { mapActorInitError, type ClassifiedError } from '@/utils/actorInitializationMessaging';
+import { getNormalizedAdminToken } from '../utils/urlParams';
+import { mapActorInitError, type ErrorClassification } from '@/utils/actorInitializationMessaging';
 
-type ActorStatus = 'idle' | 'initializing' | 'ready' | 'error';
+type ActorStatus = 'idle' | 'initializing' | 'ready' | 'unavailable' | 'error';
 
 interface ActorError {
   summary: string;
   technicalDetails: string;
-  classification?: string;
+  classification: ErrorClassification;
 }
 
 interface ActorContextValue {
@@ -23,78 +24,27 @@ interface ActorContextValue {
 
 const ActorContext = createContext<ActorContextValue | undefined>(undefined);
 
-// Session storage key for tracking successful initialization
-const SESSION_INIT_KEY = 'actor_initialized_successfully';
-
-// Retry configuration for cold-start silent retry
-const RETRY_CONFIG = {
-  maxRetries: 8,                    // Maximum number of retry attempts
-  initialDelayMs: 500,              // Initial delay before first retry
-  maxDelayMs: 8000,                 // Maximum delay between retries
-  backoffMultiplier: 1.5,           // Exponential backoff multiplier
-  maxRetryWindowMs: 45000,          // Maximum total time to spend retrying (45 seconds)
-};
-
-/**
- * Calculates the next retry delay using capped exponential backoff with jitter.
- */
-function calculateRetryDelay(attemptNumber: number): number {
-  const exponentialDelay = RETRY_CONFIG.initialDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attemptNumber);
-  const cappedDelay = Math.min(exponentialDelay, RETRY_CONFIG.maxDelayMs);
-  // Add jitter (±20%)
-  const jitter = cappedDelay * 0.2 * (Math.random() * 2 - 1);
-  return Math.round(cappedDelay + jitter);
-}
-
-/**
- * Checks if this is the first initialization attempt in the current session.
- */
-function isFirstSessionInit(): boolean {
-  try {
-    return sessionStorage.getItem(SESSION_INIT_KEY) !== 'true';
-  } catch {
-    // If sessionStorage is unavailable, treat as first init
-    return true;
-  }
-}
-
-/**
- * Marks that a successful initialization has occurred in this session.
- */
-function markSessionInitSuccess(): void {
-  try {
-    sessionStorage.setItem(SESSION_INIT_KEY, 'true');
-  } catch {
-    // Ignore if sessionStorage is unavailable
-  }
-}
-
-/**
- * Clears the session initialization flag (e.g., on sign-out).
- */
-function clearSessionInitFlag(): void {
-  try {
-    sessionStorage.removeItem(SESSION_INIT_KEY);
-  } catch {
-    // Ignore if sessionStorage is unavailable
-  }
-}
+const INITIAL_RETRY_DELAY = 2000; // 2 seconds
+const MAX_RETRY_DELAY = 30000; // 30 seconds
+const BACKOFF_MULTIPLIER = 1.5;
+const MAX_RETRY_ATTEMPTS = 5; // Maximum number of retry attempts before final failure
+const MAX_RETRY_TIME = 60000; // Maximum total retry time (60 seconds) before final failure
 
 export function ActorProvider({ children }: { children: React.ReactNode }) {
   const { identity, clear } = useInternetIdentity();
+  const queryClient = useQueryClient();
   const [actor, setActor] = useState<backendInterface | null>(null);
   const [status, setStatus] = useState<ActorStatus>('idle');
   const [error, setError] = useState<ActorError | null>(null);
   
-  // Refs for retry state management
+  // Track retry state
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryDelayRef = useRef<number>(INITIAL_RETRY_DELAY);
+  const retryCountRef = useRef<number>(0);
   const retryStartTimeRef = useRef<number | null>(null);
-  const retryAttemptRef = useRef<number>(0);
-  const isRetryingRef = useRef<boolean>(false);
+  const isInitializingRef = useRef<boolean>(false);
+  const currentIdentityRef = useRef<typeof identity>(null);
 
-  /**
-   * Clears any pending retry timeout.
-   */
   const clearRetryTimeout = useCallback(() => {
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
@@ -102,20 +52,53 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  /**
-   * Resets retry state.
-   */
   const resetRetryState = useCallback(() => {
-    clearRetryTimeout();
+    retryDelayRef.current = INITIAL_RETRY_DELAY;
+    retryCountRef.current = 0;
     retryStartTimeRef.current = null;
-    retryAttemptRef.current = 0;
-    isRetryingRef.current = false;
+    clearRetryTimeout();
   }, [clearRetryTimeout]);
 
-  /**
-   * Core actor initialization logic.
-   */
-  const performActorInit = useCallback(async (): Promise<{ success: boolean; error?: ClassifiedError }> => {
+  const hasExceededRetryBudget = useCallback((): boolean => {
+    // Check if we've exceeded max attempts
+    if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
+      return true;
+    }
+    
+    // Check if we've exceeded max retry time
+    if (retryStartTimeRef.current) {
+      const elapsedTime = Date.now() - retryStartTimeRef.current;
+      if (elapsedTime >= MAX_RETRY_TIME) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, []);
+
+  const initializeActor = useCallback(async (isRetry: boolean = false) => {
+    // Don't initialize if not authenticated
+    if (!identity) {
+      setActor(null);
+      setStatus('idle');
+      setError(null);
+      resetRetryState();
+      isInitializingRef.current = false;
+      return;
+    }
+
+    // Prevent parallel initialization attempts
+    if (isInitializingRef.current) {
+      return;
+    }
+
+    isInitializingRef.current = true;
+    setStatus('initializing');
+    if (!isRetry) {
+      setError(null);
+      resetRetryState();
+    }
+
     try {
       const actorOptions = {
         agentOptions: {
@@ -124,236 +107,113 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
       };
 
       const newActor = await createActorWithConfig(actorOptions);
-      const adminToken = getSecretParameter('caffeineAdminToken') || '';
-      await newActor._initializeAccessControlWithSecret(adminToken);
       
-      return { success: true };
-    } catch (err) {
-      const mappedError = mapActorInitError(err);
-      return { success: false, error: mappedError };
-    }
-  }, [identity]);
-
-  /**
-   * Logs structured diagnostic information about initialization attempts.
-   */
-  const logInitDiagnostics = useCallback((
-    attemptNumber: number,
-    elapsedMs: number,
-    classification: string,
-    errorDetails: string,
-    willRetry: boolean
-  ) => {
-    const diagnostics = {
-      timestamp: new Date().toISOString(),
-      attemptNumber,
-      elapsedMs,
-      classification,
-      willRetry,
-      errorDetails,
-    };
-    
-    console.log(
-      `[Actor Init] Attempt ${attemptNumber} failed after ${elapsedMs}ms | ` +
-      `Classification: ${classification} | Will retry: ${willRetry}`,
-      diagnostics
-    );
-  }, []);
-
-  /**
-   * Recursive retry function with bounded exponential backoff.
-   */
-  const retryWithBackoff = useCallback(async () => {
-    if (!identity) {
-      resetRetryState();
-      return;
-    }
-
-    const attemptNumber = retryAttemptRef.current;
-    const startTime = retryStartTimeRef.current || Date.now();
-    const elapsedMs = Date.now() - startTime;
-
-    // Check if we've exceeded the retry window
-    if (elapsedMs >= RETRY_CONFIG.maxRetryWindowMs) {
-      console.log(`[Actor Init] Retry window exceeded (${elapsedMs}ms). Showing error state.`);
-      resetRetryState();
-      setStatus('error');
-      return;
-    }
-
-    // Check if we've exceeded max retries
-    if (attemptNumber >= RETRY_CONFIG.maxRetries) {
-      console.log(`[Actor Init] Max retries (${RETRY_CONFIG.maxRetries}) exceeded. Showing error state.`);
-      resetRetryState();
-      setStatus('error');
-      return;
-    }
-
-    // Perform initialization attempt
-    const result = await performActorInit();
-
-    if (result.success) {
-      console.log(`[Actor Init] Success on attempt ${attemptNumber + 1} after ${elapsedMs}ms`);
-      resetRetryState();
-      // Success will be handled by the main initialization flow
-      return;
-    }
-
-    // Initialization failed
-    const { error: classifiedError } = result;
-    if (!classifiedError) {
-      resetRetryState();
-      setStatus('error');
-      return;
-    }
-
-    // Determine if we should retry based on error classification
-    const shouldRetry = classifiedError.classification === 'transient-canister-unavailable';
-
-    logInitDiagnostics(
-      attemptNumber + 1,
-      elapsedMs,
-      classifiedError.classification,
-      classifiedError.technicalDetails,
-      shouldRetry
-    );
-
-    if (!shouldRetry) {
-      console.log(`[Actor Init] Non-retryable error (${classifiedError.classification}). Showing error state.`);
-      resetRetryState();
-      setError({
-        summary: classifiedError.summary,
-        technicalDetails: classifiedError.technicalDetails,
-        classification: classifiedError.classification,
-      });
-      setStatus('error');
-      return;
-    }
-
-    // Schedule next retry with exponential backoff
-    const delayMs = calculateRetryDelay(attemptNumber);
-    console.log(`[Actor Init] Scheduling retry ${attemptNumber + 2} in ${delayMs}ms`);
-    
-    retryAttemptRef.current += 1;
-    retryTimeoutRef.current = setTimeout(() => {
-      retryWithBackoff();
-    }, delayMs);
-  }, [identity, performActorInit, resetRetryState, logInitDiagnostics]);
-
-  /**
-   * Main initialization function with cold-start silent retry logic.
-   */
-  const initializeActor = useCallback(async () => {
-    // Don't initialize if not authenticated
-    if (!identity) {
-      setActor(null);
-      setStatus('idle');
-      setError(null);
-      resetRetryState();
-      return;
-    }
-
-    // Clear any pending retries
-    clearRetryTimeout();
-
-    setStatus('initializing');
-    setError(null);
-
-    // Perform initial attempt
-    const result = await performActorInit();
-
-    if (result.success) {
-      // Success on first attempt
-      const actorOptions = {
-        agentOptions: {
-          identity
-        }
-      };
-      const newActor = await createActorWithConfig(actorOptions);
-      const adminToken = getSecretParameter('caffeineAdminToken') || '';
-      await newActor._initializeAccessControlWithSecret(adminToken);
+      // Only call _initializeAccessControlWithSecret if a normalized non-empty token is present
+      const adminToken = getNormalizedAdminToken('caffeineAdminToken');
+      if (adminToken) {
+        await newActor._initializeAccessControlWithSecret(adminToken);
+      }
       
+      // Success: reset retry state and set ready
       setActor(newActor);
       setStatus('ready');
-      markSessionInitSuccess();
+      setError(null);
       resetRetryState();
-      console.log('[Actor Init] Success on first attempt');
-      return;
-    }
-
-    // First attempt failed
-    const { error: classifiedError } = result;
-    if (!classifiedError) {
-      setStatus('error');
-      setError({ summary: 'Unknown error', technicalDetails: 'No error details available' });
-      return;
-    }
-
-    // Check if this is the first initialization in the session
-    const isFirstInit = isFirstSessionInit();
-    
-    // Check if error is retryable (transient canister unavailability)
-    const isRetryable = classifiedError.classification === 'transient-canister-unavailable';
-
-    logInitDiagnostics(
-      1,
-      0,
-      classifiedError.classification,
-      classifiedError.technicalDetails,
-      isFirstInit && isRetryable
-    );
-
-    // If this is the first init and error is retryable, start silent retry
-    if (isFirstInit && isRetryable) {
-      console.log('[Actor Init] First session init with transient error. Starting silent retry...');
-      isRetryingRef.current = true;
-      retryStartTimeRef.current = Date.now();
-      retryAttemptRef.current = 1;
+      isInitializingRef.current = false;
+    } catch (err) {
+      console.error('Actor initialization failed:', err);
       
-      // Stay in initializing state and start retry loop
-      const delayMs = calculateRetryDelay(0);
-      retryTimeoutRef.current = setTimeout(() => {
-        retryWithBackoff();
-      }, delayMs);
-      return;
-    }
+      // Map the error to user-friendly summary + technical details + classification
+      const mappedError = mapActorInitError(err);
+      setError(mappedError);
+      setActor(null);
+      isInitializingRef.current = false;
 
-    // Not first init or not retryable - show error immediately
-    console.log('[Actor Init] Showing error state immediately (not first init or not retryable)');
-    setError({
-      summary: classifiedError.summary,
-      technicalDetails: classifiedError.technicalDetails,
-      classification: classifiedError.classification,
-    });
-    setStatus('error');
-    setActor(null);
-  }, [identity, performActorInit, resetRetryState, clearRetryTimeout, retryWithBackoff, logInitDiagnostics]);
+      // Determine if this is a stopped-canister error (retryable)
+      if (mappedError.classification.isStoppedCanister) {
+        // Initialize retry start time on first retry
+        if (!retryStartTimeRef.current) {
+          retryStartTimeRef.current = Date.now();
+        }
+        
+        // Increment retry count
+        retryCountRef.current += 1;
+        
+        // Check if we've exceeded retry budget
+        if (hasExceededRetryBudget()) {
+          // Final failure: show error state
+          setStatus('error');
+          resetRetryState();
+        } else {
+          // Continue retrying silently
+          setStatus('unavailable');
+          
+          // Schedule automatic retry with exponential backoff
+          const currentDelay = retryDelayRef.current;
+          retryTimeoutRef.current = setTimeout(() => {
+            // Only retry if identity hasn't changed
+            if (currentIdentityRef.current === identity) {
+              initializeActor(true);
+            }
+          }, currentDelay);
+          
+          // Increase delay for next retry (exponential backoff)
+          retryDelayRef.current = Math.min(
+            currentDelay * BACKOFF_MULTIPLIER,
+            MAX_RETRY_DELAY
+          );
+        }
+      } else {
+        // Fatal error: stop retrying immediately
+        setStatus('error');
+        resetRetryState();
+      }
+    }
+  }, [identity, resetRetryState, hasExceededRetryBudget]);
+
+  // Track identity changes
+  useEffect(() => {
+    currentIdentityRef.current = identity;
+  }, [identity]);
 
   // Initialize actor when identity changes
   useEffect(() => {
-    initializeActor();
+    // Cancel any pending retries when identity changes
+    resetRetryState();
+    isInitializingRef.current = false;
+    
+    initializeActor(false);
     
     // Cleanup on unmount or identity change
     return () => {
       clearRetryTimeout();
+      isInitializingRef.current = false;
     };
-  }, [initializeActor, clearRetryTimeout]);
+  }, [initializeActor, resetRetryState, clearRetryTimeout]);
 
   const retry = useCallback(() => {
-    console.log('[Actor Init] Manual retry triggered');
+    // Reset all retry state on manual retry
     resetRetryState();
-    initializeActor();
+    isInitializingRef.current = false;
+    initializeActor(false);
   }, [initializeActor, resetRetryState]);
 
   const signOut = useCallback(async () => {
-    console.log('[Actor Init] Sign out - clearing session flag');
+    // Cancel any pending retries
+    resetRetryState();
+    isInitializingRef.current = false;
+    
+    // Clear Internet Identity
     await clear();
+    
+    // Clear React Query cache
+    queryClient.clear();
+    
+    // Reset actor state
     setActor(null);
     setStatus('idle');
     setError(null);
-    resetRetryState();
-    clearSessionInitFlag();
-  }, [clear, resetRetryState]);
+  }, [clear, queryClient, resetRetryState]);
 
   return (
     <ActorContext.Provider value={{ actor, status, error, retry, signOut }}>

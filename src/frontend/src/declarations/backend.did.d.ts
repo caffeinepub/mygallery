@@ -28,6 +28,7 @@ export interface Folder {
   'name' : string,
   'createdAt' : Time,
 }
+export interface HealthResult { 'cycles' : bigint, 'build' : string }
 export interface Mission {
   'id' : bigint,
   'tasks' : Array<Task>,
@@ -106,6 +107,7 @@ export interface _SERVICE {
   'getDiagnostics' : ActorMethod<[], DiagnosticResult>,
   'getFile' : ActorMethod<[string], [] | [FileMetadata]>,
   'getFilesInFolder' : ActorMethod<[bigint, bigint, bigint], PaginatedFiles>,
+  'getHealth' : ActorMethod<[], HealthResult>,
   'getMission' : ActorMethod<[bigint], [] | [Mission]>,
   'getNote' : ActorMethod<[bigint], [] | [Note]>,
   'getPaginatedFiles' : ActorMethod<

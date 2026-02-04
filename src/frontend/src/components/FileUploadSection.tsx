@@ -60,7 +60,7 @@ export default function FileUploadSection() {
           <Upload className={`w-12 h-12 mb-3 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
           <p className={`mb-2 text-sm ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
             <span className="font-semibold">
-              {isDisabled ? 'Initializing...' : 'Click to upload'}
+              {isDisabled ? 'Loading...' : 'Click to upload'}
             </span>
             {!isDisabled && ' or drag and drop'}
           </p>

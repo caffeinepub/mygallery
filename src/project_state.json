@@ -1,511 +1,426 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "MyGallery is an installable PWA (React + TypeScript + Tailwind + shadcn/ui) backed by a Motoko canister on the Internet Computer. Users authenticate via Internet Identity (30-day delegation). After authentication, the frontend initializes an identity-bound canister actor and bootstraps role-based access control. Authenticated users can upload files with global progress tracking, browse a main collection or per-folder views, preview supported file types (images, videos, PDFs, and Office documents via Office Online embed), and manage files with move-to-folder, download, share (Web Share API), and delete (single/bulk) actions. The app also includes per-user Notes and Missions (task checklists) full-screen tools persisted in the canister, plus backend diagnostics and blob-storage maintenance/cycles refill endpoints.",
+  "summary": "MyGallery is an installable Progressive Web App (React + TypeScript + Tailwind + shadcn/ui) backed by a Motoko canister on the Internet Computer. Users authenticate with Internet Identity (persisted long-lived delegations). After login, the frontend initializes an identity-bound canister actor with an explicit lifecycle (idle/initializing/ready/unavailable/error), optional access-control bootstrap via a secret token, and retry/backoff behavior for stopped-canister scenarios. The app provides a personal file library: upload (with progress), browse a main Collection and folder views, preview supported formats (images, videos, PDFs, Office docs via Office Online embed), and manage files via move-to-folder, download, share (Web Share API), and delete (single/bulk). It also includes per-user Notes and Missions (checklist tasks with progress) persisted in the canister, plus backend diagnostics/health endpoints and blob-storage maintenance/cycles refill operations.",
   "existing_features": [
     {
       "id": "IF-1",
-      "title": "Installable PWA (manifest + service worker)",
+      "title": "Installable PWA configuration (manifest + icons + meta)",
       "synonyms": [
+        "PWA installability",
         "manifest.json",
-        "sw.js",
-        "standalone display"
+        "apple-touch-icon"
       ],
-      "description": "Provides PWA metadata/icons and a service worker with minimal precaching, immediate activation (skipWaiting), cache cleanup, and network-first runtime caching for app assets.",
+      "description": "Provides PWA install metadata (name, colors, start_url, display=standalone) and comprehensive favicon/iOS icon + meta tag configuration for MyGallery branding.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-2",
-      "title": "Internet Identity authentication with persisted sessions",
+      "title": "Service worker with minimal precache and network-first runtime caching",
       "synonyms": [
-        "InternetIdentityProvider",
-        "AuthClient",
-        "DelegationIdentity",
-        "maxTimeToLive"
+        "sw.js",
+        "runtime cache",
+        "offline fallback"
       ],
-      "description": "Supports Internet Identity login/logout and restores a previously authenticated identity on reload; requests ~30-day delegations and exposes login state flags for UI gating.",
+      "description": "Implements a lightweight service worker that activates immediately, cleans old caches, and uses network-first fetch handling with cache fallback for navigations and GET assets (excluding canister/API paths).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-3",
-      "title": "Theme system with light/dark/system toggle",
+      "title": "Theme system (light/dark/system) with toggle and OKLCH tokens",
       "synonyms": [
         "next-themes",
         "ThemeProvider",
-        "Tailwind CSS variables"
+        "OKLCH CSS variables"
       ],
-      "description": "Implements app-wide theming with a header toggle and Tailwind colors driven by CSS variables (including dark mode tokens).",
+      "description": "App-wide theming using next-themes and Tailwind color tokens backed by OKLCH CSS variables, with a header toggle for light/dark switching.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-4",
-      "title": "Post-login intro splash screen (session-only)",
+      "title": "Internet Identity authentication with persisted delegations",
       "synonyms": [
-        "IntroScreen",
-        "AnimatedGalleryIcon"
+        "AuthClient",
+        "DelegationIdentity",
+        "30-day session"
       ],
-      "description": "Shows a timed welcome animation after a successful login and transitions into the main app; intended to show once per session.",
+      "description": "Supports Internet Identity login/logout, restores stored identities on reload, and requests ~30-day delegations on login; exposes detailed login status flags for UI gating.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-5",
-      "title": "Authenticated backend actor initialization with lifecycle state, retry, and sign-out",
+      "title": "Unauthenticated welcome screen with login CTA",
       "synonyms": [
-        "ActorProvider",
-        "ActorContext",
-        "idle/initializing/ready/error"
+        "WelcomeIntroScreen",
+        "Sign In with Internet Identity"
       ],
-      "description": "Creates an identity-bound canister actor after authentication, runs access-control initialization, and exposes status/error plus retry and sign-out methods for UI gating.",
+      "description": "Shows a dedicated welcome screen for unauthenticated users, with English copy and a login button wired to Internet Identity.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-6",
-      "title": "Secret parameter extraction from URL hash with session persistence and URL cleanup",
+      "title": "Post-login intro screen shown only after a fresh login event",
       "synonyms": [
-        "getSecretParameter",
-        "getSecretFromHash",
-        "sessionStorage",
-        "clearParamFromHash"
+        "IntroScreen",
+        "one-time session intro"
       ],
-      "description": "Extracts sensitive parameters (e.g., caffeineAdminToken) from the URL hash, persists them to sessionStorage, and removes them from the URL to reduce leakage.",
+      "description": "Displays a timed animated intro only immediately after a successful login event and only once per in-memory session; restored delegations skip the intro.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-7",
-      "title": "Standardized actor initialization error classification and messaging",
+      "title": "Secret token handling via URL hash + session persistence + normalization",
       "synonyms": [
-        "mapActorInitError",
-        "IC0508 detection",
-        "reject_code=5",
-        "destination invalid"
+        "caffeineAdminToken",
+        "sessionStorage",
+        "hash cleanup",
+        "normalizeAdminToken"
       ],
-      "description": "Detects actor-not-ready, initialization/auth errors, and stopped-canister errors; maps them to user-friendly summaries plus serialized technical details preserving structured reject fields.",
+      "description": "Extracts sensitive parameters from the URL hash fragment, persists them in sessionStorage, clears them from the visible URL, and normalizes whitespace-only tokens to null.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-8",
-      "title": "Actor initialization error screen with technical details, retry, and sign-out",
+      "title": "ActorContext: identity-bound backend actor initialization with lifecycle state and retry/backoff",
       "synonyms": [
-        "ActorInitErrorState",
-        "Collapsible technical details"
+        "ActorContext",
+        "idle/initializing/ready/unavailable/error",
+        "exponential backoff"
       ],
-      "description": "Renders a connection failure UI with retry/sign-out actions and an expandable technical-details panel for debugging, including specialized “service unavailable” styling.",
+      "description": "Creates an identity-bound actor after authentication, optionally runs access-control bootstrap when a normalized token is present, silently retries stopped-canister failures with backoff under a retry budget, and exposes retry/sign-out actions with a final failure screen.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-9",
-      "title": "React Query data layer gated by authentication and actor readiness",
+      "title": "Standardized actor initialization error classification and messaging",
       "synonyms": [
-        "@tanstack/react-query",
-        "enabled gating",
-        "invalidateQueries",
-        "optimistic updates"
+        "mapActorInitError",
+        "IC0508 detection",
+        "reject_code 5"
       ],
-      "description": "Provides query/mutation hooks for backend operations that only run when identity exists and actor status is ready; includes invalidation and optimistic updates for selected flows.",
+      "description": "Centralizes detection and mapping for stopped-canister, invalid admin token, actor-not-ready, and initialization failures into English summaries plus serialized technical details for UI display.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-10",
-      "title": "Chunked concurrent multi-file upload with per-file progress callbacks",
+      "title": "Unified sign-out clears identity, actor state, and React Query cache",
       "synonyms": [
-        "useUploadFiles",
-        "ExternalBlob.fromBytes",
-        "withUploadProgress"
+        "ActorContext.signOut",
+        "queryClient.clear"
       ],
-      "description": "Uploads multiple files in small concurrent chunks using ExternalBlob and emits per-file progress updates for UI tracking; refreshes file list on success.",
+      "description": "Implements a single sign-out path that cancels init retries, logs out from Internet Identity, clears React Query cache, and resets actor lifecycle state.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-11",
-      "title": "Global upload batch tracking and unified progress bar",
+      "title": "React Query data layer gated by actor readiness and authentication",
       "synonyms": [
-        "UploadContext",
-        "UnifiedProgressBar",
-        "aggregate progress"
+        "@tanstack/react-query",
+        "enabled gating"
       ],
-      "description": "Tracks upload batches and per-file progress globally; computes aggregate progress and displays a unified progress bar under the header while uploads are active.",
+      "description": "Queries and mutations for files, folders, notes, and missions only run when an authenticated identity exists and ActorContext reports status=ready, with cache invalidation and optimistic update patterns.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-12",
-      "title": "Upload UI with backend readiness gating and toast feedback",
+      "title": "Upload UI with readiness gating and toast feedback",
       "synonyms": [
         "FileUploadSection",
         "sonner toasts"
       ],
-      "description": "Provides a multi-file upload control; blocks uploads until the actor is ready; reports progress via UploadContext and shows success/failure toasts.",
+      "description": "Provides a multi-file upload input/dropzone, disables it until the actor is ready, tracks uploads via UploadContext, and shows success/failure toasts.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-13",
-      "title": "Folder listing and CRUD with optimistic updates",
+      "title": "Multi-file upload with chunked concurrency and per-file progress callbacks",
       "synonyms": [
-        "useGetFolders",
-        "useCreateFolder",
-        "useRenameFolder",
-        "useDeleteFolder"
+        "useUploadFiles",
+        "ExternalBlob.withUploadProgress"
       ],
-      "description": "Implements folder creation, rename (optimistic update + rollback), deletion (optimistic removal + rollback), and listing with cache invalidation.",
+      "description": "Uploads multiple files in small concurrent chunks, converts File objects to bytes, sends them to the canister, and optionally emits per-file progress callbacks.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-14",
-      "title": "Folder management UI (list/select/create/rename/delete)",
+      "title": "Global upload progress aggregation and unified progress bar",
       "synonyms": [
-        "FoldersDialog",
-        "FoldersButton"
+        "UploadContext",
+        "UnifiedProgressBar"
       ],
-      "description": "Provides a dialog to list/select folders and perform folder CRUD actions with actor readiness checks and toast feedback; includes a floating folders button entry point.",
+      "description": "Tracks upload batches and per-file progress globally, computes aggregate progress, and displays a compact progress bar under the header while uploads are active.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-15",
-      "title": "File listing for main collection and folder-scoped views",
+      "title": "Main collection and folder-scoped file listing",
       "synonyms": [
-        "useGetFilesNotInFolder",
-        "useGetFilesInFolder",
         "getPaginatedFiles",
         "getFilesInFolder"
       ],
-      "description": "Lists caller-owned files either in the main collection (unfoldered) or within a selected folder via backend queries (offset/limit window).",
+      "description": "Lists files not assigned to any folder as the main Collection and lists files within a selected folder using backend pagination parameters.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-16",
-      "title": "Move files into folders and remove from folders",
+      "title": "Gallery grid UI with loading/empty/error states and MIME-aware tiles",
       "synonyms": [
-        "useMoveFilesToFolder",
-        "useRemoveFromFolder",
-        "SendToFolderDialog"
+        "GallerySection",
+        "Skeleton loading",
+        "MIME icons"
       ],
-      "description": "Moves one or many files into a target folder and supports returning files to the main collection by removing folder assignment; includes optimistic cache updates for move.",
+      "description": "Renders a file grid with skeleton loading, empty and error states; uses image thumbnails, video previews, and MIME-based icons for other file types.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-17",
-      "title": "Single and bulk file deletion with chunking and optimistic cache updates",
+      "title": "Touch long-press multi-select mode with bulk actions",
       "synonyms": [
-        "useDeleteFile",
-        "useDeleteFiles",
-        "chunked delete",
-        "optimistic removal"
+        "selectionMode",
+        "bulk toolbar",
+        "vibration feedback"
       ],
-      "description": "Deletes single files and performs chunked bulk deletion; updates cached file lists optimistically with rollback on error and invalidation on success.",
+      "description": "Supports touch long-press to enter selection mode, visually marks selections, and enables bulk move-to-folder, share, download, and delete actions via a fixed bottom action bar.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-18",
-      "title": "Gallery browsing UI with loading, empty, and error states",
+      "title": "Move files into folders and return files to main collection",
       "synonyms": [
-        "GallerySection",
-        "Skeleton loading",
-        "folder view",
-        "collection view"
+        "moveFilesToFolder",
+        "removeFromFolder",
+        "SendToFolderDialog"
       ],
-      "description": "Displays a responsive grid of file cards for either the unfoldered collection or a selected folder, with skeleton loading, empty state, and error state UI.",
+      "description": "Moves one or many files into a selected folder and supports returning foldered files back to the main collection by removing folder assignment.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-19",
-      "title": "Touch-first long-press multi-select mode with bulk actions toolbar",
+      "title": "Folder management UI (list/create/rename/delete) with optimistic updates",
       "synonyms": [
-        "long press selection",
-        "bulk toolbar",
-        "navigator.vibrate"
+        "FoldersDialog",
+        "optimistic UI"
       ],
-      "description": "Enables multi-selection via touch long-press and provides a bottom action bar to move, share, download, or delete selected files.",
+      "description": "Implements folder listing, creation, renaming, and deletion via React Query mutations, including optimistic cache updates with rollback for rename/delete.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-20",
-      "title": "Web Share API integration (single and multi-file)",
+      "title": "Single and bulk file deletion with chunking and optimistic cache updates",
       "synonyms": [
-        "navigator.share",
-        "share files"
+        "deleteFile",
+        "deleteFiles",
+        "CHUNK_SIZE=50"
       ],
-      "description": "Shares files via the Web Share API by fetching direct URLs, constructing File objects, and invoking navigator.share when supported.",
+      "description": "Deletes individual files and bulk deletes in backend-sized chunks, applying optimistic cache updates across main and folder queries with rollback on error.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-21",
-      "title": "MIME-aware file categorization and open rules",
+      "title": "File preview dialog with metadata and actions",
       "synonyms": [
-        "getFileCategory",
-        "fileOpenRules",
-        "shouldOpenInViewer",
-        "shouldDownloadDirectly"
+        "FilePreviewDialog",
+        "preview modal"
       ],
-      "description": "Categorizes files by MIME type and determines whether to open in-app (viewer/Office preview) or download directly for unsupported types.",
+      "description": "Shows a per-file modal preview (image/video/PDF/Office via iframe), displays MIME type, created date, size, and provides actions for open externally, download, move to folder, and delete with confirmation.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-22",
-      "title": "Full-screen in-app file viewer with swipe/keyboard navigation and actions",
+      "title": "Full-screen in-app viewer with navigation and action bar",
       "synonyms": [
         "FullScreenViewer",
         "swipe navigation",
-        "keyboard navigation",
-        "Office Online embed"
+        "keyboard navigation"
       ],
-      "description": "Provides a full-screen dialog viewer for images, videos, PDFs, and Office documents (Office Online embed), including next/prev navigation and actions (move/share/download/delete) and a new-tab option for Office docs.",
+      "description": "Provides a full-screen viewer for supported formats with touch swipe + keyboard navigation and actions for move, share, download, delete, and Office ‘New Tab’ opening.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-23",
-      "title": "Popup-blocker-aware external open fallback dialog",
+      "title": "External open + download utilities with popup-blocker fallback dialog",
       "synonyms": [
-        "ExternalOpenFallbackDialog",
         "openExternally",
-        "download fallback"
+        "downloadFile",
+        "ExternalOpenFallbackDialog"
       ],
-      "description": "When opening a file in a new tab/window is blocked, shows a dialog offering retry or a reliable fetch+blob download fallback.",
+      "description": "Attempts to open files in a new tab/window with popup-blocker detection; when blocked, shows a dialog offering retry or a reliable fetch+blob download fallback.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-24",
-      "title": "File preview dialog with metadata and management actions",
+      "title": "Web Share API integration for sharing files",
       "synonyms": [
-        "FilePreviewDialog",
-        "preview modal",
-        "metadata display"
+        "navigator.share",
+        "share files"
       ],
-      "description": "Implements a preview dialog for images/videos/PDF/Office (iframe/embed), shows metadata (MIME type, timestamp, size), and supports open/download/move/delete with confirmation.",
+      "description": "Shares single or multiple selected files by fetching direct URLs, creating File objects, and invoking the Web Share API when available.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-25",
-      "title": "Notes entry point and full-screen Notes experience (multi-note CRUD)",
+      "title": "Notes: per-user multi-note CRUD with full-screen responsive UI",
       "synonyms": [
-        "NotesButton",
         "NotesFullScreenView",
-        "useNotesQueries"
+        "list/create/update/delete notes"
       ],
-      "description": "Implements per-user Notes as a full-screen experience with list and editor (mobile-friendly behavior), supporting create/select/update/delete with canister persistence and toasts.",
+      "description": "Implements per-user notes stored in the canister with React Query hooks for list/detail/create/update/delete and a full-screen UI optimized for mobile (list/editor switching) and desktop (split view), including relative time formatting.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-26",
-      "title": "Notes timestamp formatting utility",
+      "title": "Missions: per-user missions with tasks and progress tracking",
       "synonyms": [
-        "formatNotesTime",
-        "relative time"
+        "MissionsFullScreenView",
+        "MissionDetailFullScreenView",
+        "task checklist"
       ],
-      "description": "Formats timestamps into user-friendly English relative strings with a short-date fallback for older entries.",
+      "description": "Implements per-user missions stored in the canister with task checklists, progress calculation, and CRUD operations via React Query hooks, with full-screen list and detail editing views.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-27",
-      "title": "Missions entry point and full-screen Missions list view with progress indicators",
+      "title": "Backend role-based access control with optional admin bootstrap",
       "synonyms": [
-        "MissionsButton",
-        "MissionsFullScreenView",
-        "Progress"
+        "AccessControl",
+        "MixinAuthorization",
+        "CAFFEINE_ADMIN_TOKEN"
       ],
-      "description": "Displays a list of missions with progress bars and completion styling; supports creating new missions and deleting missions with confirmation; selecting a mission navigates to mission detail full-screen.",
+      "description": "Implements role tracking (admin/user/guest), admin bootstrap via an environment token plus user-provided secret, role queries, and admin-only role assignment; backend methods enforce permissions.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-28",
-      "title": "Mission creation dialog with checklist tasks",
+      "title": "Backend file storage with ownership enforcement and folder organization",
       "synonyms": [
-        "MissionEditorDialog",
-        "Task checklist"
+        "uploadFile",
+        "getFile",
+        "getPaginatedFiles",
+        "moveFilesToFolder",
+        "deleteFiles"
       ],
-      "description": "Creates missions in a modal dialog; manages task list (add/toggle/remove), and submits creation via backend mutation with readiness gating and toasts.",
+      "description": "Stores file blobs and metadata, enforces per-owner access (admin override), supports listing (unfoldered and folder-scoped), moving to/from folders, and deletion (single/bulk).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-29",
-      "title": "Mission detail full-screen view with checklist editing and inline add-task",
+      "title": "Backend folder storage (per-user) with cascading cleanup on delete",
       "synonyms": [
-        "MissionDetailFullScreenView",
-        "full-screen mission editor"
+        "createFolder",
+        "getAllFolders",
+        "renameFolder",
+        "deleteFolder"
       ],
-      "description": "Allows viewing/editing an existing mission in a dedicated full-screen view: editable title, checklist with completion toggles (completed tasks remain visible and styled), inline add-task input, save changes, and delete mission with confirmation.",
-      "reqIds": [
-        "REQ-13",
-        "REQ-14",
-        "REQ-15",
-        "REQ-16"
-      ],
+      "description": "Implements per-user folder CRUD with ownership checks; deleting a folder removes the caller’s files assigned to that folder.",
+      "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-30",
-      "title": "Role-based access control bootstrap and role management (backend)",
+      "title": "Backend notes storage (per-user)",
       "synonyms": [
-        "AccessControl",
-        "MixinAuthorization",
-        "CAFFEINE_ADMIN_TOKEN",
-        "_initializeAccessControlWithSecret"
+        "createNote",
+        "updateNote",
+        "listNotes"
       ],
-      "description": "Bootstraps roles using a canister-side admin token and a user-provided secret (first matching caller can become admin; others become users). Exposes role/admin checks and admin-only role assignment.",
+      "description": "Stores notes per principal with ownership enforced; supports create/get/update/delete/list operations.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-31",
-      "title": "Backend file storage with ownership enforcement and pagination",
+      "title": "Backend missions storage (per-user)",
       "synonyms": [
-        "uploadFile",
-        "getPaginatedFiles",
-        "getFilesInFolder",
-        "getFile",
-        "deleteFile",
-        "deleteFiles"
+        "createMission",
+        "updateMission",
+        "listMissions"
       ],
-      "description": "Stores file blobs and metadata in the canister, lists caller-owned files (unfoldered or by folder) with pagination/sorting, retrieves file metadata, and deletes files (single/bulk) with ownership/admin checks.",
+      "description": "Stores missions per principal with tasks, supports create/get/update/delete/list operations, and enforces ownership via access control.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-32",
-      "title": "Backend folder storage and file organization (per-user)",
+      "title": "Backend user profile endpoints",
       "synonyms": [
-        "createFolder",
-        "renameFolder",
-        "deleteFolder",
-        "getAllFolders",
-        "moveFilesToFolder",
-        "removeFromFolder"
+        "getCallerUserProfile",
+        "saveCallerUserProfile",
+        "getUserProfile"
       ],
-      "description": "Implements per-user folders with CRUD and listing, viewing files by folder, moving files into folders, and removing files back to the main collection with access checks.",
+      "description": "Stores and retrieves a simple per-user profile record with access controls (users can access their own; admins can access others).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-33",
-      "title": "Backend per-user Notes storage (CRUD + listing)",
+      "title": "Backend health and diagnostics endpoints",
       "synonyms": [
-        "createNote",
-        "getNote",
-        "updateNote",
-        "deleteNote",
-        "listNotes"
+        "getHealth",
+        "getDiagnostics",
+        "cycles balance"
       ],
-      "description": "Stores notes per principal with access control enforcement so only authenticated users can access and mutate their own notes.",
+      "description": "Exposes query endpoints returning build/version information and current cycles balance for operational visibility.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-34",
-      "title": "Backend per-user Missions storage (CRUD + listing)",
+      "title": "Blob-storage maintenance and cycles refill endpoints (backend)",
       "synonyms": [
-        "createMission",
-        "getMission",
-        "updateMission",
-        "deleteMission",
-        "listMissions"
+        "_caffeineStorageUpdateGatewayPrincipals",
+        "_caffeineStorageBlobsToDelete",
+        "_caffeineStorageConfirmBlobDeletion",
+        "_caffeineStorageRefillCashier"
       ],
-      "description": "Stores missions per principal with access control enforcement so only authenticated users can access and mutate their own missions.",
+      "description": "Provides maintenance endpoints for updating authorized gateway principals, listing/confirming dead blob deletions (including GC trigger), and cashier-driven cycles top-ups.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-35",
-      "title": "Backend user profile endpoints",
+      "title": "Baseline parity and change-control documentation (Live v114)",
       "synonyms": [
-        "getCallerUserProfile",
-        "getUserProfile",
-        "saveCallerUserProfile"
+        "DRAFT_BASELINE_V114",
+        "RESTORE_LIVE_V114_CHECKLIST",
+        "V114_BASELINE_FRONTEND_FILES"
       ],
-      "description": "Stores and retrieves a simple per-user profile (name) with access controls (non-admins can only view their own profile).",
+      "description": "Includes documentation and canonical file lists to validate and preserve 1:1 parity with Live version 114 and enforce post-restore change-control policies.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-36",
-      "title": "Backend diagnostics endpoint (build + cycles)",
-      "synonyms": [
-        "getDiagnostics",
-        "cycles balance"
-      ],
-      "description": "Exposes a query endpoint returning a build/version string and the current canister cycles balance for operational diagnostics.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-37",
-      "title": "Blob-storage maintenance, authorization, and cycles refill endpoints (backend)",
-      "synonyms": [
-        "_caffeineStorageUpdateGatewayPrincipals",
-        "_caffeineStorageBlobsToDelete",
-        "_caffeineStorageConfirmBlobDeletion",
-        "_caffeineStorageBlobIsLive",
-        "_caffeineStorageRefillCashier"
-      ],
-      "description": "Provides maintenance endpoints to refresh authorized gateway principals, list/confirm dead blob deletions (authorized callers only) with forced GC, check blob liveness, and allow a cashier canister to top up cycles.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-38",
-      "title": "Admin-only backend listing of all files",
-      "synonyms": [
-        "getAllFiles",
-        "admin query"
-      ],
-      "description": "Provides an admin-gated query to list all stored files regardless of owner.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "feature-identify-the-root-cause-of-the-frequent-service-unavailable-backend-service-is-currently-unavailable-error-shown-when-opening-the-draft-or-live-app-after-each-deploy-prompt-and-implement-a-fix-so-the-app-opens-normally-and-remains-functional",
-      "title": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
+      "id": "feature-update-the-subtitle-intro-text-displayed-directly-under-the-welcome-to-mygallery-heading-on-the-unauthenticated-welcome-screen-frontend-src-components-welcomeintroscreen-tsx-to-exactly-this-english-copy-preserve-the-two-sentences-this-is-your-personal-space-for-organization-and-self-improvement-create-missions-break-them-into-tasks-and-complete-them-step-by-step",
+      "title": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
       "reqIds": [
-        "REQ-17"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-change-the-actor-initialization-flow-so-that-on-the-first-app-open-only-cold-start-initialization-failures-consistent-with-canister-warm-up-unavailability-are-handled-via-silent-background-retry-with-backoff-keeping-the-ui-in-a-loading-state-instead-of-rendering-actoriniterrorstate",
-      "title": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
-      "reqIds": [
-        "REQ-18"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-silent-retry-behavior-is-applied-only-on-the-first-open-in-a-session-and-after-the-app-has-successfully-initialized-once-subsequent-actor-initialization-failures-show-the-existing-error-ui-actoriniterrorstate-immediately-or-after-the-normal-non-cold-start-retry-behavior",
-      "title": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
-      "reqIds": [
-        "REQ-19"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-unify-error-classification-for-canister-stopped-detection-so-that-actoriniterrorstate-uses-the-standardized-detection-logic-rather-than-summary-string-heuristics-and-ensure-the-cold-start-silent-retry-triggers-off-the-same-standardized-classification",
-      "title": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
-      "reqIds": [
-        "REQ-20"
+        "REQ-1"
       ],
       "version": 1
     }
@@ -513,44 +428,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "On cold start (first open after deploy/prompt), suppress 'Service Unavailable/Connection Failed' screens and perform silent background retry for auth/actor initialization until backend is ready; only show error UI on persistent failure.",
+      "summary": "Update the welcome/intro screen subtitle text (below 'Welcome to MyGallery') to the provided English copy about organization and self-improvement/missions.",
       "reqIds": [],
       "status": "pending"
     }
   ],
   "architectural_notes": [
-    "Frontend is a React SPA using function components, TypeScript, TailwindCSS (CSS-variable tokens using OKLCH), and shadcn/ui primitives (Dialog, AlertDialog, ScrollArea, Progress, Checkbox, Collapsible, DropdownMenu).",
-    "Authentication is implemented with Internet Identity via @dfinity/auth-client; a provider restores identity on reload and exposes granular login states (initializing/idle/logging-in/success/error).",
-    "Backend access is via an identity-bound canister actor created with createActorWithConfig; ActorContext tracks actor lifecycle (idle → initializing → ready/error) and gates UI and React Query operations.",
-    "TanStack React Query is the server-state layer; queries/mutations are enabled only when identity exists and the actor is ready, with invalidation and optimistic updates for folders and file moves/deletes.",
-    "Uploads use blob-storage’s ExternalBlob with per-file progress callbacks; UploadContext tracks upload batches and UnifiedProgressBar renders aggregate progress globally.",
-    "File open behavior is MIME-aware (in-app viewer for images/videos/PDF; Office preview via Office Online embed; direct download for unsupported); external open attempts handle popup blocking via a retry/download fallback dialog.",
-    "Backend is composed using Motoko mixins (authorization + blob-storage ops). Authorization bootstraps roles using an environment variable admin token plus a user-provided secret.",
-    "PWA support is implemented with manifest.json and a service worker using minimal precaching and network-first runtime caching for fast startup.",
-    "Repository includes baseline/freeze documentation for “Live v114” parity and change control (RESTORE_LIVE_V114_CHECKLIST.md, DRAFT_BASELINE_V114.md, V114_BASELINE_FRONTEND_FILES.txt, PAUSE_AFTER_RESTORE.md).",
-    "Adjust startup flow so authentication/actor initialization happens in the background with silent retries on cold start; avoid blocking the UI with an 'initializing/service unavailable' screen unless failures persist beyond a threshold."
+    "Frontend is a React SPA using function components, TypeScript, TailwindCSS (OKLCH CSS variables), and shadcn/ui primitives (Dialog, AlertDialog, DropdownMenu, ScrollArea, Progress, Checkbox, Collapsible).",
+    "Authentication is handled via an InternetIdentityProvider built on @dfinity/auth-client; it restores stored delegations and requests ~30-day maxTimeToLive delegations on login.",
+    "Backend access is performed through an identity-bound canister actor created by createActorWithConfig; ActorContext owns actor lifecycle state and exposes retry/signOut actions.",
+    "Actor initialization includes centralized error classification/messaging and implements silent exponential-backoff retries for stopped-canister errors before showing a final error screen.",
+    "TanStack React Query is used as the server-state layer (files, folders, notes, missions), gated on (identity present && actor status === ready), with cache invalidation and optimistic update patterns in mutations.",
+    "Uploads are coordinated via a global UploadContext; the upload mutation uses ExternalBlob progress callbacks to provide per-file progress and an aggregated progress bar.",
+    "File UX is MIME-aware: thumbnails for images, video previews, in-app preview for PDFs, Office docs previewed via Office Online embed, and download-only for unsupported types; external open attempts handle popup-blocker failure with a fallback dialog.",
+    "Backend is a Motoko canister composed via mixins (authorization/access-control and blob-storage maintenance). Access control and ownership checks are enforced in backend methods."
   ],
   "known_issues": [
-    "frontend/src/components/NotesDialog.tsx and frontend/src/components/ProfileSetupDialog.tsx are empty placeholders, indicating incomplete/abandoned components.",
-    "Two actor initialization mechanisms exist (ActorContext and the React Query-based useActor hook). Keeping both increases divergence risk and inconsistent behavior if both are used.",
-    "React Query cache keys for user-scoped data (files/folders/notes/missions) are not explicitly namespaced by principal; correctness relies on clearing cache on sign-out and refetching on identity changes.",
-    "Sign-out paths differ: Header sign-out calls InternetIdentity.clear() and queryClient.clear(), while ActorContext.signOut() does not clear React Query cache; different paths can leave stale cached data in memory.",
-    "Notes sorting uses Number(b.updatedAt - a.updatedAt); converting BigInt timestamps to Number can lose precision and cause incorrect ordering.",
-    "Multiple UI locations convert bigint timestamps to Number for Date formatting; large values can exceed JS safe integer range and yield incorrect dates.",
-    "File/folder listing uses a fixed window (offset 0, limit 1000) and staleTime=0; not scalable for very large libraries and may refetch frequently.",
-    "Uploads read entire files into memory via File.arrayBuffer() before sending; large files may cause memory pressure (no streaming upload).",
-    "SendToFolderDialog returns files to main collection by calling removeFromFolder sequentially per file; slow for large selections (no batch endpoint).",
-    "Service worker navigation fallback uses caches.match('/index.html'), but '/index.html' is not in PRECACHE_ASSETS; first-time offline navigation may fail.",
-    "Both frontend/index.css and frontend/src/index.css exist with different token sets; depending on build/imports, this can cause styling drift/confusion (main.tsx imports src/index.css).",
-    "Backend state uses non-stable vars/maps; canister upgrades/redeployments can lose state without stable storage/migrations.",
-    "Backend findFileByTextId performs a linear scan across all files; performance will degrade as file counts grow.",
-    "Backend createFolder returns ?Text (string id) while frontend treats Folder.id as bigint; this API/type-shape mismatch complicates typing and can cause runtime issues depending on generated bindings.",
-    "Environment variable CAFFFEINE_STORAGE_CASHIER_PRINCIPAL appears misspelled (triple 'F'); increases deployment/configuration error risk.",
-    "ActorInitErrorState imports isCanisterStoppedError but uses summary-string heuristics instead; may misclassify stopped-canister errors if wording changes.",
-    "FileUploadSection UI copy mentions “drag and drop” but the component does not implement onDrop handlers (click-to-upload only).",
-    "Cold start after deploy/prompt often shows 'Service Unavailable / backend unavailable (canister needs restart)' during actor initialization; user wants silent retry and normal app opening instead of frequent error UI on first open."
+    "frontend/src/hooks/useActor.ts is a legacy hook that always calls _initializeAccessControlWithSecret(getSecretParameter(...) || ''), which can reintroduce bootstrap/token pitfalls or traps (e.g., if CAFFEINE_ADMIN_TOKEN is not set) if used accidentally instead of ActorContext.",
+    "Some component files are empty placeholders (frontend/src/components/NotesDialog.tsx, frontend/src/components/ConnectivityIndicator.tsx, frontend/src/components/ProfileSetupDialog.tsx), which can cause confusion and baseline-drift ambiguity.",
+    "Notes sorting in useListNotes() uses Number(b.updatedAt - a.updatedAt) on bigint timestamps, which can lose precision for large values and cause unstable ordering.",
+    "Multiple bigint-to-Date conversions use Number(bigint)/1_000_000; extremely large timestamps could overflow JS safe integer range (edge case).",
+    "File/folder queries use fixed pagination windows (offset 0, limit 1000) with staleTime=0; this may not scale for large libraries and can cause frequent refetching.",
+    "Uploads read entire files into memory via File.arrayBuffer(); large uploads may cause memory pressure and slowdowns (no streaming upload).",
+    "SendToFolderDialog 'Return to main collection' removes files from folders by calling removeFromFolder sequentially per file; bulk operations could be slow for large selections.",
+    "Service worker precaches only /manifest.json but navigation fallback tries caches.match('/index.html'); first-time offline navigation may fail unless /index.html has been cached at runtime.",
+    "Backend stores most state in non-stable variables/Maps; canister upgrades may risk data loss without stable memory migration logic (migration.mo is effectively a no-op).",
+    "Backend helper findFileByTextId does a linear scan over all stored files, which will degrade performance as file count grows.",
+    "Backend createFolder returns ?Text while Folder.id is Nat; this API shape inconsistency complicates typing and client expectations.",
+    "Environment variable CAFFFEINE_STORAGE_CASHIER_PRINCIPAL appears misspelled (extra 'F'), increasing deployment/configuration risk."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "gameProjectType": "none",
   "projectName": "MyGallery",
   "clarification_mode": "instant",

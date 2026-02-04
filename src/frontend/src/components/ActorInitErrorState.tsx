@@ -3,28 +3,28 @@ import { AlertCircle, RefreshCw, LogOut, ChevronDown, ChevronUp, ServerOff } fro
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import type { ErrorClassification } from '@/utils/actorInitializationMessaging';
 
 interface ActorInitErrorStateProps {
   summary: string;
   technicalDetails: string;
-  classification?: string;
+  classification: ErrorClassification;
   onRetry: () => void;
   onLogout: () => void;
 }
 
 export default function ActorInitErrorState({ 
   summary, 
-  technicalDetails,
+  technicalDetails, 
   classification,
   onRetry, 
   onLogout 
 }: ActorInitErrorStateProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
-  // Use standardized classification if available, otherwise fall back to summary check
-  const isStoppedCanister = classification === 'transient-canister-unavailable' ||
-                            summary.includes('backend service is currently unavailable') || 
-                            summary.includes('canister needs to be restarted');
+  // Use centralized classification for UI decisions
+  const isStoppedCanister = classification.isStoppedCanister;
+  const isInvalidAdminToken = classification.isInvalidAdminToken;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -41,7 +41,7 @@ export default function ActorInitErrorState({
             
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">
-                {isStoppedCanister ? 'Service Unavailable' : 'Connection Failed'}
+                {isStoppedCanister ? 'Service Unavailable' : isInvalidAdminToken ? 'Invalid Admin Token' : 'Connection Failed'}
               </h2>
               <p className="text-muted-foreground">
                 {summary}
@@ -81,7 +81,6 @@ export default function ActorInitErrorState({
                 onClick={onRetry} 
                 className="flex-1"
                 size="lg"
-                variant={isStoppedCanister ? "default" : "default"}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Retry Connection
@@ -100,6 +99,8 @@ export default function ActorInitErrorState({
             <p className="text-xs text-muted-foreground text-center">
               {isStoppedCanister 
                 ? 'Contact your administrator if the service remains unavailable after retrying.'
+                : isInvalidAdminToken
+                ? 'Remove the admin token from the URL and sign in again with a valid token if needed.'
                 : 'If the problem persists, try signing out and signing in again.'}
             </p>
           </CardContent>

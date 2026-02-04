@@ -11,8 +11,13 @@ function AppContent() {
   const [showIntro, setShowIntro] = useState(false);
   const [hasShownIntroThisSession, setHasShownIntroThisSession] = useState(false);
 
-  // Show intro screen when user successfully logs in
+  // Show intro screen only when user successfully logs in (not when delegation already exists)
   useEffect(() => {
+    // Only show intro if:
+    // 1. User has identity
+    // 2. Not initializing
+    // 3. Login status is 'success' (meaning they just completed login, not loaded from storage)
+    // 4. Haven't shown intro this session yet
     if (identity && !isInitializing && loginStatus === 'success' && !hasShownIntroThisSession) {
       setShowIntro(true);
       setHasShownIntroThisSession(true);
@@ -23,7 +28,7 @@ function AppContent() {
     setShowIntro(false);
   };
 
-  // Show intro screen during authentication
+  // Show intro screen after successful login
   if (showIntro) {
     return <IntroScreen onComplete={handleIntroComplete} />;
   }
