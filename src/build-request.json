@@ -1,69 +1,90 @@
 {
   "kind": "build_request",
-  "title": "Fix app startup stuck on “Initializing” and improve immediate load behavior",
+  "title": "Silent cold-start retry for backend actor initialization to prevent 'Service Unavailable' on first open",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Eliminate any artificial startup delay that prevents the Home page from rendering immediately after the app mounts (e.g., remove the timed `showContent` gate) so users do not see blank/blocked UI on first load.",
-      "target": "frontend",
+      "id": "REQ-17",
+      "text": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-1"
         ],
         "quotes": [
-          "Fix the initializing problem when I open the app so it loads correctly and immediately without delays and works properly"
+          "θελω να ελεγξεις γιατι εμφανιζερται αυτο το μυνημα συχνα οταν ανοιγω draft η το live page της εφαρμογης μετα απο καθε prompt ωστε να μην εμφανιστει ξανα"
         ]
       },
       "acceptanceCriteria": [
-        "On a cold page load, the app renders either the login screen (when unauthenticated) or the main UI/loading state (when authenticated) immediately, without a deliberate timeout-based delay.",
-        "There is no period where the page renders nothing due solely to a startup timer gate."
+        "On first open after a deploy/prompt, the app does not present a user-facing 'Service Unavailable' error screen during backend warm-up.",
+        "A clear technical diagnosis is captured in logs/diagnostics (frontend console + any available backend logs/diagnostics endpoints) indicating whether failures are canister-stopped, transient network, or access-control init related.",
+        "If the backend is genuinely unavailable for an extended period, the app eventually transitions to a real error state (does not retry forever)."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Make actor initialization fail-fast and non-blocking: ensure that backend actor creation and access-control initialization cannot leave the UI stuck in an infinite 'Initializing…' state. Surface actor initialization errors to the UI as an explicit error state with recovery actions.",
+      "id": "REQ-18",
+      "text": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-1"
         ],
         "quotes": [
-          "Fix the initializing problem when I open the app so it loads correctly and immediately without delays and works properly"
+          "sillent retry.",
+          "στο πρωτο ανοιγμα μονο"
         ]
       },
       "acceptanceCriteria": [
-        "If actor creation or `_initializeAccessControlWithSecret` fails, the app exits the loading spinner state and displays a clear error UI (English) rather than remaining stuck on 'Initializing…'.",
-        "The error UI provides a working 'Retry' action that re-attempts actor initialization and returns to a functional state if the retry succeeds.",
-        "The error UI provides a working 'Sign Out' action that clears the identity/session and returns the user to the unauthenticated login screen."
+        "When the first initialization attempt fails with canister-stopped/unavailable indicators, the app stays on a loading/initializing screen and retries automatically without showing ActorInitErrorState.",
+        "Retries use a bounded policy (e.g., capped exponential backoff and a max overall retry window).",
+        "Once the backend becomes available, the actor initializes successfully and the user is taken into the normal app UI without any manual action."
       ]
     },
     {
-      "id": "REQ-3",
-      "text": "Prevent unnecessary actor initialization work during unauthenticated startup to improve perceived load time: do not create/initialize the backend actor until it is required for an authenticated session or an authenticated-only action.",
+      "id": "REQ-19",
+      "text": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-1"
         ],
         "quotes": [
-          "loads correctly and immediately without delays"
+          "στο πρωτο ανοιγμα μονο"
         ]
       },
       "acceptanceCriteria": [
-        "When the user is unauthenticated, the login screen is shown without waiting for actor creation/initialization.",
-        "Authenticated-only React Query calls (folders/files) remain disabled until both identity is present and actor initialization has succeeded."
+        "A session-scoped flag (or equivalent) records that the app has completed a successful actor initialization at least once during the current session.",
+        "If the user later encounters a real initialization failure (after the session has already initialized successfully once), the ActorInitErrorState screen appears as it does today (with Retry/Sign Out actions)."
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "text": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Service Unavailable\nThe backend service is currently unavailable. This usually means the canister needs to be restarted by the administrator."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Canister-stopped/unavailable errors are detected using a single shared method (not by checking if the summary string contains specific phrases).",
+        "Cold-start silent retry is triggered only for the intended transient/cold-start class of errors (e.g., stopped/stopping/destination invalid), not for authorization or permanent failures."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui). If changes are needed, implement safe alternatives via new wrapper hooks/components or by modifying non-immutable consumers only.",
-    "Backend must remain single-actor; do not introduce additional canisters/services.",
-    "All user-facing text introduced/changed by this build request must be in English."
+    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
+    "Do not edit files listed in frontend.immutablePaths (must compose around them instead).",
+    "Keep the backend as a single Motoko actor (no additional backend services).",
+    "Do not mask permanent failures: if the backend remains unavailable beyond the configured retry window, show an error state."
   ],
   "nonGoals": [
-    "Do not add new product features beyond fixing initialization/loading reliability and speed.",
-    "Do not change backend schemas, file/folder data models, or storage behavior."
+    "Adding new authentication providers beyond Internet Identity.",
+    "Implementing real-time communication (WebSockets) or push notifications.",
+    "Introducing external databases or non-Motoko backend services."
   ],
   "imageRequirements": {
     "required": [],

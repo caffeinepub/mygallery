@@ -1,54 +1,67 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-03T10:18:23.834Z",
+  "generatedAt": "2026-02-04T07:54:30.286Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Eliminate any artificial startup delay that prevents the Home page from rendering immediately after the app mounts (e.g., remove the timed `showContent` gate) so users do not see blank/blocked UI on first load.",
+        "id": "REQ-17",
+        "summary": "Identify the root cause of the frequent 'Service Unavailable / backend service is currently unavailable' error shown when opening the Draft or Live app after each deploy/prompt, and implement a fix so the app opens normally and remains functional.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/contexts/ActorContext.tsx",
+          "frontend/src/utils/actorInitializationMessaging.ts",
           "frontend/src/pages/HomePage.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/contexts/ActorContext.tsx",
+          "frontend/src/utils/actorInitializationMessaging.ts",
           "frontend/src/pages/HomePage.tsx"
         ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Make actor initialization fail-fast and non-blocking: ensure that backend actor creation and access-control initialization cannot leave the UI stuck in an infinite 'Initializing…' state. Surface actor initialization errors to the UI as an explicit error state with recovery actions.",
+        "id": "REQ-18",
+        "summary": "Change the actor initialization flow so that on the first app open only (cold start), initialization failures consistent with canister warm-up/unavailability are handled via silent background retry with backoff, keeping the UI in a loading state instead of rendering ActorInitErrorState.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/hooks/useBackendActor.ts",
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/components/ActorInitErrorState.tsx"
+          "frontend/src/utils/actorInitializationMessaging.ts"
         ],
         "matchedFiles": [
           "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/utils/actorInitializationMessaging.ts"
         ]
       },
       {
-        "id": "REQ-3",
-        "summary": "Prevent unnecessary actor initialization work during unauthenticated startup to improve perceived load time: do not create/initialize the backend actor until it is required for an authenticated session or an authenticated-only action.",
+        "id": "REQ-19",
+        "summary": "Ensure the silent-retry behavior is applied only on the first open in a session, and after the app has successfully initialized once, subsequent actor initialization failures show the existing error UI (ActorInitErrorState) immediately (or after the normal non-cold-start retry behavior).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/contexts/ActorContext.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/contexts/ActorContext.tsx"
+        ]
+      },
+      {
+        "id": "REQ-20",
+        "summary": "Unify error classification for canister-stopped detection so that ActorInitErrorState uses the standardized detection logic (rather than summary-string heuristics), and ensure the cold-start silent retry triggers off the same standardized classification.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/actorInitializationMessaging.ts",
+          "frontend/src/components/ActorInitErrorState.tsx",
+          "frontend/src/contexts/ActorContext.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/actorInitializationMessaging.ts",
+          "frontend/src/components/ActorInitErrorState.tsx",
+          "frontend/src/contexts/ActorContext.tsx"
         ]
       }
     ]
@@ -58,14 +71,10 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/components/ActorInitErrorState.tsx",
     "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/contexts/UploadContext.tsx",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/HomePage.tsx",
+    "frontend/src/utils/actorInitializationMessaging.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

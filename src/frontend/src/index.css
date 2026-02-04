@@ -38,7 +38,17 @@
         --sidebar-accent-foreground: 0.20 0.01 264;
         --sidebar-border: 0.88 0.01 50;
         --sidebar-ring: 0.55 0.18 264;
-        --folder-icon-filter: none;
+        --folder-icon-filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+        /* Notes green theme - light mode */
+        --notes-accent: 0.55 0.16 145;
+        --notes-accent-hover: 0.50 0.18 145;
+        --notes-bg: 0.94 0.08 145;
+        --notes-bg-hover: 0.90 0.10 145;
+        /* Missions purple theme - light mode */
+        --missions-accent: 0.55 0.20 290;
+        --missions-accent-hover: 0.50 0.22 290;
+        --missions-bg: 0.94 0.10 290;
+        --missions-bg-hover: 0.90 0.12 290;
     }
 
     .dark {
@@ -74,7 +84,17 @@
         --sidebar-accent-foreground: 0.96 0.01 50;
         --sidebar-border: 0.30 0.02 264;
         --sidebar-ring: 0.72 0.22 264;
-        --folder-icon-filter: brightness(1.5) contrast(1.25) saturate(1.5);
+        --folder-icon-filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6)) drop-shadow(0 2px 6px rgba(255, 255, 255, 0.3));
+        /* Notes green theme - dark mode */
+        --notes-accent: 0.65 0.18 145;
+        --notes-accent-hover: 0.70 0.20 145;
+        --notes-bg: 0.22 0.08 145;
+        --notes-bg-hover: 0.26 0.10 145;
+        /* Missions purple theme - dark mode */
+        --missions-accent: 0.68 0.22 290;
+        --missions-accent-hover: 0.72 0.24 290;
+        --missions-bg: 0.22 0.10 290;
+        --missions-bg-hover: 0.26 0.12 290;
     }
 
     * {
@@ -121,4 +141,32 @@ img, video {
 
 .animate-intro-pulse {
     animation: intro-pulse 2.5s ease-in-out;
+}
+
+/* Notes icon float animation */
+@keyframes notes-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.animate-notes-float {
+    animation: notes-float 2s ease-in-out infinite;
+}
+
+/* Missions icon float animation */
+@keyframes missions-float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-3px) rotate(2deg);
+    }
+}
+
+.animate-missions-float {
+    animation: missions-float 2.5s ease-in-out infinite;
 }

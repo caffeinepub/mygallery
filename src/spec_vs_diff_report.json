@@ -1,84 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-03T10:18:23.782Z",
-  "summary": "The diff implements a new ActorContext/ActorProvider that defers actor initialization until an identity exists, adds explicit actor status/error handling, and gates React Query operations on actor readiness—addressing the core initialization-stuck and unauthenticated-startup performance issues. However, the required explicit error UI with working Retry/Sign Out actions is only referenced (via ActorInitErrorState) and is not evidenced in the provided diff summary. The diff also includes multiple unrelated UI/PWA/feature enhancements that go beyond the stated non-goals.",
+  "generatedAt": "2026-02-04T07:54:30.265Z",
+  "summary": "Diff implements a session-scoped cold-start retry policy in ActorContext with bounded exponential backoff, updates HomePage to keep a loading UI during initialization (preventing the error screen from showing during silent retry), and introduces/uses a shared error-classification utility. However, the error UI (ActorInitErrorState) still contains summary-string heuristics as a fallback instead of relying solely on the standardized classification, and the diff evidence is insufficient to confirm the required diagnostic logging/clear root-cause capture.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Surface actor initialization errors to the UI as an explicit error state with recovery actions (Retry re-attempts actor init; Sign Out clears identity/session and returns to login).",
-      "reason": "HomePage references an error component and passes retry/signOut callbacks, but the diff summary does not include the implementation of the error UI component itself (buttons/actions/text). Without that file content, we cannot confirm the UI exists, is English, and that both actions are wired and functional as required.",
+      "id": "REQ-17",
+      "requirement": "Capture a clear technical diagnosis in logs/diagnostics indicating whether failures are canister-stopped, transient network, or access-control init related.",
+      "reason": "The diff shows classification utilities and passing technicalDetails/classification into the UI, but does not provide evidence of explicit logging/diagnostics output (e.g., console logs or diagnostics endpoint usage) that records the root-cause category during failures.",
       "evidence": [
-        "frontend/src/pages/HomePage.tsx (references ActorInitErrorState error UI with onRetry/onLogout)",
-        "frontend/src/contexts/ActorContext.tsx (provides retry() and signOut() APIs)"
+        "frontend/src/contexts/ActorContext.tsx (truncated)",
+        "frontend/src/utils/actorInitializationMessaging.ts (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "requirement": "Canister-stopped/unavailable errors are detected using a single shared method (not summary-string heuristics), and both ActorInitErrorState and cold-start retry trigger off that standardized classification.",
+      "reason": "ActorInitErrorState still falls back to checking whether the summary string includes phrases like 'backend service is currently unavailable' or 'canister needs to be restarted', which violates the requirement to avoid summary-string heuristics and use a single shared detection method/classification.",
+      "evidence": [
+        "frontend/src/components/ActorInitErrorState.tsx (truncated): \"otherwise fall back to summary check\" + summary.includes(...)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added/expanded global upload progress tracking and a unified progress bar component/integration.",
-      "reason": "Not requested by the BuildRequest (which is limited to initialization/loading reliability and speed); this appears to be a product/UI enhancement unrelated to startup initialization being stuck.",
+      "description": "UI redesign/enhancement of ActorInitErrorState (new icons, collapsible 'Technical Details' section, additional copy/layout changes).",
+      "reason": "BuildRequest focuses on initialization flow, retry behavior, and unified error classification; it does not request a UI redesign or adding collapsible technical details UI.",
       "evidence": [
-        "frontend/src/contexts/UploadContext.tsx",
-        "frontend/src/components/UnifiedProgressBar.tsx",
-        "frontend/src/App.tsx (wraps with UploadProvider)",
-        "frontend-file-summaries.txt (mentions UnifiedProgressBar integration in Header)"
+        "frontend/src/components/ActorInitErrorState.tsx (truncated)"
       ]
     },
     {
-      "description": "Intro screen behavior on successful login (showing IntroScreen).",
-      "reason": "Not requested; adds additional UX flow that is not part of initialization bug fix requirements and could affect perceived load behavior.",
+      "description": "Updates to repo meta/state documentation files describing unrelated features (PWA, notes/missions, file preview enhancements, etc.).",
+      "reason": "Not requested by the BuildRequest; appears to be project documentation/state summary changes beyond the cold-start retry scope.",
       "evidence": [
-        "frontend/src/App.tsx (showIntro/hasShownIntroThisSession logic and IntroScreen rendering)"
-      ]
-    },
-    {
-      "description": "PWA/manifest/index.html changes and MyGallery branding updates.",
-      "reason": "Not requested and outside the scope of fixing initialization/loading behavior.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/index.html PWA configuration, frontend/public/manifest.json branding/config)"
-      ]
-    },
-    {
-      "description": "Enhanced file preview/full-screen viewer behavior (PDF/Office responsive iframe sizing, Office Online embed, etc.).",
-      "reason": "Not requested and represents new/expanded functionality beyond initialization/loading fixes.",
-      "evidence": [
-        "frontend-file-summaries.txt (FilePreviewDialog enhancements, FullScreenViewer features)"
-      ]
-    },
-    {
-      "description": "UI redesign/changes for folders button/icon sizing/positioning and additional dialog text translations.",
-      "reason": "Not requested; constitutes UI/product changes beyond initialization reliability/speed.",
-      "evidence": [
-        "frontend-file-summaries.txt (FoldersButton sizing/icon styling; SendToFolderDialog/ProfileSetupDialog text changes)"
-      ]
-    },
-    {
-      "description": "Animated gallery icon component and header visual updates.",
-      "reason": "Not requested; unrelated to eliminating startup delay or actor init fail-fast behavior.",
-      "evidence": [
-        "frontend-file-summaries.txt (AnimatedGalleryIcon, Header animated icon details)"
-      ]
-    },
-    {
-      "description": "Global CSS theme/animation refinements (OKLCH system, transitions, intro animation timing).",
-      "reason": "Not requested and outside initialization/loading reliability scope.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css OKLCH colors, intro animation keyframes)"
+        "frontend-file-summaries.txt (truncated)",
+        "project_state.json (truncated)"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/components/ActorInitErrorState.tsx",
     "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/contexts/UploadContext.tsx",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/HomePage.tsx",
+    "frontend/src/utils/actorInitializationMessaging.ts",
     "project_state.json"
   ]
 }

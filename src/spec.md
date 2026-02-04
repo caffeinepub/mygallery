@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Make the app render immediately on startup and prevent it from getting stuck on an infinite “Initializing…” state.
+**Goal:** Prevent the frequent “Service Unavailable / backend service is currently unavailable” screen on first open after deploy by adding a cold-start silent retry flow for backend actor initialization, with clear diagnostics and bounded retry behavior.
 
 **Planned changes:**
-- Remove any timeout-based or artificial startup gating that blocks initial rendering, so the UI shows immediately after mount.
-- Make actor/access-control initialization non-blocking and fail-fast: if initialization fails, show a clear error state instead of an endless spinner.
-- Add recovery actions to the initialization error state: “Retry” to re-attempt initialization and “Sign Out” to clear session and return to login.
-- Avoid initializing/creating the backend actor during unauthenticated startup; only initialize when an authenticated session (or authenticated-only action) requires it.
-- Ensure authenticated-only data queries remain disabled until identity is present and actor initialization has succeeded.
+- Diagnose and log the root cause of first-open initialization failures (frontend console + any available backend diagnostics) to distinguish canister-stopped/warm-up vs network vs access-control issues.
+- Update frontend actor initialization so that on first open in a session, transient cold-start errors trigger silent background retries with capped backoff while keeping the UI in a loading/initializing state (no ActorInitErrorState).
+- Add a session-scoped “initialized once” flag so that after a successful initialization, subsequent initialization failures show the existing ActorInitErrorState behavior.
+- Unify canister-stopped/unavailable error classification into a shared detection method, used both for deciding cold-start silent retry and for ActorInitErrorState logic.
+- Ensure retries are bounded and transition to a real error state if the backend stays unavailable beyond the configured retry window.
 
-**User-visible outcome:** On cold load, users immediately see the login screen (when signed out) or the main UI/loading state (when signed in) without a deliberate delay, and any initialization failure shows an actionable error screen with Retry and Sign Out rather than staying stuck on “Initializing…”.
+**User-visible outcome:** On the first open after a deploy, the app stays in a loading state and automatically recovers once the backend is ready instead of showing a “Service Unavailable” error; if the backend is genuinely down for too long, the app shows the normal error screen, and later failures (after a successful init) behave as they do today.

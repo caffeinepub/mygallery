@@ -11,11 +11,11 @@ export default function FoldersButton({ onClick }: FoldersButtonProps) {
     >
       <div className="relative">
         <img
-          src="/assets/generated/light-blue-folder-icon-transparent.dim_64x64.png"
+          src="/assets/generated/dark-blue-folder-icon-transparent.dim_64x64.png"
           alt="Folders"
-          className="w-[5.5rem] h-[5.5rem] drop-shadow-lg transition-all duration-200"
+          className="w-[5.5rem] h-[5.5rem] transition-all duration-200"
           style={{
-            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))',
+            filter: 'var(--folder-icon-filter)',
           }}
         />
       </div>
