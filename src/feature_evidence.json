@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-implement-swipe-left-right-to-left-gesture-on-touch-mobile-for-each-folder-item-in-the-folders-ui-list-to-reveal-ios-style-actions-a-red-delete-button-and-an-edit-button-next-to-it-the-actions-must-remain-visible-after-the-swipe-until-the-user-closes-them-e-g-by-swiping-back-tapping-outside-or-opening-another-item-on-non-touch-desktop-the-swipe-interaction-must-be-disabled-and-the-existing-click-hover-controls-must-remain-usable",
-      "featureTitle": "Implement swipe-left (right-to-left) gesture on touch/mobile for each Folder item in the Folders UI list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button next to it. The actions must remain visible after the swipe until the user closes them (e.g., by swiping back, tapping outside, or opening another item). On non-touch/desktop, the swipe interaction must be disabled and the existing click/hover controls must remain usable.",
+      "featureId": "feature-update-the-shared-swipe-actions-row-ui-so-the-edit-rename-and-delete-buttons-are-not-visible-by-default-and-only-become-visible-after-the-user-swipes-left-far-enough-to-reveal-them-when-the-row-is-closed-no-swipe-the-action-buttons-must-be-fully-hidden-behind-the-row-content-and-must-not-overlay-it",
+      "featureTitle": "Update the shared swipe-actions row UI so the Edit/Rename and Delete buttons are not visible by default and only become visible after the user swipes left far enough to reveal them; when the row is closed (no swipe), the action buttons must be fully hidden behind the row content and must not overlay it.",
       "files": [
-        "frontend/src/components/FoldersDialog.tsx",
-        "frontend/src/components/SwipeRevealRow.tsx"
+        "frontend/src/components/SwipeActionsRow.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,49 +17,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-swipe-left-gesture-on-touch-mobile-for-each-note-item-in-the-notes-list-to-reveal-ios-style-actions-a-red-delete-button-and-an-edit-button-for-editing-the-note-title-the-swipe-interaction-must-be-touch-only-on-desktop-existing-interactions-remain-unchanged-the-revealed-actions-must-remain-visible-after-the-swipe-until-dismissed",
-      "featureTitle": "Implement swipe-left gesture on touch/mobile for each Note item in the Notes list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the note title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
-      "files": [
-        "frontend/src/components/NotesFullScreenView.tsx",
-        "frontend/src/components/SwipeRevealRow.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-swipe-left-gesture-on-touch-mobile-for-each-mission-item-in-the-missions-list-to-reveal-ios-style-actions-a-red-delete-button-and-an-edit-button-for-editing-the-mission-title-the-swipe-interaction-must-be-touch-only-on-desktop-existing-interactions-remain-unchanged-the-revealed-actions-must-remain-visible-after-the-swipe-until-dismissed",
-      "featureTitle": "Implement swipe-left gesture on touch/mobile for each Mission item in the Missions list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the mission title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
-      "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/components/MissionsFullScreenView.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
+        "REQ-7"
       ],
       "confidence": "high"
     }

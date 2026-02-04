@@ -1,68 +1,45 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T12:41:50.259Z",
+  "generatedAt": "2026-02-04T14:05:16.917Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Implement swipe-left (right-to-left) gesture on touch/mobile for each Folder item in the Folders UI list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button next to it. The actions must remain visible after the swipe until the user closes them (e.g., by swiping back, tapping outside, or opening another item). On non-touch/desktop, the swipe interaction must be disabled and the existing click/hover controls must remain usable.",
+        "id": "REQ-7",
+        "summary": "Update the shared swipe-actions row UI so the Edit/Rename and Delete buttons are not visible by default and only become visible after the user swipes left far enough to reveal them; when the row is closed (no swipe), the action buttons must be fully hidden behind the row content and must not overlay it.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/SwipeRevealRow.tsx",
-          "frontend/src/hooks/useIsTouchInput.ts",
-          "frontend/src/components/FoldersDialog.tsx"
+          "frontend/src/components/SwipeActionsRow.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/SwipeRevealRow.tsx",
-          "frontend/src/components/FoldersDialog.tsx"
+          "frontend/src/components/SwipeActionsRow.tsx"
         ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Implement swipe-left gesture on touch/mobile for each Note item in the Notes list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the note title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
-        "status": "implemented",
+        "id": "REQ-8",
+        "summary": "Ensure the updated swipe-to-reveal behavior is consistently applied anywhere the shared SwipeActionsRow component is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices), without changing any backend behavior.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/SwipeRevealRow.tsx",
-          "frontend/src/components/NotesFullScreenView.tsx"
+          "frontend/src/components/FoldersDialog.tsx",
+          "frontend/src/components/NotesFullScreenView.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/SwipeRevealRow.tsx",
-          "frontend/src/components/NotesFullScreenView.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Implement swipe-left gesture on touch/mobile for each Mission item in the Missions list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the mission title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionDetailFullScreenView.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionDetailFullScreenView.tsx"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/NotesFullScreenView.tsx",
-    "frontend/src/components/SwipeRevealRow.tsx",
+    "frontend/src/components/SwipeActionsRow.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

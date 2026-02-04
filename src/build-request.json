@@ -1,75 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Add iOS-style swipe-left actions on mobile for Folders, Notes, and Missions list items",
+  "title": "Show swipe Edit/Delete actions only after left-swipe in Folders, Notes, and Missions",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Implement swipe-left (right-to-left) gesture on touch/mobile for each Folder item in the Folders UI list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button next to it. The actions must remain visible after the swipe until the user closes them (e.g., by swiping back, tapping outside, or opening another item). On non-touch/desktop, the swipe interaction must be disabled and the existing click/hover controls must remain usable.",
+      "id": "REQ-7",
+      "text": "Update the shared swipe-actions row UI so the Edit/Rename and Delete buttons are not visible by default and only become visible after the user swipes left far enough to reveal them; when the row is closed (no swipe), the action buttons must be fully hidden behind the row content and must not overlay it.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "Swipe προς τα αριστερά σε Folders ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου). Το swipe να ισχύει μόνο σε mobile/touch. ... κουμπιά τύπου iOS (Delete με κόκκινο background, Edit δίπλα)"
+          "Η επιλογές διαγραφής και επεξεργασίας με swipe σε folders , notes και missions να εμφανίζονται μόνο μετά το swipe προς τα αριστερά και όχι απευθείας χωρίς να έχει γίνει swipe ."
         ]
       },
       "acceptanceCriteria": [
-        "On a touch device, swiping left on a folder row reveals two buttons aligned on the right: 'Edit' and 'Delete' (Delete has a red background).",
-        "After a successful swipe, the action buttons stay visible until explicitly dismissed (swipe back, tap outside, or open another row).",
-        "Tapping 'Delete' performs the existing folder deletion flow and keeps current confirmation/toast behavior consistent with the app’s patterns.",
-        "Tapping 'Edit' enters the existing rename/edit-title flow for that folder (no new backend endpoints).",
-        "On desktop/non-touch input, swipe does nothing; existing folder list interactions remain functional."
+        "In Folders, Notes (mobile/coarse pointer), and Missions (mobile/coarse pointer), when a list row is initially rendered and not swiped, no Edit/Rename/Delete buttons are visible on screen.",
+        "After swiping a row to the left past the reveal threshold, the Edit/Rename and Delete buttons become visible for that row.",
+        "When the row is swiped back (or otherwise closed), the action buttons are no longer visible and do not overlay the content.",
+        "Tapping/clicking the row content when the row is closed behaves the same as before (e.g., select/open), with no accidental interaction with hidden action buttons."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Implement swipe-left gesture on touch/mobile for each Note item in the Notes list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the note title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
+      "id": "REQ-8",
+      "text": "Ensure the updated swipe-to-reveal behavior is consistently applied anywhere the shared SwipeActionsRow component is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices), without changing any backend behavior.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-6"
         ],
         "quotes": [
-          "Swipe προς τα αριστερά σε ... Notes ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου)."
+          "...σε folders , notes και missions..."
         ]
       },
       "acceptanceCriteria": [
-        "On touch devices, swiping left on a note row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
-        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
-        "Delete uses the existing note delete behavior (including confirmation dialog if present) and results in the note being removed from the list after success.",
-        "Edit allows editing the note title from the list context (e.g., inline rename mode or by opening the existing editor focused on title), using the existing note update mutation."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Implement swipe-left gesture on touch/mobile for each Mission item in the Missions list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the mission title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Swipe προς τα αριστερά σε ... Missions ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου)."
-        ]
-      },
-      "acceptanceCriteria": [
-        "On touch devices, swiping left on a mission row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
-        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
-        "Delete uses the existing mission delete behavior (including confirmation dialog if present) and results in the mission being removed from the list after success.",
-        "Edit allows editing the mission title starting from the list context (e.g., inline rename mode or by opening the existing mission detail title edit mode), using the existing mission update mutation."
+        "Folders list rows do not show swipe actions until a left swipe reveals them.",
+        "Notes list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
+        "Missions list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
+        "No backend API changes are introduced as part of this work."
       ]
     }
   ],
   "constraints": [
-    "Frontend swipe actions must only activate for mobile/touch input; do not introduce swipe behavior on desktop mouse/trackpad usage.",
-    "Keep backend unchanged; reuse existing folder/note/mission update and delete flows.",
-    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths."
+    "Do not edit files under frontend/src/components/ui (shadcn/ui components are read-only).",
+    "Do not change the backend canister interface or persistence; this is a frontend-only behavior fix."
   ],
   "nonGoals": [
-    "Adding haptic feedback, sounds, or advanced gesture physics beyond basic swipe-to-reveal behavior.",
-    "Changing the existing desktop UI layout or replacing existing non-touch edit/delete controls."
+    "Redesigning the folders/notes/missions screens beyond fixing swipe action visibility.",
+    "Adding new actions beyond the existing Edit/Rename and Delete actions.",
+    "Changing authentication, authorization, or any actor initialization logic."
   ],
   "imageRequirements": {
     "required": [],

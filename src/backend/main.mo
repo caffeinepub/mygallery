@@ -1,20 +1,19 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
+import Array "mo:core/Array";
 import Int "mo:core/Int";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
 import List "mo:core/List";
-import Order "mo:core/Order";
-import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-
-
 
 actor {
   include MixinStorage();
@@ -83,18 +82,26 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // Persistent actor state
   var nextFileId = 0;
   var nextFolderId = 0 : Nat;
   let files = Map.empty<Nat, FileMetadata>();
   let folders = Map.empty<Nat, Folder>();
   let userProfiles = Map.empty<Principal, UserProfile>();
-  let persistentUserData = Map.empty<Principal, Map.Map<Nat, Note>>();
+  let persistentUserNotes = Map.empty<Principal, Notes>();
   var nextNoteId = 0;
-  let persistentMissions = Map.empty<Principal, Map.Map<Nat, Mission>>();
+  let persistentMissions = Map.empty<Principal, Missions>();
   var nextMissionId = 0 : Nat;
 
-  // External types for notes
+  public type Notes = {
+    owner : Principal;
+    data : Map.Map<Nat, Note>;
+  };
+
+  public type Missions = {
+    owner : Principal;
+    data : Map.Map<Nat, Mission>;
+  };
+
   public type Note = {
     id : Nat;
     title : Text;
@@ -159,14 +166,19 @@ actor {
       updatedAt = now;
     };
 
-    let userNotes = switch (persistentUserData.get(caller)) {
-      case (null) { Map.empty<Nat, Note>() };
+    let userNotes : Notes = switch (persistentUserNotes.get(caller)) {
+      case (null) {
+        let newNotes : Notes = {
+          owner = caller;
+          data = Map.empty<Nat, Note>();
+        };
+        persistentUserNotes.add(caller, newNotes);
+        newNotes;
+      };
       case (?notes) { notes };
     };
 
-    userNotes.add(nextNoteId, note);
-    persistentUserData.add(caller, userNotes);
-
+    userNotes.data.add(nextNoteId, note);
     nextNoteId += 1;
     note.id;
   };
@@ -176,10 +188,10 @@ actor {
       Runtime.trap("Unauthorized: Only users can access notes");
     };
 
-    switch (persistentUserData.get(caller)) {
+    switch (persistentUserNotes.get(caller)) {
       case (null) { null };
       case (?userNotes) {
-        userNotes.get(noteId);
+        userNotes.data.get(noteId);
       };
     };
   };
@@ -189,10 +201,10 @@ actor {
       Runtime.trap("Unauthorized: Only users can update notes");
     };
 
-    switch (persistentUserData.get(caller)) {
+    switch (persistentUserNotes.get(caller)) {
       case (null) { Runtime.trap("Note not found") };
       case (?userNotes) {
-        switch (userNotes.get(noteId)) {
+        switch (userNotes.data.get(noteId)) {
           case (null) { Runtime.trap("Note not found") };
           case (?oldNote) {
             let updatedNote = {
@@ -201,8 +213,8 @@ actor {
               content = newContent;
               updatedAt = Time.now();
             };
-            userNotes.add(noteId, updatedNote);
-            persistentUserData.add(caller, userNotes);
+
+            userNotes.data.add(noteId, updatedNote);
           };
         };
       };
@@ -214,14 +226,13 @@ actor {
       Runtime.trap("Unauthorized: Only users can delete notes");
     };
 
-    switch (persistentUserData.get(caller)) {
+    switch (persistentUserNotes.get(caller)) {
       case (null) { Runtime.trap("Note not found") };
       case (?userNotes) {
-        if (not userNotes.containsKey(noteId)) {
+        if (not userNotes.data.containsKey(noteId)) {
           Runtime.trap("Note not found");
         };
-        userNotes.remove(noteId);
-        persistentUserData.add(caller, userNotes);
+        userNotes.data.remove(noteId);
       };
     };
   };
@@ -231,10 +242,10 @@ actor {
       Runtime.trap("Unauthorized: Only users can list notes");
     };
 
-    switch (persistentUserData.get(caller)) {
+    switch (persistentUserNotes.get(caller)) {
       case (null) { [] };
       case (?userNotes) {
-        userNotes.values().toArray();
+        userNotes.data.values().toArray();
       };
     };
   };
@@ -253,14 +264,19 @@ actor {
       tasks;
     };
 
-    let userMissions = switch (persistentMissions.get(caller)) {
-      case (null) { Map.empty<Nat, Mission>() };
+    let userMissions : Missions = switch (persistentMissions.get(caller)) {
+      case (null) {
+        let newMissions : Missions = {
+          owner = caller;
+          data = Map.empty<Nat, Mission>();
+        };
+        persistentMissions.add(caller, newMissions);
+        newMissions;
+      };
       case (?missions) { missions };
     };
 
-    userMissions.add(nextMissionId, mission);
-    persistentMissions.add(caller, userMissions);
-
+    userMissions.data.add(nextMissionId, mission);
     nextMissionId += 1;
     mission.id;
   };
@@ -273,7 +289,7 @@ actor {
     switch (persistentMissions.get(caller)) {
       case (null) { null };
       case (?userMissions) {
-        userMissions.get(missionId);
+        userMissions.data.get(missionId);
       };
     };
   };
@@ -286,7 +302,7 @@ actor {
     switch (persistentMissions.get(caller)) {
       case (null) { Runtime.trap("Mission not found") };
       case (?userMissions) {
-        switch (userMissions.get(missionId)) {
+        switch (userMissions.data.get(missionId)) {
           case (null) { Runtime.trap("Mission not found") };
           case (?oldMission) {
             let updatedMission = {
@@ -294,8 +310,7 @@ actor {
               title = newTitle;
               tasks = newTasks;
             };
-            userMissions.add(missionId, updatedMission);
-            persistentMissions.add(caller, userMissions);
+            userMissions.data.add(missionId, updatedMission);
           };
         };
       };
@@ -310,11 +325,10 @@ actor {
     switch (persistentMissions.get(caller)) {
       case (null) { Runtime.trap("Mission not found") };
       case (?userMissions) {
-        if (not userMissions.containsKey(missionId)) {
+        if (not userMissions.data.containsKey(missionId)) {
           Runtime.trap("Mission not found");
         };
-        userMissions.remove(missionId);
-        persistentMissions.add(caller, userMissions);
+        userMissions.data.remove(missionId);
       };
     };
   };
@@ -327,7 +341,7 @@ actor {
     switch (persistentMissions.get(caller)) {
       case (null) { [] };
       case (?userMissions) {
-        userMissions.values().toArray();
+        userMissions.data.values().toArray();
       };
     };
   };
@@ -447,7 +461,7 @@ actor {
       case (?(fileId, file)) {
         // Verify ownership
         if (file.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
-          Runtime.trap("Unauthorized: Can only delete your own files");
+          Runtime.trap("Unauthorized: Only users can delete your own files");
         };
         files.remove(fileId);
       };
@@ -674,4 +688,3 @@ actor {
     files.values().toArray();
   };
 };
-

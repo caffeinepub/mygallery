@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Add touch-only, iOS-style swipe-left actions for list rows in Folders, Notes, and Missions, while keeping desktop interactions unchanged.
+**Goal:** Hide Edit/Rename/Delete swipe actions in Folders, Notes, and Missions until the user swipes left to reveal them, ensuring actions do not overlay row content when closed.
 
 **Planned changes:**
-- Implement swipe-left (right-to-left) gesture on touch/mobile for Folder list rows to reveal persistent “Edit” and red “Delete” actions.
-- Implement the same swipe-to-reveal persistent actions for Note list rows, wiring “Edit” to the existing note title edit flow and “Delete” to the existing delete flow.
-- Implement the same swipe-to-reveal persistent actions for Mission list rows, wiring “Edit” to the existing mission title edit flow and “Delete” to the existing delete flow.
-- Ensure revealed actions remain open until dismissed (swipe back, tap outside, or opening another row) and ensure swipe behavior is disabled on non-touch/desktop.
+- Update the shared SwipeActionsRow behavior so action buttons are fully hidden by default and only appear after a sufficient left-swipe reveal.
+- Ensure closing the swipe (swiping back or resetting) fully hides actions again with no overlap on the row content.
+- Apply the same swipe-to-reveal behavior consistently wherever SwipeActionsRow is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices) without backend changes.
 
-**User-visible outcome:** On mobile/touch devices, users can swipe left on Folder/Note/Mission rows to reveal “Edit” and “Delete” buttons that stay visible until dismissed; on desktop, the lists behave exactly as before.
+**User-visible outcome:** In Folders, Notes (on mobile/coarse pointer), and Missions (on mobile/coarse pointer), list rows no longer show Edit/Rename/Delete buttons until you swipe left; closing the swipe hides the buttons completely and tapping the row behaves normally.

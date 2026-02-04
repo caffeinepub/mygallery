@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Folder, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Folder, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
 import { useBackendActor } from '@/contexts/ActorContext';
 import type { Folder as FolderType } from '@/backend';
 import { toast } from 'sonner';
-import SwipeRevealRow from './SwipeRevealRow';
+import SwipeActionsRow from './SwipeActionsRow';
 
 interface FoldersDialogProps {
   open: boolean;
@@ -72,6 +72,7 @@ export default function FoldersDialog({
       await renameFolderMutation.mutateAsync({ folderId, newName: editingName.trim() });
       setEditingFolderId(null);
       setEditingName('');
+      setOpenSwipeRowId(null);
       toast.success('Folder renamed successfully');
     } catch (error) {
       console.error('Failed to rename folder:', error);
@@ -104,6 +105,75 @@ export default function FoldersDialog({
   const cancelEditing = () => {
     setEditingFolderId(null);
     setEditingName('');
+  };
+
+  const renderFolderRow = (folder: FolderType) => {
+    const folderId = folder.id.toString();
+    const isEditing = editingFolderId === folder.id;
+
+    const folderContent = (
+      <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+        {isEditing ? (
+          <>
+            <Input
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameFolder(folder.id);
+                if (e.key === 'Escape') cancelEditing();
+              }}
+              className="flex-1"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              onClick={() => handleRenameFolder(folder.id)}
+              disabled={!editingName.trim() || renameFolderMutation.isPending}
+            >
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={cancelEditing}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="ghost"
+            className="flex-1 justify-start"
+            onClick={() => {
+              onSelectFolder(folder);
+              onOpenChange(false);
+            }}
+          >
+            <Folder className="h-4 w-4 mr-2" />
+            {folder.name}
+          </Button>
+        )}
+      </div>
+    );
+
+    if (!isEditing) {
+      return (
+        <SwipeActionsRow
+          key={folderId}
+          onEdit={() => startEditing(folder)}
+          onDelete={() => handleDeleteFolder(folder.id)}
+          isOpen={openSwipeRowId === folderId}
+          onOpenChange={(open) => {
+            setOpenSwipeRowId(open ? folderId : null);
+          }}
+          disabled={!isActorReady}
+        >
+          {folderContent}
+        </SwipeActionsRow>
+      );
+    }
+
+    return <div key={folderId}>{folderContent}</div>;
   };
 
   return (
@@ -153,97 +223,7 @@ export default function FoldersDialog({
               </div>
             ) : (
               <div className="space-y-2">
-                {folders.map((folder) => (
-                  <div key={folder.id.toString()}>
-                    {editingFolderId === folder.id ? (
-                      <div className="flex items-center gap-2 p-2 rounded-lg">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRenameFolder(folder.id);
-                            if (e.key === 'Escape') cancelEditing();
-                          }}
-                          className="flex-1"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleRenameFolder(folder.id)}
-                          disabled={!editingName.trim() || renameFolderMutation.isPending}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelEditing}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <SwipeRevealRow
-                        isOpen={openSwipeRowId === folder.id.toString()}
-                        onOpen={() => setOpenSwipeRowId(folder.id.toString())}
-                        onClose={() => setOpenSwipeRowId(null)}
-                        disabled={!isActorReady}
-                        actions={
-                          <div className="flex h-full">
-                            <button
-                              onClick={() => startEditing(folder)}
-                              disabled={!isActorReady}
-                              className="px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
-                              style={{ minWidth: '80px' }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteFolder(folder.id)}
-                              disabled={!isActorReady || deleteFolderMutation.isPending}
-                              className="px-4 bg-red-500 hover:bg-red-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
-                              style={{ minWidth: '80px' }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        }
-                      >
-                        <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                          <Button
-                            variant="ghost"
-                            className="flex-1 justify-start"
-                            onClick={() => {
-                              onSelectFolder(folder);
-                              onOpenChange(false);
-                            }}
-                          >
-                            <Folder className="h-4 w-4 mr-2" />
-                            {folder.name}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => startEditing(folder)}
-                            disabled={!isActorReady}
-                            className="hidden md:flex"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDeleteFolder(folder.id)}
-                            disabled={!isActorReady || deleteFolderMutation.isPending}
-                            className="hidden md:flex"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </SwipeRevealRow>
-                    )}
-                  </div>
-                ))}
+                {folders.map((folder) => renderFolderRow(folder))}
               </div>
             )}
           </ScrollArea>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useInternetIdentity } from './useInternetIdentity';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
+import { diagnoseNoteCache, logDeleteMutationLifecycle, formatActorError } from '@/utils/reactQueryDiagnostics';
 import type { Note } from '@/backend';
 
 export function useListNotes() {
@@ -102,13 +103,73 @@ export function useDeleteNote() {
         throw createActorNotReadyError();
       }
       await actor.deleteNote(noteId);
+      return noteId;
     },
-    onSuccess: () => {
+    onMutate: async (noteId) => {
+      const noteIdStr = noteId.toString();
+      
+      // Diagnostics: before mutation
+      const diagBefore = diagnoseNoteCache(queryClient, noteId);
+      logDeleteMutationLifecycle('onMutate', 'note', noteIdStr, diagBefore);
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['notes', 'list'] });
+      await queryClient.cancelQueries({ queryKey: ['notes', 'detail', noteIdStr] });
+
+      // Snapshot the previous value
+      const previousNotes = queryClient.getQueryData<Note[]>(['notes', 'list']);
+
+      // Optimistically update to remove the note from list
+      queryClient.setQueryData<Note[]>(['notes', 'list'], (old) => {
+        if (!old) return [];
+        return old.filter((n) => n.id.toString() !== noteIdStr);
+      });
+
+      // Remove the note detail cache
+      queryClient.removeQueries({ queryKey: ['notes', 'detail', noteIdStr] });
+
+      // Diagnostics: after optimistic update
+      const diagAfter = diagnoseNoteCache(queryClient, noteId);
+      logDeleteMutationLifecycle('onMutate', 'note', noteIdStr, diagAfter);
+
+      // Return context with the snapshot
+      return { previousNotes };
+    },
+    onError: (err, noteId, context) => {
+      const noteIdStr = noteId.toString();
+      const errorMessage = formatActorError(err);
+      
+      // Diagnostics: on error
+      const diagError = diagnoseNoteCache(queryClient, noteId);
+      logDeleteMutationLifecycle('onError', 'note', noteIdStr, diagError, err);
+
+      // Rollback on error
+      if (context?.previousNotes) {
+        queryClient.setQueryData(['notes', 'list'], context.previousNotes);
+      }
+      
+      console.error('Delete note failed:', getActorErrorMessage(err));
+      throw new Error(`Failed to delete note: ${errorMessage}`);
+    },
+    onSuccess: (noteId) => {
+      const noteIdStr = noteId.toString();
+      
+      // Diagnostics: on success
+      const diagSuccess = diagnoseNoteCache(queryClient, noteId);
+      logDeleteMutationLifecycle('onSuccess', 'note', noteIdStr, diagSuccess);
+    },
+    onSettled: (noteId) => {
+      const noteIdStr = noteId?.toString() ?? 'unknown';
+      
+      // Always refetch after error or success to ensure backend state is reflected
       queryClient.invalidateQueries({ queryKey: ['notes', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['notes', 'detail'] });
-    },
-    onError: (err) => {
-      console.error('Delete note failed:', getActorErrorMessage(err));
+
+      // Diagnostics: on settled
+      if (noteId) {
+        const diagSettled = diagnoseNoteCache(queryClient, noteId);
+        logDeleteMutationLifecycle('onSettled', 'note', noteIdStr, diagSettled);
+      }
     },
   });
 }

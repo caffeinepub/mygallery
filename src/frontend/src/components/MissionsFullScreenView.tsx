@@ -19,7 +19,8 @@ import { toast } from 'sonner';
 import type { Task } from '@/backend';
 import MissionEditorDialog from './MissionEditorDialog';
 import MissionDetailFullScreenView from './MissionDetailFullScreenView';
-import SwipeRevealRow from './SwipeRevealRow';
+import { useIsCoarsePointer } from '@/hooks/useIsCoarsePointer';
+import SwipeActionsRow from './SwipeActionsRow';
 
 interface MissionsFullScreenViewProps {
   onClose: () => void;
@@ -30,11 +31,11 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmMissionId, setDeleteConfirmMissionId] = useState<bigint | null>(null);
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
-  const [editTitleOnOpen, setEditTitleOnOpen] = useState(false);
 
   const { status } = useBackendActor();
   const { data: missionsList = [], isLoading: isLoadingList } = useListMissions();
   const deleteMissionMutation = useDeleteMission();
+  const isCoarsePointer = useIsCoarsePointer();
 
   const isActorReady = status === 'ready';
 
@@ -52,38 +53,34 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
 
     try {
       await deleteMissionMutation.mutateAsync(missionId);
+      
       // Clear selection if the deleted mission was selected
       if (selectedMissionId?.toString() === missionId.toString()) {
         setSelectedMissionId(null);
       }
+      
       setDeleteConfirmMissionId(null);
-      setOpenSwipeRowId(null);
       toast.success('Mission deleted successfully');
     } catch (error) {
+      // Error is already logged by the mutation hook with diagnostics
+      // The optimistic update will be rolled back automatically
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete mission';
       console.error('Failed to delete mission:', error);
-      toast.error('Failed to delete mission');
+      toast.error(errorMessage);
       // Keep the mission visible on error (optimistic update will be rolled back)
     }
   };
 
   const handleSelectMission = (missionId: bigint) => {
+    // Close any open swipe row
+    setOpenSwipeRowId(null);
     setIsCreating(false);
     setSelectedMissionId(missionId);
-    setEditTitleOnOpen(false);
-    setOpenSwipeRowId(null);
-  };
-
-  const handleEditMissionTitle = (missionId: bigint) => {
-    setIsCreating(false);
-    setSelectedMissionId(missionId);
-    setEditTitleOnOpen(true);
-    setOpenSwipeRowId(null);
   };
 
   const handleStartCreating = () => {
     setIsCreating(true);
     setSelectedMissionId(null);
-    setOpenSwipeRowId(null);
   };
 
   const handleCloseEditor = () => {
@@ -92,7 +89,12 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
 
   const handleBackFromDetail = () => {
     setSelectedMissionId(null);
-    setEditTitleOnOpen(false);
+  };
+
+  const handleOpenDeleteConfirm = (missionId: bigint) => {
+    // Close any open swipe row
+    setOpenSwipeRowId(null);
+    setDeleteConfirmMissionId(missionId);
   };
 
   // Show mission detail view if a mission is selected
@@ -101,10 +103,75 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
       <MissionDetailFullScreenView
         missionId={selectedMissionId}
         onBack={handleBackFromDetail}
-        startEditingTitle={editTitleOnOpen}
       />
     );
   }
+
+  const renderMissionRow = (mission: { id: bigint; title: string; tasks: Task[] }) => {
+    const missionId = mission.id.toString();
+    const missionProgress = calculateProgress(mission.tasks);
+    const missionCompleted = mission.tasks.length > 0 && missionProgress === 100;
+
+    const missionContent = (
+      <div
+        className={`group relative p-4 rounded-lg cursor-pointer transition-colors border ${
+          missionCompleted 
+            ? 'bg-muted/50 border-muted hover:bg-muted' 
+            : 'bg-card hover:bg-accent/50 border-border'
+        }`}
+        onClick={() => handleSelectMission(mission.id)}
+      >
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className={`font-semibold text-lg truncate ${missionCompleted ? 'line-through text-muted-foreground' : ''}`}>
+              {mission.title || 'Untitled Mission'}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              {mission.tasks.filter(t => t.completed).length} of {mission.tasks.length} tasks completed
+            </p>
+          </div>
+          {!isCoarsePointer && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDeleteConfirm(mission.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          )}
+        </div>
+        <div className="space-y-1">
+          <Progress value={missionProgress} className="h-2" />
+          <p className="text-xs text-muted-foreground text-right">
+            {Math.round(missionProgress)}% complete
+          </p>
+        </div>
+      </div>
+    );
+
+    if (isCoarsePointer) {
+      return (
+        <SwipeActionsRow
+          key={missionId}
+          onEdit={() => handleSelectMission(mission.id)}
+          onDelete={() => handleOpenDeleteConfirm(mission.id)}
+          isOpen={openSwipeRowId === missionId}
+          onOpenChange={(open) => {
+            setOpenSwipeRowId(open ? missionId : null);
+          }}
+          disabled={!isActorReady}
+        >
+          {missionContent}
+        </SwipeActionsRow>
+      );
+    }
+
+    return <div key={missionId}>{missionContent}</div>;
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -159,77 +226,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
                   <p className="text-sm">Create your first mission to get started!</p>
                 </div>
               ) : (
-                missionsList.map((mission) => {
-                  const missionProgress = calculateProgress(mission.tasks);
-                  const missionCompleted = mission.tasks.length > 0 && missionProgress === 100;
-                  
-                  return (
-                    <SwipeRevealRow
-                      key={mission.id.toString()}
-                      isOpen={openSwipeRowId === mission.id.toString()}
-                      onOpen={() => setOpenSwipeRowId(mission.id.toString())}
-                      onClose={() => setOpenSwipeRowId(null)}
-                      disabled={!isActorReady}
-                      actions={
-                        <div className="flex h-full">
-                          <button
-                            onClick={() => handleEditMissionTitle(mission.id)}
-                            disabled={!isActorReady}
-                            className="px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
-                            style={{ minWidth: '80px' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmMissionId(mission.id)}
-                            disabled={!isActorReady}
-                            className="px-4 bg-red-500 hover:bg-red-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
-                            style={{ minWidth: '80px' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      }
-                    >
-                      <div
-                        className={`group relative p-4 rounded-lg cursor-pointer transition-colors border ${
-                          missionCompleted 
-                            ? 'bg-muted/50 border-muted hover:bg-muted' 
-                            : 'bg-card hover:bg-accent/50 border-border'
-                        }`}
-                        onClick={() => handleSelectMission(mission.id)}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className={`font-semibold text-lg truncate ${missionCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                              {mission.title || 'Untitled Mission'}
-                            </h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {mission.tasks.filter(t => t.completed).length} of {mission.tasks.length} tasks completed
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hidden md:flex"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmMissionId(mission.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <div className="space-y-1">
-                          <Progress value={missionProgress} className="h-2" />
-                          <p className="text-xs text-muted-foreground text-right">
-                            {Math.round(missionProgress)}% complete
-                          </p>
-                        </div>
-                      </div>
-                    </SwipeRevealRow>
-                  );
-                })
+                missionsList.map((mission) => renderMissionRow(mission))
               )}
             </div>
           </ScrollArea>
@@ -258,12 +255,20 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMissionMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmMissionId && handleDeleteMission(deleteConfirmMissionId)}
+              disabled={deleteMissionMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Delete
+              {deleteMissionMutation.isPending ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

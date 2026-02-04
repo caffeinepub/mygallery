@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useInternetIdentity } from './useInternetIdentity';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
+import { diagnoseMissionCache, logDeleteMutationLifecycle, formatActorError } from '@/utils/reactQueryDiagnostics';
 import type { Mission, Task } from '@/backend';
 
 export function useListMissions() {
@@ -105,36 +106,70 @@ export function useDeleteMission() {
       return missionId;
     },
     onMutate: async (missionId) => {
+      const missionIdStr = missionId.toString();
+      
+      // Diagnostics: before mutation
+      const diagBefore = diagnoseMissionCache(queryClient, missionId);
+      logDeleteMutationLifecycle('onMutate', 'mission', missionIdStr, diagBefore);
+
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['missions', 'list'] });
-      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionIdStr] });
 
       // Snapshot the previous value
       const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
 
-      // Optimistically update to remove the mission
+      // Optimistically update to remove the mission from list
       queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
         if (!old) return [];
-        return old.filter((m) => m.id.toString() !== missionId.toString());
+        return old.filter((m) => m.id.toString() !== missionIdStr);
       });
 
       // Remove the mission detail cache
-      queryClient.removeQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
+      queryClient.removeQueries({ queryKey: ['missions', 'detail', missionIdStr] });
+
+      // Diagnostics: after optimistic update
+      const diagAfter = diagnoseMissionCache(queryClient, missionId);
+      logDeleteMutationLifecycle('onMutate', 'mission', missionIdStr, diagAfter);
 
       // Return context with the snapshot
       return { previousMissions };
     },
     onError: (err, missionId, context) => {
+      const missionIdStr = missionId.toString();
+      const errorMessage = formatActorError(err);
+      
+      // Diagnostics: on error
+      const diagError = diagnoseMissionCache(queryClient, missionId);
+      logDeleteMutationLifecycle('onError', 'mission', missionIdStr, diagError, err);
+
       // Rollback on error
       if (context?.previousMissions) {
         queryClient.setQueryData(['missions', 'list'], context.previousMissions);
       }
+      
       console.error('Delete mission failed:', getActorErrorMessage(err));
+      throw new Error(`Failed to delete mission: ${errorMessage}`);
     },
-    onSettled: () => {
-      // Always refetch after error or success
+    onSuccess: (missionId) => {
+      const missionIdStr = missionId.toString();
+      
+      // Diagnostics: on success
+      const diagSuccess = diagnoseMissionCache(queryClient, missionId);
+      logDeleteMutationLifecycle('onSuccess', 'mission', missionIdStr, diagSuccess);
+    },
+    onSettled: (missionId) => {
+      const missionIdStr = missionId?.toString() ?? 'unknown';
+      
+      // Always refetch after error or success to ensure backend state is reflected
       queryClient.invalidateQueries({ queryKey: ['missions', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['missions', 'detail'] });
+
+      // Diagnostics: on settled
+      if (missionId) {
+        const diagSettled = diagnoseMissionCache(queryClient, missionId);
+        logDeleteMutationLifecycle('onSettled', 'mission', missionIdStr, diagSettled);
+      }
     },
   });
 }

@@ -23,13 +23,11 @@ import type { Task } from '@/backend';
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
   onBack: () => void;
-  startEditingTitle?: boolean;
 }
 
 export default function MissionDetailFullScreenView({
   missionId,
   onBack,
-  startEditingTitle = false,
 }: MissionDetailFullScreenViewProps) {
   const [missionTitle, setMissionTitle] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -53,9 +51,9 @@ export default function MissionDetailFullScreenView({
       setTasks(selectedMission.tasks);
       setInitialTitle(selectedMission.title);
       setInitialTasks(selectedMission.tasks);
-      setIsEditingTitle(startEditingTitle);
+      setIsEditingTitle(false);
     }
-  }, [selectedMission, startEditingTitle]);
+  }, [selectedMission]);
 
   const calculateProgress = (missionTasks: Task[]) => {
     if (missionTasks.length === 0) return 0;
@@ -144,10 +142,15 @@ export default function MissionDetailFullScreenView({
     try {
       await deleteMissionMutation.mutateAsync(missionId);
       toast.success('Mission deleted successfully');
+      // Navigate back to list on success
       onBack();
     } catch (error) {
+      // Error is already logged by the mutation hook with diagnostics
+      // The optimistic update will be rolled back automatically
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete mission';
       console.error('Failed to delete mission:', error);
-      toast.error('Failed to delete mission');
+      toast.error(errorMessage);
+      // Close the dialog but stay in detail view so user can see the mission is still there
       setDeleteConfirmOpen(false);
     }
   };
@@ -219,7 +222,7 @@ export default function MissionDetailFullScreenView({
               variant="ghost"
               size="icon"
               onClick={() => setDeleteConfirmOpen(true)}
-              disabled={!isActorReady}
+              disabled={!isActorReady || deleteMissionMutation.isPending}
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-5 w-5" />
@@ -364,12 +367,20 @@ export default function MissionDetailFullScreenView({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMissionMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteMission}
+              disabled={deleteMissionMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Delete
+              {deleteMissionMutation.isPending ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

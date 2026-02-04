@@ -77,8 +77,12 @@ export function useCreateFolder() {
       return { folderId, name };
     },
     onSuccess: async () => {
+      // Invalidate and force refetch, ensuring the query runs even if not previously active
       await queryClient.invalidateQueries({ queryKey: ['folders'] });
-      await queryClient.refetchQueries({ queryKey: ['folders'], type: 'active' });
+      await queryClient.refetchQueries({ 
+        queryKey: ['folders'], 
+        type: 'all' // Refetch all matching queries, not just active ones
+      });
     },
     onError: (error) => {
       console.error('Folder creation failed:', getActorErrorMessage(error));

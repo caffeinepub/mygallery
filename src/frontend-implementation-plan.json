@@ -1,77 +1,49 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Touch-only iOS-style swipe-left actions for Folders, Notes, and Missions lists",
+  "title": "Hide swipe Edit/Delete actions until reveal threshold across Folders, Notes, and Missions",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Add touch-only swipe-left on Folder rows to reveal persistent iOS-style Edit/Delete actions without affecting desktop interactions.",
+      "id": "REQ-7",
+      "summary": "Update SwipeActionsRow so Edit/Rename and Delete are fully hidden by default and only become visible after a left-swipe reveal threshold, with no overlay when closed.",
       "acceptanceCriteria": [
-        "On a touch device, swiping left on a folder row reveals two buttons aligned on the right: 'Edit' and 'Delete' (Delete has a red background).",
-        "After a successful swipe, the action buttons stay visible until explicitly dismissed (swipe back, tap outside, or open another row).",
-        "Tapping 'Delete' performs the existing folder deletion flow and keeps current confirmation/toast behavior consistent with the app’s patterns.",
-        "Tapping 'Edit' enters the existing rename/edit-title flow for that folder (no new backend endpoints).",
-        "On desktop/non-touch input, swipe does nothing; existing folder list interactions remain functional."
+        "In Folders, Notes (mobile/coarse pointer), and Missions (mobile/coarse pointer), when a list row is initially rendered and not swiped, no Edit/Rename/Delete buttons are visible on screen.",
+        "After swiping a row to the left past the reveal threshold, the Edit/Rename and Delete buttons become visible for that row.",
+        "When the row is swiped back (or otherwise closed), the action buttons are no longer visible and do not overlay the content.",
+        "Tapping/clicking the row content when the row is closed behaves the same as before (e.g., select/open), with no accidental interaction with hidden action buttons."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/SwipeRevealRow.tsx",
-          "operation": "create",
-          "description": "Create a reusable swipe-to-reveal row wrapper that only activates for touch pointer input (PointerEvent pointerType === 'touch'), supports right-to-left swipe to open, left-to-right swipe to close, keeps actions visible when open, closes on tap outside, and coordinates 'only one row open at a time' via a controlled openRowId API."
-        },
-        {
-          "path": "frontend/src/hooks/useIsTouchInput.ts",
-          "operation": "create",
-          "description": "Add a small hook/utility to detect touch-capable interaction (e.g., based on pointer/hover media queries) to help guard swipe behavior and keep desktop behavior unchanged."
-        },
-        {
-          "path": "frontend/src/components/FoldersDialog.tsx",
+          "path": "frontend/src/components/SwipeActionsRow.tsx",
           "operation": "modify",
-          "description": "Wrap each non-editing folder row with SwipeRevealRow and render iOS-style right-side actions ('Edit' then red 'Delete'); wire actions to existing startEditing(folder) and handleDeleteFolder(folder.id) flows; ensure open actions persist after swipe and dismiss by swiping back, tapping outside, or opening another folder row; ensure swipe handlers are disabled for non-touch pointers so existing click controls remain usable on desktop."
+          "description": "Change the layout and interaction model so action buttons render visually behind the row content when closed (content above actions via stacking), and make actions switch from fully hidden to visible only after the swipe passes the reveal threshold. Ensure hidden actions do not intercept pointer/touch events (e.g., disable pointer events when closed/hidden) to prevent accidental taps, while preserving current swipe open/close behavior."
         }
       ]
     },
     {
-      "id": "REQ-2",
-      "summary": "Add touch-only swipe-left on Note rows to reveal persistent iOS-style Edit/Delete actions while preserving desktop behavior.",
+      "id": "REQ-8",
+      "summary": "Apply the updated SwipeActionsRow reveal behavior consistently in all usages (Folders, Notes coarse pointer, Missions coarse pointer) without any backend changes.",
       "acceptanceCriteria": [
-        "On touch devices, swiping left on a note row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
-        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
-        "Delete uses the existing note delete behavior (including confirmation dialog if present) and results in the note being removed from the list after success.",
-        "Edit allows editing the note title from the list context (e.g., inline rename mode or by opening the existing editor focused on title), using the existing note update mutation."
+        "Folders list rows do not show swipe actions until a left swipe reveals them.",
+        "Notes list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
+        "Missions list rows (on coarse pointer devices) do not show swipe actions until a left swipe reveals them.",
+        "No backend API changes are introduced as part of this work."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/SwipeRevealRow.tsx",
+          "path": "frontend/src/components/FoldersDialog.tsx",
           "operation": "modify",
-          "description": "Extend SwipeRevealRow (if needed) to support list-item use cases in Notes: ensure tap on the main content still triggers the row's onClick/select behavior when closed, while action button taps do not propagate; keep all swipe behavior touch-only."
+          "description": "Verify folder rows using SwipeActionsRow still behave correctly with the new hidden-by-default actions (no visible buttons until reveal; no overlap when closed), and adjust any row/container styling or interaction wiring if needed to match the updated SwipeActionsRow behavior."
         },
         {
           "path": "frontend/src/components/NotesFullScreenView.tsx",
           "operation": "modify",
-          "description": "Wrap each note list row with SwipeRevealRow and add right-side 'Edit' and red 'Delete' actions; wire Delete to existing setDeleteConfirmNoteId(note.id) flow; wire Edit to select the note and programmatically focus the existing title Input in the editor (without adding new routes or backend changes); ensure only touch pointers can open/close via swipe and that opening one note row closes any other open row."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add touch-only swipe-left on Mission rows to reveal persistent iOS-style Edit/Delete actions while keeping desktop interactions unchanged.",
-      "acceptanceCriteria": [
-        "On touch devices, swiping left on a mission row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
-        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
-        "Delete uses the existing mission delete behavior (including confirmation dialog if present) and results in the mission being removed from the list after success.",
-        "Edit allows editing the mission title starting from the list context (e.g., inline rename mode or by opening the existing mission detail title edit mode), using the existing mission update mutation."
-      ],
-      "file_operations": [
+          "description": "Verify Notes list coarse-pointer rendering via SwipeActionsRow matches the new hidden-by-default reveal behavior and that tapping the row content when closed continues to select/open the note without interference from hidden actions; make any minimal adjustments needed to align with the updated SwipeActionsRow behavior."
+        },
         {
           "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Wrap each mission list card with SwipeRevealRow and add right-side 'Edit' and red 'Delete' actions; wire Delete to existing setDeleteConfirmMissionId(mission.id) flow; wire Edit to open the existing MissionDetailFullScreenView and request title-edit mode on entry; ensure swipe is touch-only and that opening one mission row closes any other open row."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Add an optional prop to allow entering existing title-edit mode immediately when opening from a swipe 'Edit' action (reusing current title edit UI and update mutation); keep all data operations unchanged and ensure normal navigation/back behavior remains the same."
+          "description": "Verify Missions list coarse-pointer rendering via SwipeActionsRow matches the new hidden-by-default reveal behavior and that tapping the row content when closed continues to open the mission without interference from hidden actions; make any minimal adjustments needed to align with the updated SwipeActionsRow behavior."
         }
       ]
     }

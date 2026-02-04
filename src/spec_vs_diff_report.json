@@ -1,51 +1,46 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T12:41:50.238Z",
-  "summary": "SwipeRevealRow touch-only swipe-to-reveal infrastructure was added and integrated into Folders, Notes, and Missions views, with per-list open row state and outside-tap dismissal. However, the diff evidence for the exact iOS-style action button UI (labels/colors) and the exact note title edit flow from the list is incomplete/truncated. Some unrelated utilities and mission-detail change-detection logic were also modified/added beyond the swipe-action request.",
+  "generatedAt": "2026-02-04T14:05:16.897Z",
+  "summary": "Diff updates SwipeActionsRow with new swipe state/threshold logic to control action visibility, but also includes unrelated URL/session parameter utilities and project documentation/state changes. Evidence is insufficient to confirm consistent application across all SwipeActionsRow usages (Folders/Notes/Missions) beyond the component itself.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "On touch devices, swiping left on a note row reveals 'Edit' and 'Delete' actions (Delete red), stays open until dismissed, and Edit enables editing the note title from the list context using the existing note update mutation.",
-      "reason": "NotesFullScreenView is truncated before the list-row rendering and swipe actions UI/handlers are shown; the diff snippet does not provide direct evidence that the 'Edit' and 'Delete' buttons (including red Delete styling) are rendered and that 'Edit' triggers an existing note-title update flow from the list context.",
+      "id": "REQ-8",
+      "requirement": "Ensure the updated swipe-to-reveal behavior is consistently applied anywhere the shared SwipeActionsRow component is used (Folders list, Notes list on coarse pointer devices, Missions list on coarse pointer devices), without changing any backend behavior.",
+      "reason": "The diff only shows changes inside the shared component. There’s no evidence in the diff summary that Folders/Notes/Missions list screens (or their row usage patterns/state wiring) were updated or verified to use the new open/close behavior consistently.",
       "evidence": [
-        "frontend/src/components/NotesFullScreenView.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "On touch devices, swiping left on a mission row reveals 'Edit' and 'Delete' actions (Delete red), stays open until dismissed, and Edit enables editing the mission title from the list context using the existing mission update mutation.",
-      "reason": "MissionsFullScreenView is truncated before the mission list-row rendering and the swipe actions UI/handlers are shown; while there is evidence of an 'editTitleOnOpen' flow, the diff snippet does not directly show the swipe-revealed 'Edit'/'Delete' buttons or Delete red styling.",
-      "evidence": [
-        "frontend/src/components/MissionsFullScreenView.tsx (truncated)",
-        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated)"
+        "frontend/src/components/SwipeActionsRow.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added/expanded URL parameter + sessionStorage utilities (getUrlParameter/getPersistedUrlParameter/clearParamFromHash etc.).",
-      "reason": "Not requested by the BuildRequest (which is limited to touch-only swipe-left actions for folders/notes/missions).",
+      "description": "Added/expanded URL parameter + sessionStorage persistence utilities (getUrlParameter, storeSessionParameter, getPersistedUrlParameter, clearSessionParameter, etc.).",
+      "reason": "Not requested by REQ-7/REQ-8 (which are solely about swipe action visibility behavior).",
       "evidence": [
-        "frontend/src/utils/urlParams.ts"
+        "frontend/src/utils/urlParams.ts (truncated)"
       ]
     },
     {
-      "description": "Mission detail view logic changes unrelated to swipe actions (e.g., BigInt-safe change detection, additional state handling around initial values).",
-      "reason": "BuildRequest only asked for enabling edit-title entry from the list context via swipe actions; broader mission-change detection refactors are not requested.",
+      "description": "Updated project documentation/state summary files with extensive unrelated feature descriptions.",
+      "reason": "Not requested by REQ-7/REQ-8; these changes don’t relate to swipe action visibility behavior.",
       "evidence": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated)"
+        "frontend-file-summaries.txt (truncated)",
+        "project_state.json (truncated)"
+      ]
+    },
+    {
+      "description": "Added outside-click/touchstart listeners to close an open swipe row.",
+      "reason": "REQ-7/REQ-8 do not request outside-click-to-close behavior; this is additional interaction logic beyond 'swipe back (or otherwise closed)'.",
+      "evidence": [
+        "frontend/src/components/SwipeActionsRow.tsx (truncated)"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/NotesFullScreenView.tsx",
-    "frontend/src/components/SwipeRevealRow.tsx",
+    "frontend/src/components/SwipeActionsRow.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json"
   ]
