@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Plus, FileText, Save, Trash2, X, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { useBackendActor } from '@/contexts/ActorContext';
 import { toast } from 'sonner';
 import { formatNotesTime } from '@/utils/notesTime';
 import type { Note } from '@/backend';
+import SwipeRevealRow from './SwipeRevealRow';
 
 interface NotesFullScreenViewProps {
   onClose: () => void;
@@ -31,6 +32,8 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmNoteId, setDeleteConfirmNoteId] = useState<bigint | null>(null);
   const [showMobileEditor, setShowMobileEditor] = useState(false);
+  const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const { status } = useBackendActor();
   const { data: notesList = [], isLoading: isLoadingList } = useListNotes();
@@ -120,6 +123,7 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
         setShowMobileEditor(false);
       }
       setDeleteConfirmNoteId(null);
+      setOpenSwipeRowId(null);
       toast.success('Note deleted successfully');
     } catch (error) {
       console.error('Failed to delete note:', error);
@@ -134,6 +138,22 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
     setSelectedNoteId(noteId);
     // Show editor on mobile
     setShowMobileEditor(true);
+    // Close any open swipe rows
+    setOpenSwipeRowId(null);
+  };
+
+  const handleEditNoteTitle = (noteId: bigint) => {
+    // Select the note and focus title input
+    setIsCreating(false);
+    setSelectedNoteId(noteId);
+    setShowMobileEditor(true);
+    setOpenSwipeRowId(null);
+    
+    // Focus title input after a short delay to ensure editor is rendered
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 100);
   };
 
   const handleStartCreating = () => {
@@ -143,6 +163,7 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
     setNoteContent('');
     // Show editor on mobile
     setShowMobileEditor(true);
+    setOpenSwipeRowId(null);
   };
 
   const handleBackToList = () => {
@@ -213,37 +234,64 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
                 </div>
               ) : (
                 notesList.map((note) => (
-                  <div
+                  <SwipeRevealRow
                     key={note.id.toString()}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedNoteId?.toString() === note.id.toString()
-                        ? 'bg-notes-bg border border-notes-accent'
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => handleSelectNote(note.id)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">
-                          {note.title || 'Untitled Note'}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatNotesTime(new Date(Number(note.updatedAt) / 1000000))}
-                        </p>
+                    isOpen={openSwipeRowId === note.id.toString()}
+                    onOpen={() => setOpenSwipeRowId(note.id.toString())}
+                    onClose={() => setOpenSwipeRowId(null)}
+                    disabled={!isActorReady}
+                    actions={
+                      <div className="flex h-full">
+                        <button
+                          onClick={() => handleEditNoteTitle(note.id)}
+                          disabled={!isActorReady}
+                          className="px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
+                          style={{ minWidth: '80px' }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmNoteId(note.id)}
+                          disabled={!isActorReady}
+                          className="px-4 bg-red-500 hover:bg-red-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
+                          style={{ minWidth: '80px' }}
+                        >
+                          Delete
+                        </button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteConfirmNoteId(note.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    }
+                  >
+                    <div
+                      className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedNoteId?.toString() === note.id.toString()
+                          ? 'bg-notes-bg border border-notes-accent'
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => handleSelectNote(note.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">
+                            {note.title || 'Untitled Note'}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatNotesTime(new Date(Number(note.updatedAt) / 1000000))}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmNoteId(note.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </SwipeRevealRow>
                 ))
               )}
             </div>
@@ -267,6 +315,7 @@ export default function NotesFullScreenView({ onClose }: NotesFullScreenViewProp
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <Input
+                    ref={titleInputRef}
                     placeholder="Note title..."
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}

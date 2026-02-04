@@ -1,34 +1,68 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T11:31:31.594Z",
+  "generatedAt": "2026-02-04T12:41:50.259Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
+        "summary": "Implement swipe-left (right-to-left) gesture on touch/mobile for each Folder item in the Folders UI list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button next to it. The actions must remain visible after the swipe until the user closes them (e.g., by swiping back, tapping outside, or opening another item). On non-touch/desktop, the swipe interaction must be disabled and the existing click/hover controls must remain usable.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/WelcomeIntroScreen.tsx"
+          "frontend/src/components/SwipeRevealRow.tsx",
+          "frontend/src/hooks/useIsTouchInput.ts",
+          "frontend/src/components/FoldersDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/WelcomeIntroScreen.tsx"
+          "frontend/src/components/SwipeRevealRow.tsx",
+          "frontend/src/components/FoldersDialog.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Implement swipe-left gesture on touch/mobile for each Note item in the Notes list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the note title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/SwipeRevealRow.tsx",
+          "frontend/src/components/NotesFullScreenView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/SwipeRevealRow.tsx",
+          "frontend/src/components/NotesFullScreenView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Implement swipe-left gesture on touch/mobile for each Mission item in the Missions list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the mission title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/WelcomeIntroScreen.tsx",
+    "frontend/src/components/FoldersDialog.tsx",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/components/NotesFullScreenView.tsx",
+    "frontend/src/components/SwipeRevealRow.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

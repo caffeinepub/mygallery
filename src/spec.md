@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Update the unauthenticated welcome screen subtitle text under “Welcome to MyGallery” to the provided English copy.
+**Goal:** Add touch-only, iOS-style swipe-left actions for list rows in Folders, Notes, and Missions, while keeping desktop interactions unchanged.
 
 **Planned changes:**
-- Update the subtitle/intro text in `frontend/src/components/WelcomeIntroScreen.tsx` to exactly:
-  - "This is your personal space for organization and self-improvement.
-Create missions, break them into tasks, and complete them step by step."
-- Ensure no other user-facing text is changed.
+- Implement swipe-left (right-to-left) gesture on touch/mobile for Folder list rows to reveal persistent “Edit” and red “Delete” actions.
+- Implement the same swipe-to-reveal persistent actions for Note list rows, wiring “Edit” to the existing note title edit flow and “Delete” to the existing delete flow.
+- Implement the same swipe-to-reveal persistent actions for Mission list rows, wiring “Edit” to the existing mission title edit flow and “Delete” to the existing delete flow.
+- Ensure revealed actions remain open until dismissed (swipe back, tap outside, or opening another row) and ensure swipe behavior is disabled on non-touch/desktop.
 
-**User-visible outcome:** When logged out, users see the “Welcome to MyGallery” heading with the updated two-sentence English subtitle displayed exactly as provided (including the line break).
+**User-visible outcome:** On mobile/touch devices, users can swipe left on Folder/Note/Mission rows to reveal “Edit” and “Delete” buttons that stay visible until dismissed; on desktop, the lists behave exactly as before.

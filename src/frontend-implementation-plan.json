@@ -1,20 +1,77 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Update welcome screen intro subtitle copy",
+  "title": "Touch-only iOS-style swipe-left actions for Folders, Notes, and Missions lists",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace the unauthenticated welcome screen subtitle under “Welcome to MyGallery” with the provided two-sentence English copy and preserved line break.",
+      "summary": "Add touch-only swipe-left on Folder rows to reveal persistent iOS-style Edit/Delete actions without affecting desktop interactions.",
       "acceptanceCriteria": [
-        "When logged out, the welcome screen shows the heading \"Welcome to MyGallery\" and the subtitle text exactly matches the provided English copy (including sentence text and line break/paragraph split).",
-        "No other user-facing text is changed."
+        "On a touch device, swiping left on a folder row reveals two buttons aligned on the right: 'Edit' and 'Delete' (Delete has a red background).",
+        "After a successful swipe, the action buttons stay visible until explicitly dismissed (swipe back, tap outside, or open another row).",
+        "Tapping 'Delete' performs the existing folder deletion flow and keeps current confirmation/toast behavior consistent with the app’s patterns.",
+        "Tapping 'Edit' enters the existing rename/edit-title flow for that folder (no new backend endpoints).",
+        "On desktop/non-touch input, swipe does nothing; existing folder list interactions remain functional."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/WelcomeIntroScreen.tsx",
+          "path": "frontend/src/components/SwipeRevealRow.tsx",
+          "operation": "create",
+          "description": "Create a reusable swipe-to-reveal row wrapper that only activates for touch pointer input (PointerEvent pointerType === 'touch'), supports right-to-left swipe to open, left-to-right swipe to close, keeps actions visible when open, closes on tap outside, and coordinates 'only one row open at a time' via a controlled openRowId API."
+        },
+        {
+          "path": "frontend/src/hooks/useIsTouchInput.ts",
+          "operation": "create",
+          "description": "Add a small hook/utility to detect touch-capable interaction (e.g., based on pointer/hover media queries) to help guard swipe behavior and keep desktop behavior unchanged."
+        },
+        {
+          "path": "frontend/src/components/FoldersDialog.tsx",
           "operation": "modify",
-          "description": "Update only the subtitle/intro text directly under the \"Welcome to MyGallery\" heading to exactly: \"This is your personal space for organization and self-improvement.\\nCreate missions, break them into tasks, and complete them step by step.\" Ensure the UI preserves the two-sentence split via an explicit line break within the rendered subtitle block, without changing any other user-facing copy."
+          "description": "Wrap each non-editing folder row with SwipeRevealRow and render iOS-style right-side actions ('Edit' then red 'Delete'); wire actions to existing startEditing(folder) and handleDeleteFolder(folder.id) flows; ensure open actions persist after swipe and dismiss by swiping back, tapping outside, or opening another folder row; ensure swipe handlers are disabled for non-touch pointers so existing click controls remain usable on desktop."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add touch-only swipe-left on Note rows to reveal persistent iOS-style Edit/Delete actions while preserving desktop behavior.",
+      "acceptanceCriteria": [
+        "On touch devices, swiping left on a note row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
+        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
+        "Delete uses the existing note delete behavior (including confirmation dialog if present) and results in the note being removed from the list after success.",
+        "Edit allows editing the note title from the list context (e.g., inline rename mode or by opening the existing editor focused on title), using the existing note update mutation."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/SwipeRevealRow.tsx",
+          "operation": "modify",
+          "description": "Extend SwipeRevealRow (if needed) to support list-item use cases in Notes: ensure tap on the main content still triggers the row's onClick/select behavior when closed, while action button taps do not propagate; keep all swipe behavior touch-only."
+        },
+        {
+          "path": "frontend/src/components/NotesFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Wrap each note list row with SwipeRevealRow and add right-side 'Edit' and red 'Delete' actions; wire Delete to existing setDeleteConfirmNoteId(note.id) flow; wire Edit to select the note and programmatically focus the existing title Input in the editor (without adding new routes or backend changes); ensure only touch pointers can open/close via swipe and that opening one note row closes any other open row."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add touch-only swipe-left on Mission rows to reveal persistent iOS-style Edit/Delete actions while keeping desktop interactions unchanged.",
+      "acceptanceCriteria": [
+        "On touch devices, swiping left on a mission row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
+        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
+        "Delete uses the existing mission delete behavior (including confirmation dialog if present) and results in the mission being removed from the list after success.",
+        "Edit allows editing the mission title starting from the list context (e.g., inline rename mode or by opening the existing mission detail title edit mode), using the existing mission update mutation."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Wrap each mission list card with SwipeRevealRow and add right-side 'Edit' and red 'Delete' actions; wire Delete to existing setDeleteConfirmMissionId(mission.id) flow; wire Edit to open the existing MissionDetailFullScreenView and request title-edit mode on entry; ensure swipe is touch-only and that opening one mission row closes any other open row."
+        },
+        {
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Add an optional prop to allow entering existing title-edit mode immediately when opening from a swipe 'Edit' action (reusing current title edit UI and update mutation); keep all data operations unchanged and ensure normal navigation/back behavior remains the same."
         }
       ]
     }

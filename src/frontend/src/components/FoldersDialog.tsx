@@ -18,6 +18,7 @@ import {
 import { useBackendActor } from '@/contexts/ActorContext';
 import type { Folder as FolderType } from '@/backend';
 import { toast } from 'sonner';
+import SwipeRevealRow from './SwipeRevealRow';
 
 interface FoldersDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ export default function FoldersDialog({
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
 
   const { status } = useBackendActor();
   const { data: folders = [], isLoading } = useGetFolders();
@@ -85,6 +87,7 @@ export default function FoldersDialog({
 
     try {
       await deleteFolderMutation.mutateAsync(folderId);
+      setOpenSwipeRowId(null);
       toast.success('Folder deleted successfully');
     } catch (error) {
       console.error('Failed to delete folder:', error);
@@ -95,6 +98,7 @@ export default function FoldersDialog({
   const startEditing = (folder: FolderType) => {
     setEditingFolderId(folder.id);
     setEditingName(folder.name);
+    setOpenSwipeRowId(null);
   };
 
   const cancelEditing = () => {
@@ -150,12 +154,9 @@ export default function FoldersDialog({
             ) : (
               <div className="space-y-2">
                 {folders.map((folder) => (
-                  <div
-                    key={folder.id.toString()}
-                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
+                  <div key={folder.id.toString()}>
                     {editingFolderId === folder.id ? (
-                      <>
+                      <div className="flex items-center gap-2 p-2 rounded-lg">
                         <Input
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
@@ -180,37 +181,66 @@ export default function FoldersDialog({
                         >
                           Cancel
                         </Button>
-                      </>
+                      </div>
                     ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          className="flex-1 justify-start"
-                          onClick={() => {
-                            onSelectFolder(folder);
-                            onOpenChange(false);
-                          }}
-                        >
-                          <Folder className="h-4 w-4 mr-2" />
-                          {folder.name}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => startEditing(folder)}
-                          disabled={!isActorReady}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDeleteFolder(folder.id)}
-                          disabled={!isActorReady || deleteFolderMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                      <SwipeRevealRow
+                        isOpen={openSwipeRowId === folder.id.toString()}
+                        onOpen={() => setOpenSwipeRowId(folder.id.toString())}
+                        onClose={() => setOpenSwipeRowId(null)}
+                        disabled={!isActorReady}
+                        actions={
+                          <div className="flex h-full">
+                            <button
+                              onClick={() => startEditing(folder)}
+                              disabled={!isActorReady}
+                              className="px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
+                              style={{ minWidth: '80px' }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFolder(folder.id)}
+                              disabled={!isActorReady || deleteFolderMutation.isPending}
+                              className="px-4 bg-red-500 hover:bg-red-600 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50"
+                              style={{ minWidth: '80px' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        }
+                      >
+                        <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                          <Button
+                            variant="ghost"
+                            className="flex-1 justify-start"
+                            onClick={() => {
+                              onSelectFolder(folder);
+                              onOpenChange(false);
+                            }}
+                          >
+                            <Folder className="h-4 w-4 mr-2" />
+                            {folder.name}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => startEditing(folder)}
+                            disabled={!isActorReady}
+                            className="hidden md:flex"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteFolder(folder.id)}
+                            disabled={!isActorReady || deleteFolderMutation.isPending}
+                            className="hidden md:flex"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </SwipeRevealRow>
                     )}
                   </div>
                 ))}

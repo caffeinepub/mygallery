@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Save, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, Check, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,11 +23,13 @@ import type { Task } from '@/backend';
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
   onBack: () => void;
+  startEditingTitle?: boolean;
 }
 
 export default function MissionDetailFullScreenView({
   missionId,
   onBack,
+  startEditingTitle = false,
 }: MissionDetailFullScreenViewProps) {
   const [missionTitle, setMissionTitle] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -35,6 +37,7 @@ export default function MissionDetailFullScreenView({
   const [initialTitle, setInitialTitle] = useState('');
   const [initialTasks, setInitialTasks] = useState<Task[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   const { status } = useBackendActor();
   const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
@@ -50,8 +53,9 @@ export default function MissionDetailFullScreenView({
       setTasks(selectedMission.tasks);
       setInitialTitle(selectedMission.title);
       setInitialTasks(selectedMission.tasks);
+      setIsEditingTitle(startEditingTitle);
     }
-  }, [selectedMission]);
+  }, [selectedMission, startEditingTitle]);
 
   const calculateProgress = (missionTasks: Task[]) => {
     if (missionTasks.length === 0) return 0;
@@ -94,6 +98,7 @@ export default function MissionDetailFullScreenView({
       // Update initial values after successful save
       setInitialTitle(missionTitle);
       setInitialTasks(tasks);
+      setIsEditingTitle(false);
       
       toast.success('Mission saved successfully');
     } catch (error) {
@@ -143,6 +148,7 @@ export default function MissionDetailFullScreenView({
     } catch (error) {
       console.error('Failed to delete mission:', error);
       toast.error('Failed to delete mission');
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -164,13 +170,49 @@ export default function MissionDetailFullScreenView({
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Input
-              placeholder="Mission title..."
-              value={missionTitle}
-              onChange={(e) => setMissionTitle(e.target.value)}
-              disabled={!isActorReady}
-              className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-2 flex-1"
-            />
+            {isEditingTitle ? (
+              <Input
+                placeholder="Mission title..."
+                value={missionTitle}
+                onChange={(e) => setMissionTitle(e.target.value)}
+                disabled={!isActorReady}
+                className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-2 flex-1"
+                autoFocus
+                onBlur={() => {
+                  if (!changesDetected) {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (changesDetected) {
+                      handleSaveMission();
+                    } else {
+                      setIsEditingTitle(false);
+                    }
+                  }
+                  if (e.key === 'Escape') {
+                    setMissionTitle(initialTitle);
+                    setIsEditingTitle(false);
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <h1 className="text-xl font-bold truncate">{missionTitle || 'Untitled Mission'}</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingTitle(true)}
+                  disabled={!isActorReady}
+                  className="h-8 w-8 shrink-0"
+                  title="Edit title"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button

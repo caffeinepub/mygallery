@@ -102,13 +102,39 @@ export function useDeleteMission() {
         throw createActorNotReadyError();
       }
       await actor.deleteMission(missionId);
+      return missionId;
     },
-    onSuccess: () => {
+    onMutate: async (missionId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['missions', 'list'] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
+
+      // Snapshot the previous value
+      const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+
+      // Optimistically update to remove the mission
+      queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
+        if (!old) return [];
+        return old.filter((m) => m.id.toString() !== missionId.toString());
+      });
+
+      // Remove the mission detail cache
+      queryClient.removeQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
+
+      // Return context with the snapshot
+      return { previousMissions };
+    },
+    onError: (err, missionId, context) => {
+      // Rollback on error
+      if (context?.previousMissions) {
+        queryClient.setQueryData(['missions', 'list'], context.previousMissions);
+      }
+      console.error('Delete mission failed:', getActorErrorMessage(err));
+    },
+    onSettled: () => {
+      // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['missions', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['missions', 'detail'] });
-    },
-    onError: (err) => {
-      console.error('Delete mission failed:', getActorErrorMessage(err));
     },
   });
 }

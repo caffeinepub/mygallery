@@ -110,8 +110,8 @@ export default function MissionEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+      <DialogContent className="max-w-2xl h-[90dvh] sm:h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="sr-only">Create New Mission</DialogTitle>
           <div className="space-y-3">
             <Input
@@ -125,9 +125,9 @@ export default function MissionEditorDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden px-6 py-4">
+        <div className="flex-1 overflow-hidden px-6 py-4 min-h-0">
           <ScrollArea className="h-full pr-4">
-            <div className="space-y-2">
+            <div className="space-y-2 pb-4">
               {tasks.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="text-sm">No tasks yet. Add tasks below to get started!</p>
@@ -168,7 +168,7 @@ export default function MissionEditorDialog({
           </ScrollArea>
         </div>
 
-        <div className="px-6 pb-6 pt-4 space-y-3 border-t">
+        <div className="px-6 pb-6 pt-4 space-y-3 border-t shrink-0 bg-background">
           <div className="flex gap-2">
             <Input
               placeholder="Add a new task..."
@@ -185,7 +185,7 @@ export default function MissionEditorDialog({
             <Button
               onClick={handleAddTask}
               disabled={!isActorReady || !newTaskText.trim()}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white"
+              className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0"
             >
               <Plus className="h-4 w-4" />
             </Button>

@@ -1,33 +1,75 @@
 {
   "kind": "build_request",
-  "title": "Update welcome screen intro subtitle copy",
+  "title": "Add iOS-style swipe-left actions on mobile for Folders, Notes, and Missions list items",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the subtitle/intro text displayed directly under the \"Welcome to MyGallery\" heading on the unauthenticated welcome screen (frontend/src/components/WelcomeIntroScreen.tsx) to exactly this English copy (preserve the two sentences):\n\n\"This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step.\"",
+      "text": "Implement swipe-left (right-to-left) gesture on touch/mobile for each Folder item in the Folders UI list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button next to it. The actions must remain visible after the swipe until the user closes them (e.g., by swiping back, tapping outside, or opening another item). On non-touch/desktop, the swipe interaction must be disabled and the existing click/hover controls must remain usable.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Το κείμενο intro κάτω από το welcome to my gallery να γίνει :στα αγγλικά This is your personal space for organization and self-improvement.\nCreate missions, break them into tasks, and complete them step by step."
+          "Swipe προς τα αριστερά σε Folders ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου). Το swipe να ισχύει μόνο σε mobile/touch. ... κουμπιά τύπου iOS (Delete με κόκκινο background, Edit δίπλα)"
         ]
       },
       "acceptanceCriteria": [
-        "When logged out, the welcome screen shows the heading \"Welcome to MyGallery\" and the subtitle text exactly matches the provided English copy (including sentence text and line break/paragraph split).",
-        "No other user-facing text is changed."
+        "On a touch device, swiping left on a folder row reveals two buttons aligned on the right: 'Edit' and 'Delete' (Delete has a red background).",
+        "After a successful swipe, the action buttons stay visible until explicitly dismissed (swipe back, tap outside, or open another row).",
+        "Tapping 'Delete' performs the existing folder deletion flow and keeps current confirmation/toast behavior consistent with the app’s patterns.",
+        "Tapping 'Edit' enters the existing rename/edit-title flow for that folder (no new backend endpoints).",
+        "On desktop/non-touch input, swipe does nothing; existing folder list interactions remain functional."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement swipe-left gesture on touch/mobile for each Note item in the Notes list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the note title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Swipe προς τα αριστερά σε ... Notes ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου)."
+        ]
+      },
+      "acceptanceCriteria": [
+        "On touch devices, swiping left on a note row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
+        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
+        "Delete uses the existing note delete behavior (including confirmation dialog if present) and results in the note being removed from the list after success.",
+        "Edit allows editing the note title from the list context (e.g., inline rename mode or by opening the existing editor focused on title), using the existing note update mutation."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Implement swipe-left gesture on touch/mobile for each Mission item in the Missions list to reveal iOS-style actions: a red 'Delete' button and an 'Edit' button for editing the mission title. The swipe interaction must be touch-only; on desktop, existing interactions remain unchanged. The revealed actions must remain visible after the swipe until dismissed.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Swipe προς τα αριστερά σε ... Missions ... για να εμφανίζονται ενέργειες (Διαγραφή / Επεξεργασία τίτλου)."
+        ]
+      },
+      "acceptanceCriteria": [
+        "On touch devices, swiping left on a mission row reveals 'Edit' and 'Delete' actions with iOS-style layout; 'Delete' uses a red background.",
+        "The actions remain visible after swipe until dismissed (swipe back, tap outside, or open another row).",
+        "Delete uses the existing mission delete behavior (including confirmation dialog if present) and results in the mission being removed from the list after success.",
+        "Edit allows editing the mission title starting from the list context (e.g., inline rename mode or by opening the existing mission detail title edit mode), using the existing mission update mutation."
       ]
     }
   ],
   "constraints": [
-    "Use English for any user-facing text changed as part of this request.",
-    "Do not modify files listed as immutable in SYSTEM_CONTEXT.frontend.immutablePaths."
+    "Frontend swipe actions must only activate for mobile/touch input; do not introduce swipe behavior on desktop mouse/trackpad usage.",
+    "Keep backend unchanged; reuse existing folder/note/mission update and delete flows.",
+    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths."
   ],
   "nonGoals": [
-    "Do not change the post-login IntroScreen animation or timing.",
-    "Do not add or modify missions functionality; only update the welcome screen subtitle copy."
+    "Adding haptic feedback, sounds, or advanced gesture physics beyond basic swipe-to-reveal behavior.",
+    "Changing the existing desktop UI layout or replacing existing non-touch edit/delete controls."
   ],
   "imageRequirements": {
     "required": [],
