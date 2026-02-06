@@ -1,5 +1,5 @@
-import { Camera } from 'lucide-react';
 import LoginButton from '@/components/LoginButton';
+import MissionTargetIcon from '@/components/MissionTargetIcon';
 
 export default function WelcomeIntroScreen() {
   return (
@@ -7,8 +7,8 @@ export default function WelcomeIntroScreen() {
       <main className="flex flex-1 items-center justify-center px-4">
         <div className="text-center space-y-8 max-w-2xl">
           <div className="flex justify-center">
-            <div className="rounded-full bg-primary/10 p-6">
-              <Camera className="h-16 w-16 text-primary" />
+            <div className="rounded-full bg-missions-bg p-6">
+              <MissionTargetIcon size={64} />
             </div>
           </div>
           

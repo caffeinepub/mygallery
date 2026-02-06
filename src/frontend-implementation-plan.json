@@ -1,63 +1,32 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix BigInt id=0 deletion flows and prevent false link-open fallback",
+  "title": "Swap suitcase branding icon to minimal purple mission target across onboarding and missions UI",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix folder deletion confirmation handler so folder id 0 can be deleted (no falsy BigInt guards).",
+      "summary": "Replace the existing suitcase icon with a minimal purple target/mission icon on the welcome intro/onboarding screen and the yellow page’s top-left icon area, using the existing missions accent theme token for consistent light/dark legibility.",
       "acceptanceCriteria": [
-        "Create a first folder (the first created folder for a user) and delete it successfully via the UI confirmation dialog.",
-        "Create multiple folders and delete any of them successfully via the same UI flow.",
-        "Deleting a folder with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
+        "On the welcome intro screen, the current icon is replaced by a minimal target icon rendered in purple (missions accent).",
+        "On the yellow page’s top-left area, the current suitcase icon is replaced by the same minimal purple target icon.",
+        "No other UI text is changed as part of this request.",
+        "The replacement uses existing styling/theme tokens (missions accent) and remains legible in both light and dark mode."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FoldersDialog.tsx",
+          "path": "frontend/src/components/MissionTargetIcon.tsx",
+          "operation": "create",
+          "description": "Create a small shared React component that renders a minimal target/mission icon (e.g., lucide-react Target) styled with the existing missions purple theme token (Tailwind text-missions-accent) and supports a configurable size/className so it can be reused in multiple UI locations."
+        },
+        {
+          "path": "frontend/src/components/WelcomeIntroScreen.tsx",
           "operation": "modify",
-          "description": "Replace the delete confirmation onClick logic that uses a truthy/falsy guard (e.g., `deleteConfirmFolderId && ...`) with an explicit null check so BigInt(0) triggers deletion; keep dialog close/reset behavior consistent on success/error."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Fix mission deletion and mission detail fetch logic so mission id 0 works correctly in list and detail views.",
-      "acceptanceCriteria": [
-        "Create a first mission (the first created mission for a user) and delete it successfully via the UI confirmation dialog in the missions list.",
-        "Create multiple missions and delete any of them successfully via the same UI flow.",
-        "Deleting a mission with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
-      ],
-      "file_operations": [
+          "description": "Replace the current onboarding icon usage with the shared MissionTargetIcon component so the welcome intro/onboarding screen shows the minimal purple target icon using missions accent styling; keep all existing copy/text unchanged."
+        },
         {
           "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Update the missions list delete confirmation dialog action to avoid truthy/falsy BigInt guards (e.g., replace `deleteConfirmMissionId && handleDelete...` with an explicit `!== null` check) so mission id 0 can be deleted."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Fix `useGetMission` query function to not treat missionId=0 as absent (replace `!missionId` checks with explicit `missionId === null` checks) so the first mission can load in the detail view when applicable."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Make external link opening detection reliable so the 'Unable to Open Link' dialog only appears when the browser actually blocks opening.",
-      "acceptanceCriteria": [
-        "Clicking a mission link attachment opens the URL externally; when the user returns to the app, the link fallback dialog/message is not shown.",
-        "The fallback dialog is shown only when the browser actually blocks opening the link (e.g., window.open returns null or throws), not due to unreliable window state checks.",
-        "User-facing dialog text remains in English (e.g., 'Unable to Open Link')."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/externalOpen.ts",
-          "operation": "modify",
-          "description": "Adjust `openExternally()` to consider the open successful unless `window.open` returns null/undefined or throws; remove/avoid unreliable checks like reading `newWindow.closed` that can cause false negatives after a successful open."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Ensure the link-attachment click flow relies on the updated `openExternally()` return value only (no additional window state assumptions), so the LinkOpenFallbackDialog opens only on true failure; keep existing English dialog title/text."
+          "description": "Update the top-left icon in the missions (yellow-themed) header area to use the same shared MissionTargetIcon component to ensure the suitcase icon (if present) is replaced consistently and the icon color uses text-missions-accent for light/dark legibility."
         }
       ]
     }

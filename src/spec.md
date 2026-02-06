@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix frontend deletion bugs for the first created folder/mission (id 0) and prevent erroneous “Unable to Open Link” messages after successfully opening mission link attachments.
+**Goal:** Replace the existing blue suitcase icon with a minimal purple mission target icon in the specified UI locations.
 
 **Planned changes:**
-- Update the Folders delete UI flow to correctly handle deleting the first folder (id 0) as well as any other folder.
-- Update the Missions delete UI flow to correctly handle deleting the first mission (id 0) as well as any other mission (including from any relevant mission views where deletion is available).
-- Adjust mission link-attachment opening behavior so the “Unable to Open Link” fallback appears only when the link truly fails to open (not after returning from a successfully opened link).
+- Update the top-left icon on the yellow page to use a minimal target/mission icon styled with the existing missions purple accent token (e.g., `text-missions-accent`).
+- Update the icon shown on the welcome intro/onboarding screen to use the same minimal purple target/mission icon and styling.
+- Ensure the new icon remains legible in both light and dark mode without changing any UI text.
 
-**User-visible outcome:** Users can delete their first and subsequent folders/missions via the normal confirmation dialog flow, and opening a mission link no longer triggers an incorrect “Unable to Open Link” message after returning to the app.
+**User-visible outcome:** Users see a consistent minimal purple target/mission icon (instead of the blue suitcase) on both the yellow page’s top-left area and the welcome intro/onboarding screen.

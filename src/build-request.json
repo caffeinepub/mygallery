@@ -1,72 +1,34 @@
 {
   "kind": "build_request",
-  "title": "Fix deletion bugs for first folder/mission and prevent erroneous 'Unable to Open Link' after opening mission links",
-  "priority": "high",
+  "title": "Replace blue suitcase icon with minimal purple mission target icon",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
+      "text": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-8"
+          "msg-5"
         ],
         "quotes": [
-          "Τον πρώτο φάκελο που δημιουργει ο χρήστης στην λειτουργία folders υπάρχει bug και δεν μπορει να τον διαγράψει , να διορθωθεί ώστε να μπορώλει να τον διαγράψει καθώς και όλους τους επόμενους φακέλους"
+          "να αντικατασταθει το εικονιδιο της μπλε βαλιτσας που βρισκεται στην κετρινκη σελιδα της εφαρμογης πανω αριστερα και στο welome intro της εφαρμογης με ενα εικονιδιο minimal mission. Το εικονιδιο να ειναι ενας στοχος χρωματος μωβ για να καταλαβαινει ο χρηστης οτι η εφαρμογη εχει να κανει με δημιουργια mission"
         ]
       },
       "acceptanceCriteria": [
-        "Create a first folder (the first created folder for a user) and delete it successfully via the UI confirmation dialog.",
-        "Create multiple folders and delete any of them successfully via the same UI flow.",
-        "Deleting a folder with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-8"
-        ],
-        "quotes": [
-          "Το ίδιο συμβαίνει και με την δημιουργία mission , να μπορςι να διαγράψει το πρώτο mission που δημιουργεί ο χρήστης καθώς και τα επόμενα mission ."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Create a first mission (the first created mission for a user) and delete it successfully via the UI confirmation dialog in the missions list.",
-        "Create multiple missions and delete any of them successfully via the same UI flow.",
-        "Deleting a mission with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-8"
-        ],
-        "quotes": [
-          "Τέλος τα link που στέλνονται από την gallery σε mission όταν πατάει ο χρήστης για να ανοίξει το link να μην εμφανίζεται όταν κλείνει το link ότι το μήνυμα \"unable to open link \""
-        ]
-      },
-      "acceptanceCriteria": [
-        "Clicking a mission link attachment opens the URL externally; when the user returns to the app, the link fallback dialog/message is not shown.",
-        "The fallback dialog is shown only when the browser actually blocks opening the link (e.g., window.open returns null or throws), not due to unreliable window state checks.",
-        "User-facing dialog text remains in English (e.g., 'Unable to Open Link')."
+        "On the welcome intro screen, the current icon is replaced by a minimal target icon rendered in purple (missions accent).",
+        "On the yellow page’s top-left area, the current suitcase icon is replaced by the same minimal purple target icon.",
+        "No other UI text is changed as part of this request.",
+        "The replacement uses existing styling/theme tokens (missions accent) and remains legible in both light and dark mode."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (shadcn components); compose them instead.",
-    "Do not edit frontend immutable hook/entry files listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo changes only if persistent state schema changes are required."
+    "Frontend files in `frontend/src/components/ui` and paths listed in `frontend.immutablePaths` must not be edited."
   ],
   "nonGoals": [
-    "Changing folder/mission data models or IDs in the backend.",
-    "Adding new features beyond fixing deletion and link-opening fallback behavior.",
-    "Implementing real-time updates or external integrations."
+    "Do not change mission functionality, data models, or backend logic.",
+    "Do not redesign the onboarding copy or flows beyond swapping the requested icon(s)."
   ],
   "imageRequirements": {
     "required": [],

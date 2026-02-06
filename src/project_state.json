@@ -3,40 +3,27 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [
-    "Bug: In Folders feature, the first folder created by a user cannot be deleted (and ensure deletion works for all subsequent folders too).",
-    "Bug: In Missions feature, the first mission created by a user cannot be deleted (and ensure deletion works for all subsequent missions too).",
-    "Bug/UI: When opening a link sent from Gallery to a Mission, closing the link shows an 'unable to open link' message; this should not appear."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-folders-delete-flow-so-the-first-folder-a-user-creates-folder-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-folders-as-well",
-      "title": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
+      "id": "feature-replace-the-existing-blue-suitcase-icon-with-a-minimal-purple-target-mission-icon-in-all-requested-ui-locations-1-the-top-left-icon-on-the-yellow-page-of-the-app-and-2-the-icon-shown-in-the-welcome-intro-onboarding-screen-implement-the-icon-using-the-existing-missions-purple-theme-e-g-tailwind-text-missions-accent-so-it-reads-as-a-mission-related-app-element",
+      "title": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-fix-the-missions-delete-flow-so-the-first-mission-a-user-creates-mission-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-missions-as-well-from-both-the-missions-list-and-mission-detail-views-if-applicable",
-      "title": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-when-opening-a-link-attachment-inside-a-mission-a-link-that-was-sent-moved-from-the-gallery-to-a-mission-do-not-show-the-unable-to-open-link-fallback-message-after-the-user-closes-returns-from-the-link-if-the-link-actually-opened-successfully",
-      "title": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix deletion bugs for first folder/mission and prevent erroneous 'Unable to Open Link' after opening mission links",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Replace the blue suitcase icon (top-left on the yellow page and in the welcome intro) with a minimal purple target/mission icon to better convey mission creation.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Replace blue suitcase icon with minimal purple mission target icon",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

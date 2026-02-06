@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-folders-delete-flow-so-the-first-folder-a-user-creates-folder-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-folders-as-well",
-      "featureTitle": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
+      "featureId": "feature-replace-the-existing-blue-suitcase-icon-with-a-minimal-purple-target-mission-icon-in-all-requested-ui-locations-1-the-top-left-icon-on-the-yellow-page-of-the-app-and-2-the-icon-shown-in-the-welcome-intro-onboarding-screen-implement-the-icon-using-the-existing-missions-purple-theme-e-g-tailwind-text-missions-accent-so-it-reads-as-a-mission-related-app-element",
+      "featureTitle": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
       "files": [
-        "frontend/src/components/FoldersDialog.tsx"
+        "frontend/src/components/MissionTargetIcon.tsx",
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/components/WelcomeIntroScreen.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,47 +20,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-missions-delete-flow-so-the-first-mission-a-user-creates-mission-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-missions-as-well-from-both-the-missions-list-and-mission-detail-views-if-applicable",
-      "featureTitle": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
-      "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-when-opening-a-link-attachment-inside-a-mission-a-link-that-was-sent-moved-from-the-gallery-to-a-mission-do-not-show-the-unable-to-open-link-fallback-message-after-the-user-closes-returns-from-the-link-if-the-link-actually-opened-successfully",
-      "featureTitle": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
-      "files": [
-        "frontend/src/utils/externalOpen.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

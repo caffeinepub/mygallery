@@ -1,49 +1,28 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T13:03:07.241Z",
+  "generatedAt": "2026-02-06T13:15:02.818Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
+        "summary": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/FoldersDialog.tsx"
+          "frontend/src/components/MissionTargetIcon.tsx",
+          "frontend/src/components/WelcomeIntroScreen.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/FoldersDialog.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/hooks/useMissionsQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/hooks/useMissionsQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/utils/externalOpen.ts",
-          "frontend/src/components/MissionDetailFullScreenView.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/utils/externalOpen.ts"
+          "frontend/src/components/MissionTargetIcon.tsx",
+          "frontend/src/components/WelcomeIntroScreen.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ]
       }
     ]
@@ -53,10 +32,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/FoldersDialog.tsx",
+    "frontend/src/components/MissionTargetIcon.tsx",
     "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/hooks/useMissionsQueries.ts",
-    "frontend/src/utils/externalOpen.ts",
+    "frontend/src/components/WelcomeIntroScreen.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

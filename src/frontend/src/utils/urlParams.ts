@@ -208,14 +208,17 @@ export function getSecretParameter(paramName: string): string | null {
 }
 
 /**
- * Normalizes an admin token by treating whitespace-only strings as absent
- * This prevents empty string bootstrap attempts that would fail
+ * Normalizes an admin token by trimming whitespace and treating empty/whitespace-only strings as null
+ * This prevents empty string tokens from triggering bootstrap attempts
  *
- * @param token - The token to normalize (can be null, undefined, or string)
- * @returns The trimmed token if non-empty, null otherwise
+ * @param token - The raw token value (can be null, undefined, or string)
+ * @returns The normalized token (non-empty string) or null
  */
 export function normalizeAdminToken(token: string | null | undefined): string | null {
-    if (!token) return null;
+    if (!token) {
+        return null;
+    }
+    
     const trimmed = token.trim();
     return trimmed.length > 0 ? trimmed : null;
 }
@@ -225,9 +228,9 @@ export function normalizeAdminToken(token: string | null | undefined): string | 
  * Treats whitespace-only tokens as absent to prevent empty string bootstrap attempts
  *
  * @param paramName - The name of the admin token parameter
- * @returns The normalized token if present and non-empty, null otherwise
+ * @returns The normalized token (non-empty string) or null
  */
 export function getNormalizedAdminToken(paramName: string): string | null {
-    const token = getSecretParameter(paramName);
-    return normalizeAdminToken(token);
+    const rawToken = getSecretParameter(paramName);
+    return normalizeAdminToken(rawToken);
 }
