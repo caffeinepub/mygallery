@@ -1,36 +1,73 @@
 {
   "kind": "build_request",
-  "title": "Ensure gallery bulk action bar overlays Folder/Missions floating buttons during multi-select",
+  "title": "Fix mission task auto-save and ensure tasks persist/appear when reopening missions",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
-      "target": "frontend",
+      "text": "Fix the Mission detail task auto-save flow so that when a user adds/toggles/removes a task inside an existing mission, the change is reliably persisted to the backend automatically (no manual save required), including after reopening an already-created mission.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "recent-messages"
         ],
         "quotes": [
-          "Όταν επιλέγω μαζικα αρχεία ή links στην gallery , οι επιλογές folder , mission , share , download και delete να εμφανίζονται μπροστά από τα εικονίδια folder και mission ώστε να ειναι εμφανή στον χρήστη για επιλογή"
+          "Διόρθωσε Σλστην λειτουργία mission όταν προσθέτω task σε mission να αποθηκεύονται αυτόματα . Όταν γυρνάει ο χρήστης σε δημιουργημένο mission το ανοίξει και προσθεσει task να προστίθενται αυτόματα."
         ]
       },
       "acceptanceCriteria": [
-        "Enter multi-select mode in the gallery and select at least 1 item: the bulk action bar overlaps the screen above the floating Folders/Missions buttons (i.e., higher stacking order) and is not obscured by them.",
-        "While the bulk action bar is visible, tapping/clicking any of its actions (Folder, Mission, Share, Download, Delete) works reliably even if the bar visually overlaps the floating Folders/Missions buttons.",
-        "Exit multi-select mode (Cancel or after completing an action): the floating Folders/Missions buttons return to their normal visibility/stacking behavior."
+        "Given an existing mission, when the user adds a new task in the mission detail view, the task is persisted without requiring any additional user action.",
+        "Given an existing mission, when the user toggles a task completion checkbox or removes a task in the mission detail view, the change is persisted automatically.",
+        "If the user navigates back to the missions list and reopens the same mission, all previously added/edited tasks are still present."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure the Mission detail view always renders all tasks that were added to that mission, including tasks added after reopening the mission, by keeping the frontend mission cache/state in sync after successful auto-saves (so the UI never shows an older task list after an update).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "Όλα τα task που προστίθενται να εμφανίζονται μέσα στο mission."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After adding a task, the task appears immediately in the mission detail task list and remains visible after the autosave completes.",
+        "After an autosave completes, reopening the mission shows the latest saved task list (not a stale cached version).",
+        "No duplicate tasks are shown as a result of cache refreshes or state re-hydration."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Adjust the mission auto-save trigger logic to avoid unintended saves that can overwrite or conflict with freshly loaded mission data, while still saving every user-initiated change to title/tasks (especially when entering an existing mission and then adding a task).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "Όταν γυρνάει ο χρήστης σε δημιουργημένο mission το ανοίξει και προσθεσει task να προστίθενται αυτόματα."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Opening an existing mission and waiting (without making changes) does not trigger an autosave call.",
+        "Editing the title or modifying tasks after the mission data has loaded triggers an autosave call after the debounce interval.",
+        "Switching between missions does not cause the previously viewed mission to be overwritten by another mission’s tasks/title due to autosave timing."
       ]
     }
   ],
   "constraints": [
-    "Do not edit any files under frontend/src/components/ui (read-only).",
-    "Do not edit frontend/src/hooks/useInternetIdentity.ts or .tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx (immutable paths).",
-    "Keep changes limited to UI layering/visibility/interaction for the gallery bulk action controls; do not introduce new backend APIs."
+    "Do not change any other application behavior or features beyond the mission task auto-save/persistence/display issue.",
+    "Keep all user-facing text in English.",
+    "Respect the existing single-actor Motoko backend architecture (all logic in backend/main.mo; only add backend/migration.mo if a state upgrade is strictly necessary).",
+    "Do not edit any files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Changing the set of available bulk actions (Folder, Mission, Share, Download, Delete).",
-    "Redesigning the gallery layout or adding new gallery features beyond fixing the visibility/stacking of existing controls.",
-    "Backend data model or storage changes."
+    "Adding new mission features (e.g., reordering tasks, due dates, assignees, comments).",
+    "Changing the overall UI/visual design.",
+    "Adding new authentication methods or external integrations."
   ],
   "imageRequirements": {
     "required": [],

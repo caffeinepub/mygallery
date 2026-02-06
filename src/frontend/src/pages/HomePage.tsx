@@ -92,7 +92,8 @@ export default function HomePage() {
       );
     }
 
-    // Show final failure error state only after retry budget is exhausted
+    // Show final failure error state only when status is 'error' (non-recoverable errors like invalid admin token)
+    // Stopped-canister errors keep status as 'unavailable' and never reach 'error' state
     if (isAuthenticated && isFinalFailure && error) {
       return (
         <MobileOnlyLayout>
@@ -108,7 +109,8 @@ export default function HomePage() {
     }
 
     // Show main app for authenticated users (even during initialization or unavailable state)
-    // No ConnectivityIndicator shown during silent retries
+    // During stopped-canister conditions (status='unavailable'), the app remains usable
+    // and retries happen silently in the background
     if (isAuthenticated) {
       return (
         <MobileOnlyLayout>

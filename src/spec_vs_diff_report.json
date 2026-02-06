@@ -1,32 +1,54 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T18:39:11.378Z",
-  "summary": "REQ-1 appears implemented by lowering the z-index of the floating Folders/Missions buttons when bulk multi-select is active and by ensuring the gallery bulk action bar has a higher stacking order, coordinated via a new bulk-selection callback/state between GallerySection and HomePage. Some unrelated additions (dev smoke-test trigger, project_state tracking updates) are present.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-06T20:08:38.641Z",
+  "summary": "Diff adds a hydration-gated autosave hook and updates Mission detail view to set a hydration baseline before enabling autosave, plus React Query cache update/invalidation changes for missions. Backend adds a migration module and wires migration into main.mo, but the diff is truncated before showing mission persistence logic changes.",
+  "missing_requirements": [
     {
-      "description": "Dev-only core flows smoke test trigger via URL param (runSmokeTest) with toasts and console logging",
-      "reason": "Not requested; BuildRequest constraints scope changes to UI layering/visibility/interaction for gallery bulk action controls and explicitly avoids introducing new features beyond the stacking fix.",
+      "id": "REQ-1",
+      "requirement": "Fix the Mission detail task auto-save flow so that when a user adds/toggles/removes a task inside an existing mission, the change is reliably persisted to the backend automatically (no manual save required), including after reopening an already-created mission.",
+      "reason": "Frontend autosave triggering appears to be implemented, but the diff summary for backend/main.mo is truncated before any mission update/persistence methods (e.g., updateMission) are shown, so there is no direct evidence that task changes are actually persisted to stable backend state and correctly returned on reopen.",
       "evidence": [
-        "frontend/src/pages/HomePage.tsx"
+        "backend/main.mo (truncated; shows state types/persistentMissions wiring but not mission CRUD)",
+        "frontend/src/hooks/useMissionAutosave.ts",
+        "frontend/src/components/MissionDetailFullScreenView.tsx"
       ]
     },
     {
-      "description": "Project state tracking updates adding new_feature_requests entries (AR-1/AR-2) marked pending",
-      "reason": "Not part of the requested UI layering fix; no requirement mentions modifying project tracking metadata.",
+      "id": "REQ-2",
+      "requirement": "Ensure the Mission detail view always renders all tasks that were added to that mission by keeping the frontend mission cache/state in sync after successful auto-saves (no stale cached version, no duplicates).",
+      "reason": "The update-mission cache synchronization logic is referenced but the onSuccess implementation is truncated, so it is not possible to verify from the diff summary that the mission detail cache is refreshed/updated in a way that guarantees no stale task lists or duplicates after autosave and reopen.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/hooks/useMissionsQueries.ts (useUpdateMission onSuccess truncated)",
+        "frontend/src/components/MissionDetailFullScreenView.tsx"
       ]
     }
   ],
-  "confidence": 0.73,
+  "hallucinated_features": [
+    {
+      "description": "Added backend state migration scaffolding and wired it into the actor.",
+      "reason": "BuildRequest allows adding backend/migration.mo only if a state upgrade is strictly necessary, but the diff summary does not provide evidence of a required state-shape change tied to the autosave/persistence bug; it only shows pass-through of old.persistentMissions/nextMissionId.",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo (with migration = Migration.run)"
+      ]
+    },
+    {
+      "description": "Introduced additional React Query diagnostics/logging utilities and cache policy tweaks (staleTime/gcTime/refetchOnMount changes).",
+      "reason": "BuildRequest constrains changes to the mission task autosave/persistence/display issue and explicitly says not to change other application behavior; adding diagnostics tooling and altering caching/refetch behavior may affect broader app behavior beyond the mission task bugfix.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (imports diagnoseMissionCache/logDeleteMutationLifecycle, staleTime/gcTime/refetchOnMount changes)"
+      ]
+    }
+  ],
+  "confidence": 0.58,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/FoldersButton.tsx",
-    "frontend/src/components/GallerySection.tsx",
-    "frontend/src/components/MissionsButton.tsx",
-    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/hooks/useMissionAutosave.ts",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json"
   ]
 }

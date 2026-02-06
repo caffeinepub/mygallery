@@ -12,7 +12,9 @@ import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -74,6 +76,11 @@ actor {
     data : Map.Map<Nat, Mission>;
   };
 
+  public type PersistentMissions = {
+    nextMissionId : Nat;
+    map : Map.Map<Principal, Missions>;
+  };
+
   public type DiagnosticResult = {
     build : Text;
     cycles : Nat;
@@ -101,7 +108,10 @@ actor {
   let files = Map.empty<Nat, FileMetadata>();
   let folders = Map.empty<Nat, Folder>();
   let userProfiles = Map.empty<Principal, UserProfile>();
-  let persistentMissions = Map.empty<Principal, Missions>();
+  var persistentMissions : PersistentMissions = {
+    nextMissionId = 0;
+    map = Map.empty<Principal, Missions>();
+  };
 
   // Timings
   var uploadTime = 0;
@@ -169,21 +179,26 @@ actor {
       tasks;
     };
 
-    let userMissions : Missions = switch (persistentMissions.get(caller)) {
+    let userMissions : Missions = switch (persistentMissions.map.get(caller)) {
       case (null) {
         let newMissions : Missions = {
           owner = caller;
           data = Map.empty<Nat, Mission>();
         };
-        persistentMissions.add(caller, newMissions);
+        persistentMissions.map.add(caller, newMissions);
         newMissions;
       };
       case (?missions) { missions };
     };
 
     userMissions.data.add(nextMissionId, mission);
+    let currentMissionId = nextMissionId;
     nextMissionId += 1;
-    mission.id;
+    persistentMissions := {
+      persistentMissions with
+      nextMissionId
+    };
+    currentMissionId;
   };
 
   public query ({ caller }) func getMission(missionId : Nat) : async ?Mission {
@@ -191,7 +206,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can access missions");
     };
 
-    switch (persistentMissions.get(caller)) {
+    switch (persistentMissions.map.get(caller)) {
       case (null) { null };
       case (?userMissions) {
         userMissions.data.get(missionId);
@@ -204,7 +219,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can update missions");
     };
 
-    switch (persistentMissions.get(caller)) {
+    switch (persistentMissions.map.get(caller)) {
       case (null) { Runtime.trap("Mission not found") };
       case (?userMissions) {
         switch (userMissions.data.get(missionId)) {
@@ -227,7 +242,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can delete missions");
     };
 
-    switch (persistentMissions.get(caller)) {
+    switch (persistentMissions.map.get(caller)) {
       case (null) { Runtime.trap("Mission not found") };
       case (?userMissions) {
         if (not userMissions.data.containsKey(missionId)) {
@@ -243,7 +258,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can list missions");
     };
 
-    switch (persistentMissions.get(caller)) {
+    switch (persistentMissions.map.get(caller)) {
       case (null) { [] };
       case (?userMissions) {
         userMissions.data.values().toArray();
@@ -268,7 +283,7 @@ actor {
 
     switch (missionId) {
       case (?mid) {
-        switch (persistentMissions.get(caller)) {
+        switch (persistentMissions.map.get(caller)) {
           case (null) {
             Runtime.trap("Mission not found");
           };
@@ -332,7 +347,7 @@ actor {
 
     switch (missionId) {
       case (?mid) {
-        switch (persistentMissions.get(caller)) {
+        switch (persistentMissions.map.get(caller)) {
           case (null) { Runtime.trap("Mission not found") };
           case (?userMissions) {
             if (not userMissions.data.containsKey(mid)) {
@@ -375,7 +390,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can move files to missions");
     };
 
-    switch (persistentMissions.get(caller)) {
+    switch (persistentMissions.map.get(caller)) {
       case (null) {
         Runtime.trap("Mission not found");
       };
@@ -507,7 +522,7 @@ actor {
 
     switch (missionId) {
       case (?mid) {
-        switch (persistentMissions.get(caller)) {
+        switch (persistentMissions.map.get(caller)) {
           case (null) {
             Runtime.trap("Mission not found");
           };

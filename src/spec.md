@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure the gallery bulk action bar stays visually and interactively above the floating Folders/Missions buttons during multi-select.
+**Goal:** Fix mission task auto-save so task/title changes reliably persist and always display correctly when revisiting an existing mission.
 
 **Planned changes:**
-- Adjust UI stacking order (e.g., z-index/positioning) so the bulk action bar overlays the floating Folders/Missions buttons whenever multi-select is active and at least one item is selected.
-- Ensure pointer/tap interactions prioritize the bulk action bar actions (Folder, Mission, Share, Download, Delete) while it is visible, even if it overlaps the floating buttons.
-- Restore the floating Folders/Missions buttons’ normal stacking/visibility once multi-select mode ends.
+- Ensure add/toggle/remove task actions in the Mission detail view automatically persist to the backend for existing missions (no manual save), including after reopening a mission.
+- Keep the Mission detail task list UI in sync with the latest saved mission data to avoid stale task lists or duplicate tasks after autosave/caching updates.
+- Adjust autosave trigger/debounce logic to only save after user-initiated edits (title/tasks) and prevent unintended saves on initial load or when switching between missions.
 
-**User-visible outcome:** In gallery multi-select with at least one item selected, the bulk action bar is always clearly visible and tappable (not hidden behind the floating Folders/Missions buttons), and the floating buttons behave normally again after exiting multi-select.
+**User-visible outcome:** Users can open an existing mission, add/complete/remove tasks (and edit the title) and have changes autosave reliably; reopening the mission shows the latest tasks without missing items, stale state, or duplicates.

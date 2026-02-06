@@ -111,26 +111,24 @@ export default function MissionEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[90dvh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="max-w-[95vw] w-full h-[85dvh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-4 pb-3 border-b shrink-0">
           <DialogTitle className="sr-only">Create New Mission</DialogTitle>
-          <div className="space-y-3">
-            <Input
-              placeholder="Mission title..."
-              value={missionTitle}
-              onChange={(e) => setMissionTitle(e.target.value)}
-              disabled={!isActorReady}
-              className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-0"
-              autoFocus
-            />
-          </div>
+          <Input
+            placeholder="Mission title..."
+            value={missionTitle}
+            onChange={(e) => setMissionTitle(e.target.value)}
+            disabled={!isActorReady}
+            className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-0"
+            autoFocus
+          />
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden px-6 py-4 min-h-0">
+        <div className="flex-1 overflow-hidden px-6 min-h-0">
           <ScrollArea className="h-full pr-4">
-            <div className="space-y-2 pb-4">
+            <div className="space-y-2 py-3">
               {tasks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-6 text-muted-foreground">
                   <p className="text-sm">No tasks yet. Add tasks below to get started!</p>
                 </div>
               ) : (
@@ -169,7 +167,7 @@ export default function MissionEditorDialog({
           </ScrollArea>
         </div>
 
-        <div className="px-6 pb-6 pt-4 space-y-3 border-t shrink-0 bg-background">
+        <div className="px-6 pb-4 pt-3 space-y-3 border-t shrink-0 bg-background">
           <div className="flex gap-2">
             <Input
               placeholder="Add a new task..."

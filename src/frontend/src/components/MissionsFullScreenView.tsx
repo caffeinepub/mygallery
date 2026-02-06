@@ -31,6 +31,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmMissionId, setDeleteConfirmMissionId] = useState<bigint | null>(null);
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
+  const [exitingMissionId, setExitingMissionId] = useState<string | null>(null);
 
   const { status } = useBackendActor();
   const { data: missionsList = [], isLoading: isLoadingList } = useListMissions();
@@ -49,6 +50,45 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
     // Close any open swipe row
     setOpenSwipeRowId(null);
     setDeleteConfirmMissionId(missionId);
+  };
+
+  const handleSwipeDelete = async (missionId: bigint) => {
+    if (!isActorReady) {
+      toast.error('Please wait for the application to initialize');
+      return;
+    }
+
+    const missionIdStr = missionId.toString();
+
+    // Start exit animation
+    setExitingMissionId(missionIdStr);
+    setOpenSwipeRowId(null);
+
+    try {
+      // Wait a bit for the animation to start
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      await deleteMissionMutation.mutateAsync(missionId);
+      
+      // Clear selection if the deleted mission was selected
+      if (selectedMissionId?.toString() === missionIdStr) {
+        setSelectedMissionId(null);
+      }
+      
+      // Keep the exit animation running for smooth removal
+      setTimeout(() => {
+        setExitingMissionId(null);
+      }, 300);
+      
+      toast.success('Mission deleted successfully');
+    } catch (error) {
+      // On error, clear exit state immediately so rollback is visible
+      setExitingMissionId(null);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete mission';
+      console.error('Failed to delete mission:', error);
+      toast.error(errorMessage);
+    }
   };
 
   const handleDeleteMission = async (missionId: bigint) => {
@@ -111,15 +151,19 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
     const missionId = mission.id.toString();
     const missionProgress = calculateProgress(mission.tasks);
     const missionCompleted = mission.tasks.length > 0 && missionProgress === 100;
+    const isExiting = exitingMissionId === missionId;
 
     const missionContent = (
       <div
-        className={`group relative p-4 rounded-lg cursor-pointer transition-colors border ${
+        className={`group relative p-4 rounded-lg cursor-pointer transition-all border ${
           missionCompleted 
             ? 'bg-muted/50 border-muted hover:bg-muted' 
             : 'bg-card hover:bg-accent/50 border-border'
-        }`}
-        onClick={() => handleSelectMission(mission.id)}
+        } ${isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+        style={{
+          transition: isExiting ? 'opacity 0.3s ease-out, transform 0.3s ease-out' : 'background-color 0.2s, border-color 0.2s',
+        }}
+        onClick={() => !isExiting && handleSelectMission(mission.id)}
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
@@ -158,12 +202,12 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
         <SwipeActionsRow
           key={missionId}
           onEdit={() => handleSelectMission(mission.id)}
-          onDelete={() => handleOpenDeleteConfirm(mission.id)}
+          onDelete={() => handleSwipeDelete(mission.id)}
           isOpen={openSwipeRowId === missionId}
           onOpenChange={(open) => {
             setOpenSwipeRowId(open ? missionId : null);
           }}
-          disabled={!isActorReady}
+          disabled={!isActorReady || isExiting}
         >
           {missionContent}
         </SwipeActionsRow>

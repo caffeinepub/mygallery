@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-when-the-gallery-is-in-multi-select-mode-i-e-selectionmode-is-true-and-at-least-one-item-is-selected-ensure-the-bulk-action-bar-containing-the-actions-folder-mission-share-download-and-delete-is-visually-and-interactively-in-front-of-above-the-floating-folders-and-missions-buttons-icons-so-the-actions-are-always-clearly-visible-and-tappable",
-      "featureTitle": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
+      "featureId": "feature-fix-the-mission-detail-task-auto-save-flow-so-that-when-a-user-adds-toggles-removes-a-task-inside-an-existing-mission-the-change-is-reliably-persisted-to-the-backend-automatically-no-manual-save-required-including-after-reopening-an-already-created-mission",
+      "featureTitle": "Fix the Mission detail task auto-save flow so that when a user adds/toggles/removes a task inside an existing mission, the change is reliably persisted to the backend automatically (no manual save required), including after reopening an already-created mission.",
       "files": [
-        "frontend/src/components/FoldersButton.tsx",
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/components/MissionsButton.tsx",
-        "frontend/src/pages/HomePage.tsx"
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
+        "frontend/src/hooks/useMissionAutosave.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -21,6 +19,48 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-mission-detail-view-always-renders-all-tasks-that-were-added-to-that-mission-including-tasks-added-after-reopening-the-mission-by-keeping-the-frontend-mission-cache-state-in-sync-after-successful-auto-saves-so-the-ui-never-shows-an-older-task-list-after-an-update",
+      "featureTitle": "Ensure the Mission detail view always renders all tasks that were added to that mission, including tasks added after reopening the mission, by keeping the frontend mission cache/state in sync after successful auto-saves (so the UI never shows an older task list after an update).",
+      "files": [
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
+        "frontend/src/hooks/useMissionsQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-adjust-the-mission-auto-save-trigger-logic-to-avoid-unintended-saves-that-can-overwrite-or-conflict-with-freshly-loaded-mission-data-while-still-saving-every-user-initiated-change-to-title-tasks-especially-when-entering-an-existing-mission-and-then-adding-a-task",
+      "featureTitle": "Adjust the mission auto-save trigger logic to avoid unintended saves that can overwrite or conflict with freshly loaded mission data, while still saving every user-initiated change to title/tasks (especially when entering an existing mission and then adding a task).",
+      "files": [
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
+        "frontend/src/hooks/useMissionAutosave.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

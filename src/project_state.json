@@ -2,15 +2,35 @@
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
   "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [],
+  "architectural_notes": [
+    "For the mission/task fix, do not change any other application functionality beyond ensuring tasks auto-save and display correctly within missions."
+  ],
+  "known_issues": [
+    "Mission feature bug: tasks added to a mission are not being automatically saved and/or do not reliably appear inside the mission, especially when reopening an existing mission and adding tasks."
+  ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-when-the-gallery-is-in-multi-select-mode-i-e-selectionmode-is-true-and-at-least-one-item-is-selected-ensure-the-bulk-action-bar-containing-the-actions-folder-mission-share-download-and-delete-is-visually-and-interactively-in-front-of-above-the-floating-folders-and-missions-buttons-icons-so-the-actions-are-always-clearly-visible-and-tappable",
-      "title": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
+      "id": "feature-fix-the-mission-detail-task-auto-save-flow-so-that-when-a-user-adds-toggles-removes-a-task-inside-an-existing-mission-the-change-is-reliably-persisted-to-the-backend-automatically-no-manual-save-required-including-after-reopening-an-already-created-mission",
+      "title": "Fix the Mission detail task auto-save flow so that when a user adds/toggles/removes a task inside an existing mission, the change is reliably persisted to the backend automatically (no manual save required), including after reopening an already-created mission.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-mission-detail-view-always-renders-all-tasks-that-were-added-to-that-mission-including-tasks-added-after-reopening-the-mission-by-keeping-the-frontend-mission-cache-state-in-sync-after-successful-auto-saves-so-the-ui-never-shows-an-older-task-list-after-an-update",
+      "title": "Ensure the Mission detail view always renders all tasks that were added to that mission, including tasks added after reopening the mission, by keeping the frontend mission cache/state in sync after successful auto-saves (so the UI never shows an older task list after an update).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-adjust-the-mission-auto-save-trigger-logic-to-avoid-unintended-saves-that-can-overwrite-or-conflict-with-freshly-loaded-mission-data-while-still-saving-every-user-initiated-change-to-title-tasks-especially-when-entering-an-existing-mission-and-then-adding-a-task",
+      "title": "Adjust the mission auto-save trigger logic to avoid unintended saves that can overwrite or conflict with freshly loaded mission data, while still saving every user-initiated change to title/tasks (especially when entering an existing mission and then adding a task).",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
@@ -18,12 +38,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Gallery multi-select: show bulk action options (folder, mission, share, download, delete) in front of the folder/mission icons so they are clearly visible/selectable",
+      "summary": "Fix mission tasks: when adding a task to a mission it should auto-save; adding tasks to an existing/opened mission should also auto-save; all added tasks must appear within the mission view (no other app behavior changes).",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Ensure gallery bulk action bar overlays Folder/Missions floating buttons during multi-select",
+  "projectName": "Fix mission task auto-save and ensure tasks persist/appear when reopening missions",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

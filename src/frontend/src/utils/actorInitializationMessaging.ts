@@ -5,7 +5,7 @@
 export const ACTOR_NOT_READY_MESSAGE = 'Please wait while the app initializes...';
 export const ACTOR_ERROR_MESSAGE = 'Unable to connect. Please try again.';
 export const ACTOR_INIT_FAILED_MESSAGE = 'Connection failed. Please retry or sign in again.';
-export const CANISTER_STOPPED_MESSAGE = 'The backend service is temporarily unavailable. Please try again or contact your administrator if the issue persists.';
+export const CANISTER_STOPPED_MESSAGE = 'The backend service is temporarily unavailable. Reconnecting automatically...';
 export const INVALID_ADMIN_TOKEN_MESSAGE = 'Invalid or expired admin token. Please sign out, remove the token from the URL, and try again.';
 
 export interface ErrorClassification {
@@ -48,9 +48,15 @@ export function isActorInitializationError(error: unknown): boolean {
 
 /**
  * Checks if an error is related to invalid admin token/secret.
+ * Note: Stopped-canister errors take precedence over this classification.
  */
 export function isInvalidAdminTokenError(error: unknown): boolean {
   if (!error) return false;
+  
+  // First check if it's a stopped canister - that takes precedence
+  if (isCanisterStoppedError(error)) {
+    return false;
+  }
   
   const errorMessage = error instanceof Error ? error.message : String(error);
   const lowerErrorMessage = errorMessage.toLowerCase();
@@ -66,6 +72,7 @@ export function isInvalidAdminTokenError(error: unknown): boolean {
 
 /**
  * Checks if an error is related to a stopped canister (IC0508).
+ * This is the highest priority classification for recoverability.
  */
 export function isCanisterStoppedError(error: unknown): boolean {
   if (!error) return false;
@@ -147,13 +154,17 @@ export function serializeErrorDetails(error: unknown): string {
 
 /**
  * Classifies an error into categories for UI decision-making.
+ * Stopped-canister classification takes precedence over invalid-admin-token.
  */
 export function classifyError(error: unknown): ErrorClassification {
+  const isStoppedCanister = isCanisterStoppedError(error);
+  
   return {
-    isStoppedCanister: isCanisterStoppedError(error),
+    isStoppedCanister,
     isActorNotReady: isActorNotReadyError(error),
     isInitializationError: isActorInitializationError(error),
-    isInvalidAdminToken: isInvalidAdminTokenError(error),
+    // Invalid admin token is only true if NOT a stopped canister
+    isInvalidAdminToken: !isStoppedCanister && isInvalidAdminTokenError(error),
   };
 }
 
@@ -168,7 +179,7 @@ export function mapActorInitError(error: unknown): {
   const technicalDetails = serializeErrorDetails(error);
   const classification = classifyError(error);
   
-  // Check for stopped canister first (most specific)
+  // Check for stopped canister first (most specific and highest priority)
   if (classification.isStoppedCanister) {
     return {
       summary: CANISTER_STOPPED_MESSAGE,

@@ -27,8 +27,6 @@ const ActorContext = createContext<ActorContextValue | undefined>(undefined);
 const INITIAL_RETRY_DELAY = 2000; // 2 seconds
 const MAX_RETRY_DELAY = 30000; // 30 seconds
 const BACKOFF_MULTIPLIER = 1.5;
-const MAX_RETRY_ATTEMPTS = 5; // Maximum number of retry attempts before final failure
-const MAX_RETRY_TIME = 60000; // Maximum total retry time (60 seconds) before final failure
 
 /**
  * Helper function to get normalized admin token (treats whitespace-only as absent)
@@ -51,8 +49,6 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
   // Track retry state
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryDelayRef = useRef<number>(INITIAL_RETRY_DELAY);
-  const retryCountRef = useRef<number>(0);
-  const retryStartTimeRef = useRef<number | null>(null);
   const isInitializingRef = useRef<boolean>(false);
   const currentIdentityRef = useRef<typeof identity>(null);
 
@@ -65,27 +61,8 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
 
   const resetRetryState = useCallback(() => {
     retryDelayRef.current = INITIAL_RETRY_DELAY;
-    retryCountRef.current = 0;
-    retryStartTimeRef.current = null;
     clearRetryTimeout();
   }, [clearRetryTimeout]);
-
-  const hasExceededRetryBudget = useCallback((): boolean => {
-    // Check if we've exceeded max attempts
-    if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
-      return true;
-    }
-    
-    // Check if we've exceeded max retry time
-    if (retryStartTimeRef.current) {
-      const elapsedTime = Date.now() - retryStartTimeRef.current;
-      if (elapsedTime >= MAX_RETRY_TIME) {
-        return true;
-      }
-    }
-    
-    return false;
-  }, []);
 
   const initializeActor = useCallback(async (isRetry: boolean = false) => {
     // Don't initialize if not authenticated
@@ -140,47 +117,32 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
       setActor(null);
       isInitializingRef.current = false;
 
-      // Determine if this is a stopped-canister error (retryable)
+      // Determine if this is a stopped-canister error (retryable indefinitely)
       if (mappedError.classification.isStoppedCanister) {
-        // Initialize retry start time on first retry
-        if (!retryStartTimeRef.current) {
-          retryStartTimeRef.current = Date.now();
-        }
+        // Keep status as 'unavailable' and continue retrying indefinitely
+        setStatus('unavailable');
         
-        // Increment retry count
-        retryCountRef.current += 1;
+        // Schedule automatic retry with exponential backoff
+        const currentDelay = retryDelayRef.current;
+        retryTimeoutRef.current = setTimeout(() => {
+          // Only retry if identity hasn't changed
+          if (currentIdentityRef.current === identity) {
+            initializeActor(true);
+          }
+        }, currentDelay);
         
-        // Check if we've exceeded retry budget
-        if (hasExceededRetryBudget()) {
-          // Final failure: show error state
-          setStatus('error');
-          resetRetryState();
-        } else {
-          // Continue retrying silently
-          setStatus('unavailable');
-          
-          // Schedule automatic retry with exponential backoff
-          const currentDelay = retryDelayRef.current;
-          retryTimeoutRef.current = setTimeout(() => {
-            // Only retry if identity hasn't changed
-            if (currentIdentityRef.current === identity) {
-              initializeActor(true);
-            }
-          }, currentDelay);
-          
-          // Increase delay for next retry (exponential backoff)
-          retryDelayRef.current = Math.min(
-            currentDelay * BACKOFF_MULTIPLIER,
-            MAX_RETRY_DELAY
-          );
-        }
+        // Increase delay for next retry (exponential backoff, capped at MAX_RETRY_DELAY)
+        retryDelayRef.current = Math.min(
+          currentDelay * BACKOFF_MULTIPLIER,
+          MAX_RETRY_DELAY
+        );
       } else {
-        // Fatal error: stop retrying immediately
+        // Fatal error (e.g., invalid admin token): stop retrying immediately
         setStatus('error');
         resetRetryState();
       }
     }
-  }, [identity, resetRetryState, hasExceededRetryBudget]);
+  }, [identity, resetRetryState]);
 
   // Track identity changes
   useEffect(() => {

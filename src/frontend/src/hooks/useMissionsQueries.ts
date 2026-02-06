@@ -47,6 +47,7 @@ export function useGetMission(missionId: bigint | null) {
 
 export function useCreateMission() {
   const { actor, status } = useBackendActor();
+  const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -57,19 +58,27 @@ export function useCreateMission() {
       const missionId = await actor.createMission(title, tasks);
       return missionId;
     },
-    onSuccess: async (missionId) => {
-      // Targeted invalidation - only missions list
+    onSuccess: async (missionId, variables) => {
+      // Synchronously update the cache with the new mission
+      const newMission: Mission = {
+        id: missionId,
+        title: variables.title,
+        tasks: variables.tasks,
+        created: BigInt(Date.now()) * BigInt(1000000), // Approximate timestamp in nanoseconds
+        owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
+      };
+
+      // Update missions list cache
+      queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
+        if (!old) return [newMission];
+        return [newMission, ...old];
+      });
+
+      // Set the mission detail cache
+      queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
+
+      // Also invalidate to ensure consistency with backend
       await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
-      
-      // Prefetch the mission detail to ensure it's available immediately
-      if (actor) {
-        await queryClient.prefetchQuery({
-          queryKey: ['missions', 'detail', missionId.toString()],
-          queryFn: async () => {
-            return await actor.getMission(missionId);
-          },
-        });
-      }
       
       return missionId;
     },
@@ -94,9 +103,37 @@ export function useUpdateMission() {
       return { missionId, title, tasks };
     },
     onSuccess: async (variables) => {
-      // Targeted invalidations - only affected queries
+      const missionIdStr = variables.missionId.toString();
+
+      // Synchronously update the mission detail cache
+      queryClient.setQueryData<Mission | null>(
+        ['missions', 'detail', missionIdStr],
+        (old) => {
+          if (!old) return null;
+          return {
+            ...old,
+            title: variables.title,
+            tasks: variables.tasks,
+          };
+        }
+      );
+
+      // Synchronously update the missions list cache
+      queryClient.setQueryData<Mission[]>(
+        ['missions', 'list'],
+        (old) => {
+          if (!old) return old;
+          return old.map((mission) =>
+            mission.id.toString() === missionIdStr
+              ? { ...mission, title: variables.title, tasks: variables.tasks }
+              : mission
+          );
+        }
+      );
+
+      // Also invalidate to ensure consistency with backend
       await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', variables.missionId.toString()], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionIdStr], exact: true });
     },
     onError: (err) => {
       const errorMessage = getActorErrorMessage(err);

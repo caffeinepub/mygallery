@@ -98,7 +98,7 @@ export default function ActorInitErrorState({
 
             <p className="text-xs text-muted-foreground text-center">
               {isStoppedCanister 
-                ? 'Contact your administrator if the service remains unavailable after retrying.'
+                ? 'The service will reconnect automatically when available. Contact your administrator if the issue persists.'
                 : isInvalidAdminToken
                 ? 'Remove the admin token from the URL and sign in again with a valid token if needed.'
                 : 'If the problem persists, try signing out and signing in again.'}

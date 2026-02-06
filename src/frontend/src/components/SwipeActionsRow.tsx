@@ -143,9 +143,7 @@ export default function SwipeActionsRow({
     e.preventDefault();
     e.stopPropagation();
     onDelete();
-    // Close the row after action
-    setTranslateX(0);
-    onOpenChange(false);
+    // Don't close the row - let parent handle exit animation
   };
 
   return (
@@ -171,6 +169,7 @@ export default function SwipeActionsRow({
           onTouchEnd={handleEditClick}
           className="h-full rounded-none px-4 bg-muted hover:bg-muted/80 border-l touch-manipulation"
           tabIndex={isOpen ? 0 : -1}
+          disabled={disabled}
         >
           <Pencil className="h-4 w-4" />
         </Button>
@@ -181,6 +180,7 @@ export default function SwipeActionsRow({
           onTouchEnd={handleDeleteClick}
           className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground touch-manipulation"
           tabIndex={isOpen ? 0 : -1}
+          disabled={disabled}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -194,6 +194,7 @@ export default function SwipeActionsRow({
           transform: `translateX(${translateX}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
           touchAction: 'pan-y',
+          pointerEvents: disabled ? 'none' : 'auto',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
