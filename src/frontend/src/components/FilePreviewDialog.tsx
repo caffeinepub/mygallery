@@ -15,7 +15,7 @@ import {
 import type { FileMetadata } from '@/backend';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
-import { useDeleteFiles } from '@/hooks/useQueries';
+import { useDeleteFile } from '@/hooks/useQueries';
 import { getFileCategory } from '@/utils/filePreview';
 
 interface FilePreviewDialogProps {
@@ -88,7 +88,7 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
   const [showSendToFolder, setShowSendToFolder] = useState(false);
   const [showMoveToMission, setShowMoveToMission] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const deleteFilesMutation = useDeleteFiles();
+  const deleteFileMutation = useDeleteFile();
 
   const formatDate = useMemo(() => (timestamp: bigint) => {
     const date = new Date(Number(timestamp) / 1_000_000);
@@ -120,7 +120,7 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
 
   const handleDelete = async () => {
     try {
-      await deleteFilesMutation.mutateAsync([BigInt(file.id)]);
+      await deleteFileMutation.mutateAsync(file.id);
       onOpenChange(false);
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -208,7 +208,7 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
                 onClick={() => setShowDeleteConfirm(true)}
                 variant="destructive"
                 size="sm"
-                disabled={deleteFilesMutation.isPending}
+                disabled={deleteFileMutation.isPending}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete file

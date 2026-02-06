@@ -1,90 +1,36 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Improve authenticated startup responsiveness (remove blocking intro, progressive loading, perf timings)",
+  "title": "Fix gallery bulk action bar stacking above floating Folders/Missions buttons in multi-select",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Stop showing a fixed-time blocking intro/splash during restored authenticated sessions so Home is usable immediately.",
+      "id": "REQ-1",
+      "summary": "Ensure the Gallery multi-select bulk action bar renders and receives input above the floating Folders/Missions buttons while multi-select is active, and restore normal button stacking when multi-select ends.",
       "acceptanceCriteria": [
-        "When the app is opened with an already-authenticated Internet Identity session, the Home screen renders immediately without a forced full-screen splash/intro delay.",
-        "Any remaining intro/splash experience (if kept) must not block interaction with the main screen for a fixed duration."
+        "Enter multi-select mode in the gallery and select at least 1 item: the bulk action bar overlaps the screen above the floating Folders/Missions buttons (i.e., higher stacking order) and is not obscured by them.",
+        "While the bulk action bar is visible, tapping/clicking any of its actions (Folder, Mission, Share, Download, Delete) works reliably even if the bar visually overlaps the floating Folders/Missions buttons.",
+        "Exit multi-select mode (Cancel or after completing an action): the floating Folders/Missions buttons return to their normal visibility/stacking behavior."
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Change intro/splash gating so restored authenticated sessions do not trigger IntroScreen; only allow any intro experience on explicit login transitions (and ensure HomePage renders immediately on restore)."
-        },
-        {
-          "path": "frontend/src/components/IntroScreen.tsx",
-          "operation": "modify",
-          "description": "Adjust IntroScreen so it cannot block interaction (e.g., non-blocking overlay behavior) and remove any hard dependency on a fixed delay for usability."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Use progressive rendering on authenticated startup so the main layout appears immediately and sections show lightweight placeholders while initial data loads.",
-      "acceptanceCriteria": [
-        "On authenticated startup, the app shows the main layout immediately and displays lightweight skeleton/placeholder states within sections that are still loading (instead of a full-page blocking loader).",
-        "Floating action buttons and primary navigation do not appear ‘stuck’ in a loading state during normal actor initialization; if temporarily disabled, the UI clearly remains responsive."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Introduce an explicit 'authenticated startup loading' concept derived from actor readiness, and pass it into main sections so the UI shows placeholders (not empty/error flashes) while actor/data are still becoming ready."
-        },
         {
           "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Avoid empty-state flashes when queries are disabled/not-yet-started due to actor readiness; render a lightweight skeleton/placeholder state until initial files data is actually loaded or confirmed empty."
+          "description": "Increase the bulk action bar stacking priority (e.g., higher z-index than the floating buttons) and add a small, explicit signal (callback prop) to inform the parent when the bulk action bar is visible (selectionMode true with at least one selected item), so other UI can adjust layering/interaction accordingly."
         },
         {
-          "path": "frontend/src/components/FileUploadSection.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Ensure upload controls remain visually responsive during actor initialization (e.g., show disabled-but-available UI with clear status), avoiding any full-section blocking loader on authenticated startup."
+          "description": "Track whether the Gallery bulk action bar is currently visible via a callback from GallerySection, and wire that state into the floating Folders/Missions buttons so they do not sit above or steal interaction from the bulk action bar during multi-select; ensure normal behavior resumes when multi-select ends."
         },
         {
           "path": "frontend/src/components/FoldersButton.tsx",
           "operation": "modify",
-          "description": "Refine disabled/initializing presentation so the FAB does not feel 'stuck' during normal actor initialization (keep tap feedback/clarity while remaining disabled until ready)."
+          "description": "Add an optional prop (e.g., overlayMode/behindOverlay) to adjust layering and interaction when the Gallery bulk action bar is visible (e.g., lower z-index than the bulk bar and/or disable pointer events during overlay) without changing normal appearance when the overlay is not active."
         },
         {
           "path": "frontend/src/components/MissionsButton.tsx",
           "operation": "modify",
-          "description": "Refine disabled/initializing presentation so the FAB does not feel 'stuck' during normal actor initialization (keep tap feedback/clarity while remaining disabled until ready)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add opt-in performance timing logs for identity restoration, actor initialization, and first successful initial data fetches using the existing performance diagnostics utility.",
-      "acceptanceCriteria": [
-        "When performance diagnostics are enabled (via the existing localStorage/URL flag), console timings are emitted for: identity initialization, actor initialization to ready, and the first completion of initial folders/files/missions queries.",
-        "When diagnostics are not enabled, there is no additional console noise and negligible runtime overhead."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useInternetIdentity.ts",
-          "operation": "modify",
-          "description": "Wrap the startup identity restoration/initialization path with the existing performance diagnostics helpers so identity initialization timing is logged only when diagnostics are enabled."
-        },
-        {
-          "path": "frontend/src/contexts/ActorContext.tsx",
-          "operation": "modify",
-          "description": "Add opt-in timing around actor initialization-to-ready (including any one-time initialization work) using the existing performance diagnostics utility; ensure no extra console noise when disabled."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add opt-in timing for the first successful completion of the initial folders and initial main files queries (only once per app load/session) using the existing performance diagnostics utility."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Add opt-in timing for the first successful completion of the initial missions list query (only once per app load/session) using the existing performance diagnostics utility."
+          "description": "Add an optional prop (e.g., overlayMode/behindOverlay) to adjust layering and interaction when the Gallery bulk action bar is visible (e.g., lower z-index than the bulk bar and/or disable pointer events during overlay) without changing normal appearance when the overlay is not active."
         }
       ]
     }

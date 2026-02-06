@@ -1,60 +1,30 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T18:58:30.440Z",
+  "generatedAt": "2026-02-06T18:39:11.381Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-2",
-        "summary": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
+        "id": "REQ-1",
+        "summary": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/IntroScreen.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx",
           "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/pages/HomePage.tsx",
           "frontend/src/components/FoldersButton.tsx",
           "frontend/src/components/MissionsButton.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx",
           "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/pages/HomePage.tsx",
           "frontend/src/components/FoldersButton.tsx",
           "frontend/src/components/MissionsButton.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useInternetIdentity.ts",
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useMissionsQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/contexts/ActorContext.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useMissionsQueries.ts"
         ]
       }
     ]
@@ -64,18 +34,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/FilePreviewDialog.tsx",
-    "frontend/src/components/FileUploadSection.tsx",
     "frontend/src/components/FoldersButton.tsx",
-    "frontend/src/components/FullScreenViewer.tsx",
     "frontend/src/components/GallerySection.tsx",
     "frontend/src/components/MissionsButton.tsx",
-    "frontend/src/components/MoveToMissionDialog.tsx",
-    "frontend/src/components/SendToFolderDialog.tsx",
-    "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/hooks/useMissionsQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/HomePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

@@ -2,33 +2,15 @@
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
   "summary": "New project",
-  "architectural_notes": [
-    "Θέμα απόδοσης: απαιτείται γρήγορο app startup και άμεση επαναφορά συνεδρίας (minimal loading) όταν ο χρήστης είναι ήδη συνδεδεμένος."
-  ],
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-remove-or-significantly-reduce-any-ui-that-blocks-the-app-for-a-fixed-time-on-startup-when-the-user-is-already-authenticated-restored-session-so-the-main-home-screen-becomes-usable-immediately",
-      "title": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
+      "id": "feature-when-the-gallery-is-in-multi-select-mode-i-e-selectionmode-is-true-and-at-least-one-item-is-selected-ensure-the-bulk-action-bar-containing-the-actions-folder-mission-share-download-and-delete-is-visually-and-interactively-in-front-of-above-the-floating-folders-and-missions-buttons-icons-so-the-actions-are-always-clearly-visible-and-tappable",
+      "title": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
       "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-authenticated-startup-feel-smooth-by-using-progressive-rendering-for-initial-data-folders-files-missions-keep-the-ui-responsive-while-data-loads-and-avoid-showing-a-full-page-loading-spinner-during-normal-authenticated-startup",
-      "title": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-opt-in-performance-timing-logs-for-the-startup-path-identity-restoration-actor-initialization-and-first-successful-data-fetches-using-the-existing-performance-diagnostics-utility-to-help-verify-improvements-and-detect-regressions",
-      "title": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
-      "reqIds": [
-        "REQ-4"
+        "REQ-1"
       ],
       "version": 1
     }
@@ -36,12 +18,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Βελτίωση απόδοσης στην εκκίνηση/σύνδεση: όταν ανοίγει η εφαρμογή (ή ανοίγει ήδη συνδεδεμένη) να λειτουργεί άμεσα και ομαλά χωρίς καθυστερήσεις loading",
+      "summary": "Gallery multi-select: show bulk action options (folder, mission, share, download, delete) in front of the folder/mission icons so they are clearly visible/selectable",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Improve startup/login responsiveness (reduce blocking loading and delays)",
+  "projectName": "Ensure gallery bulk action bar overlays Folder/Missions floating buttons during multi-select",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,66 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Improve startup/login responsiveness (reduce blocking loading and delays)",
+  "title": "Ensure gallery bulk action bar overlays Folder/Missions floating buttons during multi-select",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-2",
-      "text": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
+      "id": "REQ-1",
+      "text": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Όταν συνδέομαι στην εφαρμογή ή όταν την ανοίγω συνδεδεμένος να λειτουργει άμεσα ομαλά χωρίς καθυστερήσεις loading"
+          "Όταν επιλέγω μαζικα αρχεία ή links στην gallery , οι επιλογές folder , mission , share , download και delete να εμφανίζονται μπροστά από τα εικονίδια folder και mission ώστε να ειναι εμφανή στον χρήστη για επιλογή"
         ]
       },
       "acceptanceCriteria": [
-        "When the app is opened with an already-authenticated Internet Identity session, the Home screen renders immediately without a forced full-screen splash/intro delay.",
-        "Any remaining intro/splash experience (if kept) must not block interaction with the main screen for a fixed duration."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "...να λειτουργει άμεσα ομαλά χωρίς καθυστερήσεις loading"
-        ]
-      },
-      "acceptanceCriteria": [
-        "On authenticated startup, the app shows the main layout immediately and displays lightweight skeleton/placeholder states within sections that are still loading (instead of a full-page blocking loader).",
-        "Floating action buttons and primary navigation do not appear ‘stuck’ in a loading state during normal actor initialization; if temporarily disabled, the UI clearly remains responsive."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When performance diagnostics are enabled (via the existing localStorage/URL flag), console timings are emitted for: identity initialization, actor initialization to ready, and the first completion of initial folders/files/missions queries.",
-        "When diagnostics are not enabled, there is no additional console noise and negligible runtime overhead."
+        "Enter multi-select mode in the gallery and select at least 1 item: the bulk action bar overlaps the screen above the floating Folders/Missions buttons (i.e., higher stacking order) and is not obscured by them.",
+        "While the bulk action bar is visible, tapping/clicking any of its actions (Folder, Mission, Share, Download, Delete) works reliably even if the bar visually overlaps the floating Folders/Missions buttons.",
+        "Exit multi-select mode (Cancel or after completing an action): the floating Folders/Missions buttons return to their normal visibility/stacking behavior."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (read-only).",
-    "Do not modify any frontend paths listed as immutable in SYSTEM_CONTEXT.",
-    "Backend must remain a single Motoko actor; only add backend changes if strictly necessary for perceived startup speed."
+    "Do not edit any files under frontend/src/components/ui (read-only).",
+    "Do not edit frontend/src/hooks/useInternetIdentity.ts or .tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx (immutable paths).",
+    "Keep changes limited to UI layering/visibility/interaction for the gallery bulk action controls; do not introduce new backend APIs."
   ],
   "nonGoals": [
-    "Adding real-time features (websockets) or external caching services.",
-    "Changing authentication provider (must remain Internet Identity).",
-    "Large redesign of the app’s feature set beyond startup/loading responsiveness."
+    "Changing the set of available bulk actions (Folder, Mission, Share, Download, Delete).",
+    "Redesigning the gallery layout or adding new gallery features beyond fixing the visibility/stacking of existing controls.",
+    "Backend data model or storage changes."
   ],
   "imageRequirements": {
     "required": [],

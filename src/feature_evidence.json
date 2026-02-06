@@ -2,30 +2,9 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-remove-or-significantly-reduce-any-ui-that-blocks-the-app-for-a-fixed-time-on-startup-when-the-user-is-already-authenticated-restored-session-so-the-main-home-screen-becomes-usable-immediately",
-      "featureTitle": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
+      "featureId": "feature-when-the-gallery-is-in-multi-select-mode-i-e-selectionmode-is-true-and-at-least-one-item-is-selected-ensure-the-bulk-action-bar-containing-the-actions-folder-mission-share-download-and-delete-is-visually-and-interactively-in-front-of-above-the-floating-folders-and-missions-buttons-icons-so-the-actions-are-always-clearly-visible-and-tappable",
+      "featureTitle": "When the Gallery is in multi-select mode (i.e., selectionMode is true and at least one item is selected), ensure the bulk action bar containing the actions \"Folder\", \"Mission\", \"Share\", \"Download\", and \"Delete\" is visually and interactively in front of (above) the floating \"Folders\" and \"Missions\" buttons/icons so the actions are always clearly visible and tappable.",
       "files": [
-        "frontend/src/App.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-authenticated-startup-feel-smooth-by-using-progressive-rendering-for-initial-data-folders-files-missions-keep-the-ui-responsive-while-data-loads-and-avoid-showing-a-full-page-loading-spinner-during-normal-authenticated-startup",
-      "featureTitle": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
-      "files": [
-        "frontend/src/components/FileUploadSection.tsx",
         "frontend/src/components/FoldersButton.tsx",
         "frontend/src/components/GallerySection.tsx",
         "frontend/src/components/MissionsButton.tsx",
@@ -41,29 +20,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-opt-in-performance-timing-logs-for-the-startup-path-identity-restoration-actor-initialization-and-first-successful-data-fetches-using-the-existing-performance-diagnostics-utility-to-help-verify-improvements-and-detect-regressions",
-      "featureTitle": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
-      "files": [
-        "frontend/src/contexts/ActorContext.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
+        "REQ-1"
       ],
       "confidence": "high"
     }

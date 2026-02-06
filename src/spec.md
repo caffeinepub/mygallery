@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Make app startup and login feel immediately responsive for already-authenticated users by removing fixed blocking loaders and using progressive loading states.
+**Goal:** Ensure the gallery bulk action bar stays visually and interactively above the floating Folders/Missions buttons during multi-select.
 
 **Planned changes:**
-- Remove or significantly reduce any fixed-duration, blocking startup UI when an authenticated Internet Identity session is restored, so the Home screen becomes usable immediately.
-- Change authenticated startup to progressively render the main layout right away and show lightweight placeholders/skeletons for folders/files/missions while data loads, avoiding full-page blocking spinners.
-- Add opt-in startup performance timing logs (identity restoration, actor initialization, first successful initial data fetches) using the existing performance diagnostics toggle, with no extra console noise when disabled.
+- Adjust UI stacking order (e.g., z-index/positioning) so the bulk action bar overlays the floating Folders/Missions buttons whenever multi-select is active and at least one item is selected.
+- Ensure pointer/tap interactions prioritize the bulk action bar actions (Folder, Mission, Share, Download, Delete) while it is visible, even if it overlaps the floating buttons.
+- Restore the floating Folders/Missions buttons’ normal stacking/visibility once multi-select mode ends.
 
-**User-visible outcome:** When opening the app while already signed in, the Home screen appears immediately and remains interactive while content loads progressively, with optional diagnostics logs available to verify startup performance.
+**User-visible outcome:** In gallery multi-select with at least one item selected, the bulk action bar is always clearly visible and tappable (not hidden behind the floating Folders/Missions buttons), and the floating buttons behave normally again after exiting multi-select.

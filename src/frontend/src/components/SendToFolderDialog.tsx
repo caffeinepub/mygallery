@@ -15,7 +15,7 @@ interface SendToFolderDialogProps {
   onOpenChange: (open: boolean) => void;
   fileIds: string[];
   currentFolderId?: bigint;
-  onComplete?: () => void;
+  onMoveComplete?: () => void;
 }
 
 export default function SendToFolderDialog({
@@ -23,7 +23,7 @@ export default function SendToFolderDialog({
   onOpenChange,
   fileIds,
   currentFolderId,
-  onComplete,
+  onMoveComplete,
 }: SendToFolderDialogProps) {
   const { data: folders, isLoading } = useGetFolders();
   const moveToFolder = useMoveFilesToFolder();
@@ -34,11 +34,10 @@ export default function SendToFolderDialog({
     perfDiag.startTiming(operationId, 'Move to folder (UI)', { fileCount: fileIds.length });
 
     try {
-      const bigintFileIds = fileIds.map(id => BigInt(id));
-      await moveToFolder.mutateAsync({ fileIds: bigintFileIds, folderId });
+      await moveToFolder.mutateAsync({ fileIds, folderId });
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
-      onComplete?.();
+      onMoveComplete?.();
     } catch (error) {
       perfDiag.endTiming(operationId, { success: false });
       console.error('Move to folder error:', error);
@@ -50,11 +49,13 @@ export default function SendToFolderDialog({
     perfDiag.startTiming(operationId, 'Return to main collection (UI)', { fileCount: fileIds.length });
 
     try {
-      const bigintFileIds = fileIds.map(id => BigInt(id));
-      await batchRemoveFromFolder.mutateAsync(bigintFileIds);
+      await batchRemoveFromFolder.mutateAsync({ 
+        fileIds, 
+        sourceFolderId: currentFolderId 
+      });
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
-      onComplete?.();
+      onMoveComplete?.();
     } catch (error) {
       perfDiag.endTiming(operationId, { success: false });
       console.error('Return to main error:', error);

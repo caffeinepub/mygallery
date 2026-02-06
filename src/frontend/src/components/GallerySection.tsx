@@ -7,6 +7,7 @@ import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpread
 import FullScreenViewer from './FullScreenViewer';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
+import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
 import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
 import { downloadFile, openExternally } from '@/utils/externalOpen';
 import type { FileMetadata, Folder } from '@/backend';
@@ -15,7 +16,6 @@ interface GallerySectionProps {
   selectedFolder: Folder | null;
   onBackToMain: () => void;
   onBulkSelectionChange?: (isActive: boolean) => void;
-  isActorInitializing?: boolean;
 }
 
 const FileCard = memo(({ 
@@ -191,7 +191,7 @@ const FileCard = memo(({
 
 FileCard.displayName = 'FileCard';
 
-export default function GallerySection({ selectedFolder, onBackToMain, onBulkSelectionChange, isActorInitializing = false }: GallerySectionProps) {
+export default function GallerySection({ selectedFolder, onBackToMain, onBulkSelectionChange }: GallerySectionProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -199,303 +199,357 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
   const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
+  const [currentLinkUrl, setCurrentLinkUrl] = useState('');
 
   const mainGalleryQuery = useGetFilesNotInFolder();
   const folderGalleryQuery = useGetFilesInFolder(selectedFolder?.id ?? null);
   const deleteFiles = useDeleteFiles();
 
-  const { data: files, isLoading, isFetching, error } = selectedFolder ? folderGalleryQuery : mainGalleryQuery;
+  const { data: files, isLoading, error } = selectedFolder ? folderGalleryQuery : mainGalleryQuery;
 
-  // Show skeleton placeholders during actor initialization
-  const showPlaceholder = isActorInitializing && !files;
-  const showEmptyState = !isActorInitializing && !isLoading && !isFetching && (!files || files.length === 0);
+  const title = useMemo(() => selectedFolder ? selectedFolder.name : 'Collection', [selectedFolder]);
+  const subtitle = useMemo(() => selectedFolder ? 'Files in folder' : 'Your files', [selectedFolder]);
 
+  // Notify parent when bulk selection state changes
   useEffect(() => {
-    onBulkSelectionChange?.(selectionMode && selectedFiles.size > 0);
+    const isBulkActive = selectionMode && selectedFiles.size > 0;
+    onBulkSelectionChange?.(isBulkActive);
   }, [selectionMode, selectedFiles.size, onBulkSelectionChange]);
 
-  const handleFileClick = useCallback((index: number) => {
-    const file = files?.[index];
-    if (!file) return;
-
+  const handleFileClick = useCallback(async (index: number) => {
     if (selectionMode) {
-      setSelectedFiles(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(file.id)) {
-          newSet.delete(file.id);
-        } else {
-          newSet.add(file.id);
-        }
-        return newSet;
-      });
+      const file = files?.[index];
+      if (file) {
+        setSelectedFiles(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(file.id)) {
+            newSet.delete(file.id);
+          } else {
+            newSet.add(file.id);
+          }
+          return newSet;
+        });
+      }
     } else {
+      const file = files?.[index];
+      if (!file) return;
+
+      // Handle link items
       if (file.link) {
-        openExternally(file.link);
+        const opened = await openExternally(file.link);
+        if (!opened) {
+          setCurrentLinkUrl(file.link);
+          setLinkFallbackOpen(true);
+        }
+        return;
+      }
+
+      // Handle file items
+      if (!file.blob) return;
+
+      // Check if file should download directly (unsupported types)
+      if (shouldDownloadDirectly(file)) {
+        try {
+          await downloadFile(file.blob.getDirectURL(), file.name);
+        } catch (error) {
+          console.error('Download failed:', error);
+        }
       } else if (shouldOpenInViewer(file)) {
+        // Open in-app viewer for PDFs, images, videos, and Office docs
         setSelectedIndex(index);
         setViewerOpen(true);
-      } else if (shouldDownloadDirectly(file)) {
-        if (file.blob) {
-          downloadFile(file.blob.getDirectURL(), file.name);
-        }
       }
     }
-  }, [files, selectionMode]);
+  }, [selectionMode, files]);
 
-  const handleLongPress = useCallback((index: number) => {
-    const file = files?.[index];
-    if (!file) return;
-
+  const handleLongPress = useCallback((fileId: string) => {
     if (!selectionMode) {
       setSelectionMode(true);
+      setSelectedFiles(new Set([fileId]));
     }
-    setSelectedFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.add(file.id);
-      return newSet;
-    });
-  }, [files, selectionMode]);
+  }, [selectionMode]);
 
-  const handleCancelSelection = useCallback(() => {
+  const exitSelectionMode = useCallback(() => {
     setSelectionMode(false);
     setSelectedFiles(new Set());
   }, []);
 
-  const handleDeleteSelected = useCallback(async () => {
-    if (selectedFiles.size === 0) return;
-
-    const fileIds = Array.from(selectedFiles).map(id => BigInt(id));
-    try {
-      await deleteFiles.mutateAsync(fileIds);
-      setSelectionMode(false);
-      setSelectedFiles(new Set());
-    } catch (error) {
-      console.error('Failed to delete files:', error);
-    }
-  }, [selectedFiles, deleteFiles]);
-
-  const handleMoveToFolder = useCallback(() => {
-    if (selectedFiles.size === 0) return;
+  const handleSendToFolder = useCallback(() => {
     setSendToFolderOpen(true);
-  }, [selectedFiles]);
+  }, []);
 
   const handleMoveToMission = useCallback(() => {
-    if (selectedFiles.size === 0) return;
     setMoveToMissionOpen(true);
-  }, [selectedFiles]);
+  }, []);
 
   const handleShare = useCallback(async () => {
-    if (selectedFiles.size === 0 || !files) return;
+    if (!files || selectedFiles.size === 0) return;
 
     const selectedFileObjects = files.filter(f => selectedFiles.has(f.id));
-    
-    if (selectedFileObjects.length === 1) {
-      const file = selectedFileObjects[0];
-      if (file.link) {
-        if (navigator.share) {
-          try {
-            setIsSharing(true);
-            await navigator.share({
-              title: file.name,
-              url: file.link,
-            });
-          } catch (error: any) {
-            if (error.name !== 'AbortError') {
-              console.error('Share failed:', error);
-            }
-          } finally {
-            setIsSharing(false);
-          }
-        } else {
-          await navigator.clipboard.writeText(file.link);
-          alert('Link copied to clipboard!');
-        }
-      } else if (file.blob) {
-        const url = file.blob.getDirectURL();
-        if (navigator.share) {
-          try {
-            setIsSharing(true);
-            await navigator.share({
-              title: file.name,
-              url: url,
-            });
-          } catch (error: any) {
-            if (error.name !== 'AbortError') {
-              console.error('Share failed:', error);
-            }
-          } finally {
-            setIsSharing(false);
-          }
-        } else {
-          await navigator.clipboard.writeText(url);
-          alert('Link copied to clipboard!');
-        }
+
+    if (!navigator.share) {
+      console.log('Web Share API not supported');
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      const filePromises = selectedFileObjects
+        .filter(f => f.blob) // Only share files with blobs, not links
+        .map(async (file) => {
+          const response = await fetch(file.blob!.getDirectURL());
+          const blob = await response.blob();
+          return new File([blob], file.name, { type: file.mimeType });
+        });
+
+      const filesToShare = await Promise.all(filePromises);
+
+      await navigator.share({
+        title: selectedFiles.size === 1 ? selectedFileObjects[0].name : `${selectedFiles.size} files`,
+        text: `Sharing ${selectedFiles.size} ${selectedFiles.size === 1 ? 'file' : 'files'}`,
+        files: filesToShare,
+      });
+
+      exitSelectionMode();
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error sharing files:', error);
       }
-    } else {
-      const urls = selectedFileObjects
-        .map(f => f.link || (f.blob ? f.blob.getDirectURL() : null))
-        .filter(Boolean)
-        .join('\n');
-      
-      if (navigator.share) {
+    } finally {
+      setIsSharing(false);
+    }
+  }, [files, selectedFiles, exitSelectionMode]);
+
+  const handleDownload = useCallback(async () => {
+    if (!files) return;
+    
+    const selectedFileObjects = files.filter(f => selectedFiles.has(f.id));
+    
+    for (const file of selectedFileObjects) {
+      if (file.blob) {
         try {
-          setIsSharing(true);
-          await navigator.share({
-            title: `${selectedFileObjects.length} items`,
-            text: urls,
-          });
-        } catch (error: any) {
-          if (error.name !== 'AbortError') {
-            console.error('Share failed:', error);
-          }
-        } finally {
-          setIsSharing(false);
+          await downloadFile(file.blob.getDirectURL(), file.name);
+        } catch (error) {
+          console.error('Download failed for', file.name, error);
         }
-      } else {
-        await navigator.clipboard.writeText(urls);
-        alert('Links copied to clipboard!');
       }
     }
-  }, [selectedFiles, files]);
+    
+    exitSelectionMode();
+  }, [files, selectedFiles, exitSelectionMode]);
 
-  const handleSendToFolderComplete = useCallback(() => {
-    setSelectionMode(false);
-    setSelectedFiles(new Set());
-    setSendToFolderOpen(false);
-  }, []);
+  const handleDelete = useCallback(async () => {
+    if (selectedFiles.size === 0) return;
+    
+    try {
+      await deleteFiles.mutateAsync(Array.from(selectedFiles));
+      exitSelectionMode();
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
+  }, [selectedFiles, deleteFiles, exitSelectionMode]);
 
-  const handleMoveToMissionComplete = useCallback(() => {
-    setSelectionMode(false);
-    setSelectedFiles(new Set());
-    setMoveToMissionOpen(false);
-  }, []);
+  const handleMoveComplete = useCallback(() => {
+    exitSelectionMode();
+  }, [exitSelectionMode]);
 
-  const selectedFileIds = useMemo(() => Array.from(selectedFiles), [selectedFiles]);
+  const handleRetryOpenLink = useCallback(async () => {
+    if (currentLinkUrl) {
+      await openExternally(currentLinkUrl);
+    }
+  }, [currentLinkUrl]);
 
-  if (error) {
+  const handleCopyLink = useCallback(async () => {
+    if (currentLinkUrl && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(currentLinkUrl);
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+      }
+    }
+  }, [currentLinkUrl]);
+
+  useEffect(() => {
+    if (selectionMode && selectedFiles.size === 0) {
+      exitSelectionMode();
+    }
+  }, [selectionMode, selectedFiles.size, exitSelectionMode]);
+
+  if (isLoading) {
     return (
-      <Card className="mt-6">
-        <CardContent className="pt-6">
-          <p className="text-center text-destructive">Failed to load files. Please try again.</p>
-        </CardContent>
-      </Card>
+      <section>
+        <div className="mb-6">
+          {selectedFolder && (
+            <Button variant="ghost" onClick={onBackToMain} className="mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to collection
+            </Button>
+          )}
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+          <p className="mt-1 text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i}>
+              <Skeleton className="w-[100px] h-[100px] rounded-lg" />
+              <Skeleton className="mt-1.5 h-3 w-[100px]" />
+            </div>
+          ))}
+        </div>
+      </section>
     );
   }
 
-  return (
-    <>
-      <Card className="mt-6">
-        <CardContent className="pt-6">
+  if (error) {
+    return (
+      <section>
+        <div className="mb-6">
           {selectedFolder && (
-            <div className="mb-4 flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBackToMain}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <h2 className="text-lg font-semibold">{selectedFolder.name}</h2>
-            </div>
+            <Button variant="ghost" onClick={onBackToMain} className="mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to collection
+            </Button>
           )}
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+          <p className="mt-1 text-muted-foreground">{subtitle}</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-destructive/10 p-4">
+              <FileIcon className="h-8 w-8 text-destructive" />
+            </div>
+            <p className="mt-4 text-lg font-medium">Error loading files</p>
+            <p className="mt-1 text-sm text-muted-foreground">Please try again later</p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
-          {showPlaceholder ? (
-            <div className="grid grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <Skeleton className="w-[100px] h-[100px] rounded-lg" />
-                  <Skeleton className="w-[100px] h-3" />
-                </div>
-              ))}
-            </div>
-          ) : showEmptyState ? (
-            <div className="text-center py-12">
-              <FileIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                {selectedFolder ? 'No files in this folder yet' : 'No files yet. Upload your first file!'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-4">
-              {files?.map((file, index) => (
-                <FileCard
-                  key={file.id}
-                  file={file}
-                  onClick={() => handleFileClick(index)}
-                  isSelected={selectedFiles.has(file.id)}
-                  isSelectionMode={selectionMode}
-                  onLongPress={() => handleLongPress(index)}
-                />
-              ))}
-            </div>
+  if (!files || files.length === 0) {
+    return (
+      <section>
+        <div className="mb-6">
+          {selectedFolder && (
+            <Button variant="ghost" onClick={onBackToMain} className="mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to collection
+            </Button>
           )}
-        </CardContent>
-      </Card>
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+          <p className="mt-1 text-muted-foreground">{subtitle}</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-4">
+              <FileIcon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="mt-4 text-lg font-medium">No files</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {selectedFolder ? 'This folder is empty' : 'Upload files to see them here'}
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
+  // Filter out link items for the viewer (only show files with blobs)
+  const viewableFiles = files.filter(f => f.blob);
+
+  return (
+    <section className="relative pb-32">
+      <div className="mb-6">
+        {selectedFolder && (
+          <Button variant="ghost" onClick={onBackToMain} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to collection
+          </Button>
+        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+            <p className="mt-1 text-muted-foreground">
+              {selectionMode 
+                ? `${selectedFiles.size} selected of ${files.length}`
+                : `${files.length} ${files.length === 1 ? 'item' : 'items'}`
+              }
+            </p>
+          </div>
+          {selectionMode && (
+            <Button variant="outline" onClick={exitSelectionMode}>Cancel</Button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        {files.map((file, index) => (
+          <FileCard
+            key={file.id}
+            file={file}
+            onClick={() => handleFileClick(index)}
+            isSelected={selectedFiles.has(file.id)}
+            isSelectionMode={selectionMode}
+            onLongPress={() => handleLongPress(file.id)}
+          />
+        ))}
+      </div>
 
       {selectionMode && selectedFiles.size > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 z-50 bg-background border-t shadow-lg">
-          <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">
-              {selectedFiles.size} selected
-            </span>
-            <div className="flex gap-2">
+        <div className="fixed bottom-20 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg z-50">
+          <div className="max-w-[430px] mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <Button
-                variant="ghost"
-                size="sm"
+                variant="secondary"
+                onClick={handleSendToFolder}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <FolderInput className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Folder</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleMoveToMission}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Target className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Mission</span>
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={handleShare}
                 disabled={isSharing}
-                className="gap-1"
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
               >
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              {!selectedFolder && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMoveToFolder}
-                  className="gap-1"
-                >
-                  <FolderInput className="h-4 w-4" />
-                  Folder
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMoveToMission}
-                className="gap-1"
-              >
-                <Target className="h-4 w-4" />
-                Mission
+                <Share2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Share</span>
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDeleteSelected}
+                variant="secondary"
+                onClick={handleDownload}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Download className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Download</span>
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
                 disabled={deleteFiles.isPending}
-                className="gap-1 text-destructive hover:text-destructive"
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
               >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancelSelection}
-              >
-                Cancel
+                <Trash2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Delete</span>
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {files && files.length > 0 && (
+      {viewerOpen && viewableFiles.length > 0 && (
         <FullScreenViewer
-          files={files}
+          files={viewableFiles}
           initialIndex={selectedIndex}
           open={viewerOpen}
           onOpenChange={setViewerOpen}
@@ -503,18 +557,26 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
       )}
 
       <SendToFolderDialog
-        fileIds={selectedFileIds}
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
-        onComplete={handleSendToFolderComplete}
+        fileIds={Array.from(selectedFiles)}
+        onMoveComplete={handleMoveComplete}
       />
 
       <MoveToMissionDialog
-        fileIds={selectedFileIds}
         open={moveToMissionOpen}
         onOpenChange={setMoveToMissionOpen}
-        onComplete={handleMoveToMissionComplete}
+        fileIds={Array.from(selectedFiles)}
+        onMoveComplete={handleMoveComplete}
       />
-    </>
+
+      <LinkOpenFallbackDialog
+        open={linkFallbackOpen}
+        onOpenChange={setLinkFallbackOpen}
+        linkUrl={currentLinkUrl}
+        onRetryOpen={handleRetryOpenLink}
+        onCopyLink={handleCopyLink}
+      />
+    </section>
   );
 }

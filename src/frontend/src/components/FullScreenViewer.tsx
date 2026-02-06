@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, ExternalLink, Target } from 'lucide-react';
-import { useDeleteFiles } from '@/hooks/useQueries';
+import { useDeleteFile } from '@/hooks/useQueries';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
 import ExternalOpenFallbackDialog from './ExternalOpenFallbackDialog';
@@ -24,7 +24,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [fallbackDialogOpen, setFallbackDialogOpen] = useState(false);
-  const deleteFiles = useDeleteFiles();
+  const deleteFile = useDeleteFile();
 
   const currentFile = files[currentIndex];
 
@@ -77,7 +77,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     if (!currentFile) return;
 
     try {
-      await deleteFiles.mutateAsync([BigInt(currentFile.id)]);
+      await deleteFile.mutateAsync(currentFile.id);
       if (files.length === 1) {
         onOpenChange(false);
       } else {
@@ -130,12 +130,18 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     }
   };
 
-  const handleFallbackDownload = () => {
-    handleDownload();
+  const handleFallbackDownload = async () => {
+    if (!currentFile || !currentFile.blob) return;
+    try {
+      await downloadFile(currentFile.blob.getDirectURL(), currentFile.name);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
   };
 
-  const handleFallbackRetry = () => {
-    handleOpenExternally();
+  const handleFallbackRetry = async () => {
+    if (!currentFile || !currentFile.blob) return;
+    await openExternally(currentFile.blob.getDirectURL());
   };
 
   const handleMoveComplete = () => {
@@ -285,14 +291,16 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                     <Share2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Share</span>
                   </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleOpenExternally}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                  >
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Open</span>
-                  </Button>
+                  {isOffice && (
+                    <Button
+                      variant="secondary"
+                      onClick={handleOpenExternally}
+                      className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    >
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">New Tab</span>
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     onClick={handleDownload}
@@ -304,12 +312,17 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                   <Button
                     variant="destructive"
                     onClick={handleDelete}
-                    disabled={deleteFiles.isPending}
+                    disabled={deleteFile.isPending}
                     className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Delete</span>
                   </Button>
+                </div>
+                <div className="text-center mt-2 sm:mt-3">
+                  <p className="text-xs sm:text-sm text-white/70">
+                    {currentIndex + 1} of {files.length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -321,25 +334,27 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
         fileIds={[currentFile.id]}
-        currentFolderId={currentFile.folderId}
-        onComplete={handleMoveComplete}
+        currentFolderId={currentFile.folderId ?? undefined}
+        onMoveComplete={handleMoveComplete}
       />
 
       <MoveToMissionDialog
         open={moveToMissionOpen}
         onOpenChange={setMoveToMissionOpen}
         fileIds={[currentFile.id]}
-        onComplete={handleMoveComplete}
+        onMoveComplete={handleMoveComplete}
       />
 
-      <ExternalOpenFallbackDialog
-        open={fallbackDialogOpen}
-        onOpenChange={setFallbackDialogOpen}
-        fileName={currentFile.name}
-        fileUrl={currentFile.blob.getDirectURL()}
-        onRetryOpen={handleFallbackRetry}
-        onDownload={handleFallbackDownload}
-      />
+      {currentFile && currentFile.blob && (
+        <ExternalOpenFallbackDialog
+          open={fallbackDialogOpen}
+          onOpenChange={setFallbackDialogOpen}
+          fileName={currentFile.name}
+          fileUrl={currentFile.blob.getDirectURL()}
+          onRetryOpen={handleFallbackRetry}
+          onDownload={handleFallbackDownload}
+        />
+      )}
     </>
   );
 }

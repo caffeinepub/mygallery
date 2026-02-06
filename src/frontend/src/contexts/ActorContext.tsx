@@ -5,7 +5,6 @@ import { type backendInterface } from '../backend';
 import { createActorWithConfig } from '../config';
 import { getSecretParameter } from '../utils/urlParams';
 import { mapActorInitError, type ErrorClassification } from '@/utils/actorInitializationMessaging';
-import { perfDiag } from '@/utils/performanceDiagnostics';
 
 type ActorStatus = 'idle' | 'initializing' | 'ready' | 'unavailable' | 'error';
 
@@ -111,8 +110,6 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
       resetRetryState();
     }
 
-    const initStartTime = performance.now();
-
     try {
       const actorOptions = {
         agentOptions: {
@@ -134,14 +131,6 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       resetRetryState();
       isInitializingRef.current = false;
-      
-      if (perfDiag.isEnabled()) {
-        const duration = performance.now() - initStartTime;
-        perfDiag.logOperation('Actor initialization to ready', duration, {
-          isRetry,
-          hadAdminToken: !!adminToken
-        });
-      }
     } catch (err) {
       console.error('Actor initialization failed:', err);
       

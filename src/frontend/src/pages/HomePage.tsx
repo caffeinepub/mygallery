@@ -35,7 +35,6 @@ export default function HomePage() {
   const isAuthenticated = !!identity;
   const isActorReady = status === 'ready';
   const isFinalFailure = status === 'error' && error;
-  const isActorInitializing = status === 'initializing' || status === 'unavailable';
 
   // Dev-only smoke test trigger (only in development mode with URL param)
   useEffect(() => {
@@ -126,12 +125,11 @@ export default function HomePage() {
               <main className="flex-1 container mx-auto px-4 py-8 pb-32">
                 {selectedFolder === null ? (
                   <>
-                    <FileUploadSection isActorInitializing={isActorInitializing} />
+                    <FileUploadSection />
                     <GallerySection 
                       selectedFolder={null} 
                       onBackToMain={handleBackToMain}
                       onBulkSelectionChange={handleBulkSelectionChange}
-                      isActorInitializing={isActorInitializing}
                     />
                   </>
                 ) : (
@@ -139,7 +137,6 @@ export default function HomePage() {
                     selectedFolder={selectedFolder} 
                     onBackToMain={handleBackToMain}
                     onBulkSelectionChange={handleBulkSelectionChange}
-                    isActorInitializing={isActorInitializing}
                   />
                 )}
               </main>
@@ -148,13 +145,11 @@ export default function HomePage() {
                 onClick={() => setIsFoldersOpen(true)} 
                 disabled={!isActorReady}
                 behindOverlay={isBulkSelectionActive}
-                isInitializing={isActorInitializing}
               />
               <MissionsButton 
                 onClick={() => setIsMissionsOpen(true)} 
                 disabled={!isActorReady}
                 behindOverlay={isBulkSelectionActive}
-                isInitializing={isActorInitializing}
               />
               <Footer />
             </div>
@@ -178,7 +173,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, isActorInitializing]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive]);
 
   return mainContent;
 }
