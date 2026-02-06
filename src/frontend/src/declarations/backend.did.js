@@ -53,14 +53,20 @@ export const Folder = IDL.Record({
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const DiagnosticResult = IDL.Record({
+  'time' : IDL.Int,
+  'deleteFilesLowLevelTime' : IDL.Nat,
   'cycles' : IDL.Nat,
+  'deleteFolderTime' : IDL.Nat,
   'build' : IDL.Text,
+  'moveFilesToFolderTime' : IDL.Nat,
+  'uploadTime' : IDL.Nat,
 });
 export const PaginatedFiles = IDL.Record({
   'files' : IDL.Vec(FileMetadata),
   'hasMore' : IDL.Bool,
 });
 export const HealthResult = IDL.Record({
+  'time' : IDL.Int,
   'cycles' : IDL.Nat,
   'build' : IDL.Text,
 });
@@ -105,6 +111,7 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'batchRemoveFromFolder' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
   'createFolder' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], []),
   'createLink' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
@@ -112,8 +119,9 @@ export const idlService = IDL.Service({
       [],
     ),
   'createMission' : IDL.Func([IDL.Text, IDL.Vec(Task)], [IDL.Nat], []),
-  'deleteFile' : IDL.Func([IDL.Text], [], []),
-  'deleteFiles' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
+  'deleteFile' : IDL.Func([IDL.Int], [], []),
+  'deleteFiles' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
+  'deleteFilesLowLevel' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
   'deleteFolder' : IDL.Func([IDL.Nat], [], []),
   'deleteMission' : IDL.Func([IDL.Nat], [], []),
   'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
@@ -121,7 +129,7 @@ export const idlService = IDL.Service({
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getDiagnostics' : IDL.Func([], [DiagnosticResult], ['query']),
-  'getFile' : IDL.Func([IDL.Text], [IDL.Opt(FileMetadata)], ['query']),
+  'getFile' : IDL.Func([IDL.Int], [IDL.Opt(FileMetadata)], ['query']),
   'getFilesForMission' : IDL.Func(
       [IDL.Opt(IDL.Nat)],
       [IDL.Vec(FileMetadata)],
@@ -151,10 +159,10 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listMissions' : IDL.Func([], [IDL.Vec(Mission)], ['query']),
-  'moveFileToFolder' : IDL.Func([IDL.Text, IDL.Nat], [], []),
-  'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
-  'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
-  'removeFromFolder' : IDL.Func([IDL.Text], [], []),
+  'moveFileToFolder' : IDL.Func([IDL.Int, IDL.Nat], [], []),
+  'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Int), IDL.Nat], [], []),
+  'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Int), IDL.Nat], [], []),
+  'removeFromFolder' : IDL.Func([IDL.Int], [], []),
   'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
@@ -213,14 +221,23 @@ export const idlFactory = ({ IDL }) => {
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const DiagnosticResult = IDL.Record({
+    'time' : IDL.Int,
+    'deleteFilesLowLevelTime' : IDL.Nat,
     'cycles' : IDL.Nat,
+    'deleteFolderTime' : IDL.Nat,
     'build' : IDL.Text,
+    'moveFilesToFolderTime' : IDL.Nat,
+    'uploadTime' : IDL.Nat,
   });
   const PaginatedFiles = IDL.Record({
     'files' : IDL.Vec(FileMetadata),
     'hasMore' : IDL.Bool,
   });
-  const HealthResult = IDL.Record({ 'cycles' : IDL.Nat, 'build' : IDL.Text });
+  const HealthResult = IDL.Record({
+    'time' : IDL.Int,
+    'cycles' : IDL.Nat,
+    'build' : IDL.Text,
+  });
   const Mission = IDL.Record({
     'id' : IDL.Nat,
     'tasks' : IDL.Vec(Task),
@@ -259,6 +276,7 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'batchRemoveFromFolder' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
     'createFolder' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], []),
     'createLink' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
@@ -266,8 +284,9 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'createMission' : IDL.Func([IDL.Text, IDL.Vec(Task)], [IDL.Nat], []),
-    'deleteFile' : IDL.Func([IDL.Text], [], []),
-    'deleteFiles' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
+    'deleteFile' : IDL.Func([IDL.Int], [], []),
+    'deleteFiles' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
+    'deleteFilesLowLevel' : IDL.Func([IDL.Vec(IDL.Int)], [], []),
     'deleteFolder' : IDL.Func([IDL.Nat], [], []),
     'deleteMission' : IDL.Func([IDL.Nat], [], []),
     'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
@@ -275,7 +294,7 @@ export const idlFactory = ({ IDL }) => {
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getDiagnostics' : IDL.Func([], [DiagnosticResult], ['query']),
-    'getFile' : IDL.Func([IDL.Text], [IDL.Opt(FileMetadata)], ['query']),
+    'getFile' : IDL.Func([IDL.Int], [IDL.Opt(FileMetadata)], ['query']),
     'getFilesForMission' : IDL.Func(
         [IDL.Opt(IDL.Nat)],
         [IDL.Vec(FileMetadata)],
@@ -305,10 +324,10 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listMissions' : IDL.Func([], [IDL.Vec(Mission)], ['query']),
-    'moveFileToFolder' : IDL.Func([IDL.Text, IDL.Nat], [], []),
-    'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
-    'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
-    'removeFromFolder' : IDL.Func([IDL.Text], [], []),
+    'moveFileToFolder' : IDL.Func([IDL.Int, IDL.Nat], [], []),
+    'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Int), IDL.Nat], [], []),
+    'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Int), IDL.Nat], [], []),
+    'removeFromFolder' : IDL.Func([IDL.Int], [], []),
     'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),

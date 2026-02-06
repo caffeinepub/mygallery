@@ -1,19 +1,17 @@
-import Map "mo:core/Map";
 import Nat "mo:core/Nat";
-import Int "mo:core/Int";
-import Array "mo:core/Array";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
-import Iter "mo:core/Iter";
-import Principal "mo:core/Principal";
+import Int "mo:core/Int";
+import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
+import Principal "mo:core/Principal";
+import Map "mo:core/Map";
+import Iter "mo:core/Iter";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-
-
 
 actor {
   include MixinStorage();
@@ -79,11 +77,17 @@ actor {
   public type DiagnosticResult = {
     build : Text;
     cycles : Nat;
+    time : Int;
+    uploadTime : Nat;
+    moveFilesToFolderTime : Nat;
+    deleteFolderTime : Nat;
+    deleteFilesLowLevelTime : Nat;
   };
 
   public type HealthResult = {
     build : Text;
     cycles : Nat;
+    time : Int;
   };
 
   // Authorization core
@@ -99,22 +103,36 @@ actor {
   let userProfiles = Map.empty<Principal, UserProfile>();
   let persistentMissions = Map.empty<Principal, Missions>();
 
+  // Timings
+  var uploadTime = 0;
+  var moveFilesToFolderTime = 0;
+  var deleteFolderTime = 0;
+  var deleteFilesLowLevelTime = 0;
+
   // Helper: Find file by string id
-  private func findFileByTextId(id : Text) : ?(Nat, FileMetadata) {
-    files.toArray().find(func((_, file)) { file.id == id });
+  private func findFileByTextId(id : Int) : ?(Nat, FileMetadata) {
+    files.toArray().find(func((_, file)) { file.id == id.toText() });
   };
 
   public query ({ caller }) func getHealth() : async HealthResult {
+    let time = Time.now();
     {
-      build = "1.2.0";
+      build = "1.4.0";
       cycles = Cycles.balance();
+      time;
     };
   };
 
   public query ({ caller }) func getDiagnostics() : async DiagnosticResult {
+    let time = Time.now();
     {
-      build = "1.2.0";
+      build = "1.3.9";
       cycles = Cycles.balance();
+      time;
+      uploadTime;
+      moveFilesToFolderTime;
+      deleteFolderTime;
+      deleteFilesLowLevelTime;
     };
   };
 
@@ -241,6 +259,9 @@ actor {
     blob : Storage.ExternalBlob,
     missionId : ?Nat,
   ) : async UploadResponse {
+    // Time check
+    let startUpload = Time.now();
+
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can upload files");
     };
@@ -277,6 +298,11 @@ actor {
     };
     files.add(nextFileId, file);
     nextFileId += 1;
+
+    // Time check
+    let endUpload = Time.now();
+    uploadTime := (endUpload - startUpload).toNat();
+
     { id };
   };
 
@@ -344,7 +370,7 @@ actor {
     { id };
   };
 
-  public shared ({ caller }) func moveFilesToMission(fileIds : [Text], missionId : Nat) : async () {
+  public shared ({ caller }) func moveFilesToMission(fileIds : [Int], missionId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can move files to missions");
     };
@@ -389,7 +415,7 @@ actor {
     };
   };
 
-  public query ({ caller }) func getFile(fileId : Text) : async ?FileMetadata {
+  public query ({ caller }) func getFile(fileId : Int) : async ?FileMetadata {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access files");
     };
@@ -425,7 +451,7 @@ actor {
     let folderFiles = files.values().toArray().filter(
       func(file) {
         switch (file.folderId) {
-          case (?id) { 
+          case (?id) {
             id == folderId and file.owner == caller and file.missionId == null
           };
           case (null) { false };
@@ -449,7 +475,7 @@ actor {
     };
 
     let filteredFiles = files.values().toArray().filter(
-      func(file) { 
+      func(file) {
         file.folderId == null and file.owner == caller and file.missionId == null
       }
     );
@@ -504,7 +530,7 @@ actor {
     filteredFiles;
   };
 
-  public shared ({ caller }) func deleteFile(id : Text) : async () {
+  public shared ({ caller }) func deleteFile(id : Int) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete files");
     };
@@ -523,7 +549,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func deleteFiles(fileIds : [Text]) : async () {
+  public shared ({ caller }) func deleteFiles(fileIds : [Int]) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete files");
     };
@@ -532,7 +558,7 @@ actor {
     for (fileId in fileIds.vals()) {
       switch (findFileByTextId(fileId)) {
         case (null) {
-          Runtime.trap("File not found: " # fileId);
+          Runtime.trap("File not found: " # fileId.toText());
         };
         case (?(_, file)) {
           if (file.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
@@ -553,7 +579,30 @@ actor {
     };
   };
 
-  public shared ({ caller }) func moveFileToFolder(fileId : Text, folderId : Nat) : async () {
+  // Low-level delete files for performance testing (does not check ownership)
+  public shared ({ caller }) func deleteFilesLowLevel(fileIds : [Int]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can use low-level file deletion");
+    };
+
+    let startDeleteFiles = Time.now();
+
+    for (fileId in fileIds.vals()) {
+      switch (findFileByTextId(fileId)) {
+        case (null) {
+          Runtime.trap("File not found: " # fileId.toText());
+        };
+        case (?(numericId, _)) {
+          files.remove(numericId);
+        };
+      };
+    };
+
+    let endDeleteFiles = Time.now();
+    deleteFilesLowLevelTime := (endDeleteFiles - startDeleteFiles).toNat();
+  };
+
+  public shared ({ caller }) func moveFileToFolder(fileId : Int, folderId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can move files");
       return ();
@@ -582,8 +631,8 @@ actor {
           Runtime.trap("Unauthorized: Can only move files to your own folders");
           return ();
         };
-        let updatedFile = { 
-          file with 
+        let updatedFile = {
+          file with
           folderId = ?folderId;
           missionId = null;
         };
@@ -592,7 +641,10 @@ actor {
     };
   };
 
-  public shared ({ caller }) func moveFilesToFolder(fileIds : [Text], folderId : Nat) : async () {
+  public shared ({ caller }) func moveFilesToFolder(fileIds : [Int], folderId : Nat) : async () {
+    // Time check
+    let startMove = Time.now();
+
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can move files");
     };
@@ -601,7 +653,7 @@ actor {
     for (fileId in fileIds.vals()) {
       switch (findFileByTextId(fileId)) {
         case (null) {
-          Runtime.trap("File not found: " # fileId);
+          Runtime.trap("File not found: " # fileId.toText());
         };
         case (?(_, file)) {
           if (file.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
@@ -627,8 +679,8 @@ actor {
     for (fileId in fileIds.vals()) {
       switch (findFileByTextId(fileId)) {
         case (?(numericId, file)) {
-          let updatedFile = { 
-            file with 
+          let updatedFile = {
+            file with
             folderId = ?folderId;
             missionId = null;
           };
@@ -637,9 +689,36 @@ actor {
         case (null) {};
       };
     };
+
+    // Time check
+    let endMove = Time.now();
+    moveFilesToFolderTime := (endMove - startMove).toNat();
   };
 
-  public shared ({ caller }) func removeFromFolder(fileId : Text) : async () {
+  // Optimized batch remove from folder
+  public shared ({ caller }) func batchRemoveFromFolder(fileIds : [Int]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can modify files");
+    };
+
+    for (fileId in fileIds.vals()) {
+      switch (findFileByTextId(fileId)) {
+        case (?(numericFileId, file)) {
+          // Verify ownership
+          if (file.owner != caller and not AccessControl.isAdmin(accessControlState, caller)) {
+            Runtime.trap("Unauthorized: Can only modify your own files");
+          };
+          let updatedFile = { file with folderId = null };
+          files.add(numericFileId, updatedFile);
+        };
+        case (null) {
+          Runtime.trap("File not found: " # fileId.toText());
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func removeFromFolder(fileId : Int) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can modify files");
     };
@@ -699,6 +778,9 @@ actor {
   };
 
   public shared ({ caller }) func deleteFolder(folderId : Nat) : async () {
+    // Time check
+    let startDelete = Time.now();
+
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can delete folders");
     };
@@ -730,6 +812,10 @@ actor {
     for ((fileId, _) in filesToDelete.values()) {
       files.remove(fileId);
     };
+
+    // Time check
+    let endDelete = Time.now();
+    deleteFolderTime := (endDelete - startDelete).toNat();
   };
 
   public query ({ caller }) func getAllFolders() : async [Folder] {

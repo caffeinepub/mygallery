@@ -1,66 +1,69 @@
 {
   "kind": "build_request",
-  "title": "Adjust post-login splash screen to show only icon and appear on every app open while signed in",
+  "title": "Improve startup/login responsiveness (reduce blocking loading and delays)",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
+      "id": "REQ-2",
+      "text": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "After Internet Identity login, the splash should show only the icon (no 'welcome to gallery' text)"
+          "Όταν συνδέομαι στην εφαρμογή ή όταν την ανοίγω συνδεδεμένος να λειτουργει άμεσα ομαλά χωρίς καθυστερήσεις loading"
         ]
       },
       "acceptanceCriteria": [
-        "When the splash screen is visible, no welcome/title text is shown anywhere on the splash screen.",
-        "The animated gallery icon remains visible and centered on the splash screen."
+        "When the app is opened with an already-authenticated Internet Identity session, the Home screen renders immediately without a forced full-screen splash/intro delay.",
+        "Any remaining intro/splash experience (if kept) must not block interaction with the main screen for a fixed duration."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+      "id": "REQ-3",
+      "text": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "The splash should appear every time I enter the app while signed in."
+          "...να λειτουργει άμεσα ομαλά χωρίς καθυστερήσεις loading"
         ]
       },
       "acceptanceCriteria": [
-        "If the user is already authenticated and reloads/opens the app, the splash screen appears once before the Home page renders.",
-        "If the user is not authenticated, the app does not show this post-login splash and instead shows the unauthenticated welcome/login screen flow.",
-        "Within a single app load, the splash screen does not reappear again after it completes unless the page is reloaded/reopened or the user logs out and authenticates again."
+        "On authenticated startup, the app shows the main layout immediately and displays lightweight skeleton/placeholder states within sections that are still loading (instead of a full-page blocking loader).",
+        "Floating action buttons and primary navigation do not appear ‘stuck’ in a loading state during normal actor initialization; if temporarily disabled, the UI clearly remains responsive."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When performance diagnostics are enabled (via the existing localStorage/URL flag), console timings are emitted for: identity initialization, actor initialization to ready, and the first completion of initial folders/files/missions queries.",
+        "When diagnostics are not enabled, there is no additional console noise and negligible runtime overhead."
       ]
     }
   ],
   "constraints": [
-    "Frontend immutable paths must not be edited: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Keep all changes confined to the existing splash/intro behavior and UI; do not introduce new authentication providers or flows."
+    "Do not modify files under frontend/src/components/ui (read-only).",
+    "Do not modify any frontend paths listed as immutable in SYSTEM_CONTEXT.",
+    "Backend must remain a single Motoko actor; only add backend changes if strictly necessary for perceived startup speed."
   ],
   "nonGoals": [
-    "Fixing upload/gallery display issues.",
-    "Fixing folders creation flows.",
-    "Fixing missions creation flows.",
-    "Changing the unauthenticated WelcomeIntroScreen content or layout beyond what is required for the splash behavior."
+    "Adding real-time features (websockets) or external caching services.",
+    "Changing authentication provider (must remain Internet Identity).",
+    "Large redesign of the app’s feature set beyond startup/loading responsiveness."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

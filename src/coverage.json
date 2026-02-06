@@ -1,35 +1,60 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T16:14:45.405Z",
+  "generatedAt": "2026-02-06T18:58:30.440Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
+        "id": "REQ-2",
+        "summary": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/App.tsx",
           "frontend/src/components/IntroScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/IntroScreen.tsx"
+          "frontend/src/App.tsx"
         ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+        "id": "REQ-3",
+        "summary": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/FoldersButton.tsx",
+          "frontend/src/components/MissionsButton.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx"
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/FoldersButton.tsx",
+          "frontend/src/components/MissionsButton.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useInternetIdentity.ts",
+          "frontend/src/contexts/ActorContext.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/contexts/ActorContext.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useMissionsQueries.ts"
         ]
       }
     ]
@@ -40,9 +65,18 @@
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/App.tsx",
-    "frontend/src/components/IntroScreen.tsx",
+    "frontend/src/components/FilePreviewDialog.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/FoldersButton.tsx",
+    "frontend/src/components/FullScreenViewer.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/MissionsButton.tsx",
+    "frontend/src/components/MoveToMissionDialog.tsx",
+    "frontend/src/components/SendToFolderDialog.tsx",
     "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/utils/urlParams.ts",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/HomePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

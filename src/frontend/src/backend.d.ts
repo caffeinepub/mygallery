@@ -51,12 +51,18 @@ export interface Task {
     taskId: bigint;
 }
 export interface HealthResult {
+    time: bigint;
     cycles: bigint;
     build: string;
 }
 export interface DiagnosticResult {
+    time: bigint;
+    deleteFilesLowLevelTime: bigint;
     cycles: bigint;
+    deleteFolderTime: bigint;
     build: string;
+    moveFilesToFolderTime: bigint;
+    uploadTime: bigint;
 }
 export interface Folder {
     id: bigint;
@@ -75,11 +81,13 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    batchRemoveFromFolder(fileIds: Array<bigint>): Promise<void>;
     createFolder(name: string): Promise<string | null>;
     createLink(name: string, url: string, folderId: bigint | null, missionId: bigint | null): Promise<UploadResponse>;
     createMission(title: string, tasks: Array<Task>): Promise<bigint>;
-    deleteFile(id: string): Promise<void>;
-    deleteFiles(fileIds: Array<string>): Promise<void>;
+    deleteFile(id: bigint): Promise<void>;
+    deleteFiles(fileIds: Array<bigint>): Promise<void>;
+    deleteFilesLowLevel(fileIds: Array<bigint>): Promise<void>;
     deleteFolder(folderId: bigint): Promise<void>;
     deleteMission(missionId: bigint): Promise<void>;
     /**
@@ -90,7 +98,7 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getDiagnostics(): Promise<DiagnosticResult>;
-    getFile(fileId: string): Promise<FileMetadata | null>;
+    getFile(fileId: bigint): Promise<FileMetadata | null>;
     getFilesForMission(missionId: bigint | null): Promise<Array<FileMetadata>>;
     getFilesInFolder(folderId: bigint, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
     getHealth(): Promise<HealthResult>;
@@ -100,10 +108,10 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;
-    moveFileToFolder(fileId: string, folderId: bigint): Promise<void>;
-    moveFilesToFolder(fileIds: Array<string>, folderId: bigint): Promise<void>;
-    moveFilesToMission(fileIds: Array<string>, missionId: bigint): Promise<void>;
-    removeFromFolder(fileId: string): Promise<void>;
+    moveFileToFolder(fileId: bigint, folderId: bigint): Promise<void>;
+    moveFilesToFolder(fileIds: Array<bigint>, folderId: bigint): Promise<void>;
+    moveFilesToMission(fileIds: Array<bigint>, missionId: bigint): Promise<void>;
+    removeFromFolder(fileId: bigint): Promise<void>;
     renameFolder(folderId: bigint, newName: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;

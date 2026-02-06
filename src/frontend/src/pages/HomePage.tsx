@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import FileUploadSection from '@/components/FileUploadSection';
 import GallerySection from '@/components/GallerySection';
 import FoldersButton from '@/components/FoldersButton';
-import FoldersDialog from '@/components/FoldersDialog';
+import FoldersFullScreenView from '@/components/FoldersFullScreenView';
 import MissionsButton from '@/components/MissionsButton';
 import MissionsFullScreenView from '@/components/MissionsFullScreenView';
 import DecorativeBottomLine from '@/components/DecorativeBottomLine';
@@ -20,9 +20,10 @@ import { toast } from 'sonner';
 import type { Folder } from '@/backend';
 
 export default function HomePage() {
-  const [isFoldersDialogOpen, setIsFoldersDialogOpen] = useState(false);
+  const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+  const [isBulkSelectionActive, setIsBulkSelectionActive] = useState(false);
   const { identity, isInitializing } = useInternetIdentity();
   const { status, error, retry, signOut, actor } = useBackendActor();
 
@@ -34,6 +35,7 @@ export default function HomePage() {
   const isAuthenticated = !!identity;
   const isActorReady = status === 'ready';
   const isFinalFailure = status === 'error' && error;
+  const isActorInitializing = status === 'initializing' || status === 'unavailable';
 
   // Dev-only smoke test trigger (only in development mode with URL param)
   useEffect(() => {
@@ -71,11 +73,14 @@ export default function HomePage() {
 
   const handleFolderSelect = (folder: Folder) => {
     setSelectedFolder(folder);
-    setIsFoldersDialogOpen(false);
   };
 
   const handleBackToMain = () => {
     setSelectedFolder(null);
+  };
+
+  const handleBulkSelectionChange = (isActive: boolean) => {
+    setIsBulkSelectionActive(isActive);
   };
 
   const mainContent = useMemo(() => {
@@ -110,32 +115,46 @@ export default function HomePage() {
         <MobileOnlyLayout>
           {isMissionsOpen ? (
             <MissionsFullScreenView onClose={() => setIsMissionsOpen(false)} />
+          ) : isFoldersOpen ? (
+            <FoldersFullScreenView 
+              onClose={() => setIsFoldersOpen(false)} 
+              onSelectFolder={handleFolderSelect}
+            />
           ) : (
             <div className="flex min-h-screen flex-col">
               <Header />
               <main className="flex-1 container mx-auto px-4 py-8 pb-32">
                 {selectedFolder === null ? (
                   <>
-                    <FileUploadSection />
-                    <GallerySection selectedFolder={null} onBackToMain={handleBackToMain} />
+                    <FileUploadSection isActorInitializing={isActorInitializing} />
+                    <GallerySection 
+                      selectedFolder={null} 
+                      onBackToMain={handleBackToMain}
+                      onBulkSelectionChange={handleBulkSelectionChange}
+                      isActorInitializing={isActorInitializing}
+                    />
                   </>
                 ) : (
-                  <GallerySection selectedFolder={selectedFolder} onBackToMain={handleBackToMain} />
+                  <GallerySection 
+                    selectedFolder={selectedFolder} 
+                    onBackToMain={handleBackToMain}
+                    onBulkSelectionChange={handleBulkSelectionChange}
+                    isActorInitializing={isActorInitializing}
+                  />
                 )}
               </main>
               <DecorativeBottomLine />
               <FoldersButton 
-                onClick={() => setIsFoldersDialogOpen(true)} 
+                onClick={() => setIsFoldersOpen(true)} 
                 disabled={!isActorReady}
+                behindOverlay={isBulkSelectionActive}
+                isInitializing={isActorInitializing}
               />
               <MissionsButton 
                 onClick={() => setIsMissionsOpen(true)} 
                 disabled={!isActorReady}
-              />
-              <FoldersDialog
-                open={isFoldersDialogOpen}
-                onOpenChange={setIsFoldersDialogOpen}
-                onSelectFolder={handleFolderSelect}
+                behindOverlay={isBulkSelectionActive}
+                isInitializing={isActorInitializing}
               />
               <Footer />
             </div>
@@ -159,7 +178,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isMissionsOpen]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, isActorInitializing]);
 
   return mainContent;
 }

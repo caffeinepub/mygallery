@@ -15,28 +15,29 @@ interface MoveToMissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fileIds: string[];
-  onMoveComplete?: () => void;
+  onComplete?: () => void;
 }
 
 export default function MoveToMissionDialog({
   open,
   onOpenChange,
   fileIds,
-  onMoveComplete,
+  onComplete,
 }: MoveToMissionDialogProps) {
   const { data: missions, isLoading } = useListMissions();
   const moveToMission = useMoveFilesToMission();
 
   const handleMoveToMission = async (missionId: bigint) => {
     try {
-      await moveToMission.mutateAsync({ fileIds, missionId });
+      const bigintFileIds = fileIds.map(id => BigInt(id));
+      await moveToMission.mutateAsync({ fileIds: bigintFileIds, missionId });
       
       // Show success message
       const fileCount = fileIds.length;
       toast.success(`Moved ${fileCount} ${fileCount === 1 ? 'file' : 'files'} to mission`);
       
       onOpenChange(false);
-      onMoveComplete?.();
+      onComplete?.();
     } catch (error) {
       console.error('Move to mission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to move files to mission';

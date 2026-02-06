@@ -4,6 +4,15 @@ import { useInternetIdentity } from './useInternetIdentity';
 import type { FileMetadata, Folder } from '@/backend';
 import { ExternalBlob, SortDirection } from '@/backend';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
+import { createConcurrencyLimiter } from '@/utils/uploadConcurrency';
+import { perfDiag } from '@/utils/performanceDiagnostics';
+
+// Upload concurrency limiter: 3 concurrent uploads
+const uploadLimiter = createConcurrencyLimiter(3);
+
+// Track if initial queries have completed (for diagnostics)
+let initialFoldersCompleted = false;
+let initialFilesCompleted = false;
 
 export function useGetFilesNotInFolder() {
   const { actor, status } = useBackendActor();
@@ -13,14 +22,25 @@ export function useGetFilesNotInFolder() {
     queryKey: ['files', 'not-in-folder'],
     queryFn: async () => {
       if (!actor) return [];
+      
+      const startTime = performance.now();
       const result = await actor.getPaginatedFiles(SortDirection.desc, BigInt(0), BigInt(1000));
+      
+      if (perfDiag.isEnabled() && !initialFilesCompleted) {
+        const duration = performance.now() - startTime;
+        perfDiag.logOperation('Initial main files query (first completion)', duration, {
+          fileCount: result.files.length
+        });
+        initialFilesCompleted = true;
+      }
+      
       return result.files;
     },
     enabled: !!actor && status === 'ready' && !!identity,
-    staleTime: 0,
+    staleTime: 2000, // 2 seconds - reduce redundant refetches
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false, // Rely on staleTime instead
   });
 }
 
@@ -35,11 +55,11 @@ export function useGetFilesInFolder(folderId: bigint | null) {
       const result = await actor.getFilesInFolder(folderId, BigInt(0), BigInt(1000));
       return result.files;
     },
-    enabled: !!actor && status === 'ready' && folderId !== null && !!identity,
-    staleTime: 0,
+    enabled: !!actor && status === 'ready' && !!identity && folderId !== null,
+    staleTime: 2000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
   });
 }
 
@@ -53,11 +73,11 @@ export function useGetFilesForMission(missionId: bigint | null) {
       if (!actor || missionId === null) return [];
       return actor.getFilesForMission(missionId);
     },
-    enabled: !!actor && status === 'ready' && missionId !== null && !!identity,
-    staleTime: 0,
+    enabled: !!actor && status === 'ready' && !!identity && missionId !== null,
+    staleTime: 2000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
   });
 }
 
@@ -69,529 +89,279 @@ export function useGetFolders() {
     queryKey: ['folders'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllFolders();
+      
+      const startTime = performance.now();
+      const result = await actor.getAllFolders();
+      
+      if (perfDiag.isEnabled() && !initialFoldersCompleted) {
+        const duration = performance.now() - startTime;
+        perfDiag.logOperation('Initial folders query (first completion)', duration, {
+          folderCount: result.length
+        });
+        initialFoldersCompleted = true;
+      }
+      
+      return result;
     },
     enabled: !!actor && status === 'ready' && !!identity,
-    staleTime: 0,
-    gcTime: 15 * 60 * 1000,
+    staleTime: 3000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
   });
 }
 
-export function useCreateFolder() {
-  const { actor, status } = useBackendActor();
+export function useUploadFile() {
+  const { actor } = useBackendActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (name: string) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      const folderId = await actor.createFolder(name);
-      if (!folderId) {
-        throw new Error('Failed to create folder - no folder ID returned');
-      }
-      return { folderId, name };
-    },
-    onSuccess: async () => {
-      console.log('[useCreateFolder] Folder created successfully, refreshing folders list');
-      await queryClient.invalidateQueries({ queryKey: ['folders'] });
-      await queryClient.refetchQueries({ 
-        queryKey: ['folders'], 
-        type: 'all'
-      });
-      console.log('[useCreateFolder] Folders list refresh complete');
-    },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('[useCreateFolder] Folder creation failed:', errorMessage);
-      throw new Error(`Failed to create folder: ${errorMessage}`);
-    },
-  });
-}
-
-export function useRenameFolder() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ folderId, newName }: { folderId: bigint; newName: string }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.renameFolder(folderId, newName);
-      return { folderId, newName };
-    },
-    onMutate: async ({ folderId, newName }) => {
-      await queryClient.cancelQueries({ queryKey: ['folders'] });
-      const previousFolders = queryClient.getQueryData<Folder[]>(['folders']);
-      
-      queryClient.setQueryData<Folder[]>(['folders'], (old = []) =>
-        old.map(folder => folder.id === folderId ? { ...folder, name: newName } : folder)
-      );
-      
-      return { previousFolders };
-    },
-    onError: (err, _, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Folder rename failed:', errorMessage);
-      if (context?.previousFolders) {
-        queryClient.setQueryData(['folders'], context.previousFolders);
-      }
-      throw new Error(`Failed to rename folder: ${errorMessage}`);
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['folders'] });
-    },
-  });
-}
-
-export function useDeleteFolder() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (folderId: bigint) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.deleteFolder(folderId);
-      return folderId;
-    },
-    onMutate: async (folderId) => {
-      await queryClient.cancelQueries({ queryKey: ['folders'] });
-      await queryClient.cancelQueries({ queryKey: ['files', 'folder', folderId.toString()] });
-      
-      const previousFolders = queryClient.getQueryData<Folder[]>(['folders']);
-      const previousFolderFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()]);
-      
-      queryClient.setQueryData<Folder[]>(['folders'], (old = []) => old.filter(folder => folder.id !== folderId));
-      queryClient.removeQueries({ queryKey: ['files', 'folder', folderId.toString()], exact: true });
-      
-      return { previousFolders, previousFolderFiles, folderId };
-    },
-    onError: (err, folderId, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Folder deletion failed:', errorMessage);
-      if (context?.previousFolders) {
-        queryClient.setQueryData(['folders'], context.previousFolders);
-      }
-      if (context?.previousFolderFiles) {
-        queryClient.setQueryData(['files', 'folder', folderId.toString()], context.previousFolderFiles);
-      }
-      throw new Error(`Failed to delete folder: ${errorMessage}`);
-    },
-    onSuccess: async (folderId) => {
-      await queryClient.invalidateQueries({ queryKey: ['folders'] });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'folder', folderId.toString()] });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'] });
-    },
-  });
-}
-
-export function useMoveFilesToFolder() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ fileIds, folderId }: { fileIds: string[]; folderId: bigint }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.moveFilesToFolder(fileIds, folderId);
-      return { fileIds, folderId };
-    },
-    onMutate: async ({ fileIds, folderId }) => {
-      await queryClient.cancelQueries({ queryKey: ['files'] });
-      
-      const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
-      const previousTargetFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()]);
-      
-      const filesToMove = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
-      
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
-      );
-      
-      queryClient.setQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()], (old = []) => 
-        [...filesToMove.map(f => ({ ...f, folderId })), ...old]
-      );
-      
-      return { previousMainFiles, previousTargetFiles };
-    },
-    onError: (err, { folderId }, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Move files failed:', errorMessage);
-      if (context?.previousMainFiles) {
-        queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
-      }
-      if (context?.previousTargetFiles) {
-        queryClient.setQueryData(['files', 'folder', folderId.toString()], context.previousTargetFiles);
-      }
-      throw new Error(`Failed to move files: ${errorMessage}`);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-    },
-  });
-}
-
-export function useMoveFilesToMission() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ fileIds, missionId }: { fileIds: string[]; missionId: bigint }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      
-      await actor.moveFilesToMission(fileIds, missionId);
-      
-      return { fileIds, missionId };
-    },
-    onMutate: async ({ fileIds, missionId }) => {
-      await queryClient.cancelQueries({ queryKey: ['files'] });
-      
-      const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
-      const previousMissionFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()]);
-      
-      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
-      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allFolderQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousFolderFiles.set(keyStr, files);
-        }
-      }
-      
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
-      );
-      
-      for (const [queryKey, files] of allFolderQueries) {
-        if (files) {
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
-        }
-      }
-      
-      const filesToMove = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
-      queryClient.setQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()], (old = []) => 
-        [...filesToMove.map(f => ({ ...f, missionId, folderId: undefined })), ...(old ?? [])]
-      );
-      
-      return { previousMainFiles, previousMissionFiles, previousFolderFiles };
-    },
-    onError: (err, { missionId }, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Move to mission failed:', errorMessage);
-      
-      if (context?.previousMainFiles) {
-        queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
-      }
-      if (context?.previousMissionFiles) {
-        queryClient.setQueryData(['files', 'mission', missionId.toString()], context.previousMissionFiles);
-      }
-      if (context?.previousFolderFiles) {
-        context.previousFolderFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      
-      throw new Error(`Failed to move files to mission: ${errorMessage}`);
-    },
-    onSuccess: async (_, { missionId }) => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-      await queryClient.refetchQueries({ queryKey: ['files', 'mission', missionId.toString()], type: 'all' });
-    },
-  });
-}
-
-export function useRemoveFromFolder() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (fileId: string) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.removeFromFolder(fileId);
-      return fileId;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-    },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('Remove from folder failed:', errorMessage);
-      throw new Error(`Failed to remove from folder: ${errorMessage}`);
-    },
-  });
-}
-
-export function useDeleteFile() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (fileId: string) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.deleteFile(fileId);
-      return fileId;
-    },
-    onMutate: async (fileId) => {
-      await queryClient.cancelQueries({ queryKey: ['files'] });
-      
-      const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
-      
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => f.id !== fileId)
-      );
-      
-      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
-      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allFolderQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousFolderFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => f.id !== fileId));
-        }
-      }
-      
-      const allMissionQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'mission'] });
-      const previousMissionFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allMissionQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousMissionFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => f.id !== fileId));
-        }
-      }
-      
-      return { previousMainFiles, previousFolderFiles, previousMissionFiles, fileId };
-    },
-    onError: (err, _, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Delete file failed:', errorMessage);
-      if (context?.previousMainFiles) {
-        queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
-      }
-      if (context?.previousFolderFiles) {
-        context.previousFolderFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      if (context?.previousMissionFiles) {
-        context.previousMissionFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      throw new Error(`Failed to delete file: ${errorMessage}`);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-    },
-  });
-}
-
-export function useDeleteFiles() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (fileIds: string[]) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      
-      const CHUNK_SIZE = 50;
-      for (let i = 0; i < fileIds.length; i += CHUNK_SIZE) {
-        const chunk = fileIds.slice(i, i + CHUNK_SIZE);
-        await actor.deleteFiles(chunk);
-      }
-      
-      return fileIds;
-    },
-    onMutate: async (fileIds) => {
-      await queryClient.cancelQueries({ queryKey: ['files'] });
-      
-      const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
-      
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
-      );
-      
-      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
-      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allFolderQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousFolderFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
-        }
-      }
-      
-      const allMissionQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'mission'] });
-      const previousMissionFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allMissionQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousMissionFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
-        }
-      }
-      
-      return { previousMainFiles, previousFolderFiles, previousMissionFiles, fileIds };
-    },
-    onError: (err, _, context) => {
-      const errorMessage = getActorErrorMessage(err);
-      console.error('Delete files failed:', errorMessage);
-      if (context?.previousMainFiles) {
-        queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
-      }
-      if (context?.previousFolderFiles) {
-        context.previousFolderFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      if (context?.previousMissionFiles) {
-        context.previousMissionFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      throw new Error(`Failed to delete files: ${errorMessage}`);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-    },
-  });
-}
-
-export function useUploadFiles() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      files,
-      onProgress,
-    }: {
-      files: File[];
-      onProgress?: (fileName: string, progress: number) => void;
+    mutationFn: async (params: {
+      name: string;
+      mimeType: string;
+      size: bigint;
+      blob: ExternalBlob;
+      missionId: bigint | null;
     }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
+      if (!actor) throw createActorNotReadyError();
 
-      const uploadedFiles: Array<{ id: string; file: File }> = [];
-      
-      const CHUNK_SIZE = 3;
-      for (let i = 0; i < files.length; i += CHUNK_SIZE) {
-        const chunk = files.slice(i, i + CHUNK_SIZE);
+      return uploadLimiter.run(async () => {
+        const startTime = performance.now();
+        const result = await actor.uploadFile(
+          params.name,
+          params.mimeType,
+          params.size,
+          params.blob,
+          params.missionId
+        );
         
-        const chunkPromises = chunk.map(async (file) => {
-          const arrayBuffer = await file.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          
-          let blob = ExternalBlob.fromBytes(bytes);
-          
-          if (onProgress) {
-            blob = blob.withUploadProgress((percentage) => {
-              onProgress(file.name, percentage);
-            });
-          }
-
-          const response = await actor.uploadFile(
-            file.name,
-            file.type || 'application/octet-stream',
-            BigInt(file.size),
-            blob,
-            null
-          );
-
-          return { id: response.id, file };
-        });
-
-        const chunkResults = await Promise.all(chunkPromises);
-        uploadedFiles.push(...chunkResults);
-      }
-
-      return uploadedFiles;
-    },
-    onSuccess: async () => {
-      console.log('[useUploadFiles] Files uploaded successfully, refreshing file lists');
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-      await queryClient.refetchQueries({ 
-        queryKey: ['files', 'not-in-folder'], 
-        type: 'all'
+        if (perfDiag.isEnabled()) {
+          const duration = performance.now() - startTime;
+          perfDiag.logOperation('File upload', duration, {
+            fileName: params.name,
+            fileSize: Number(params.size),
+            mimeType: params.mimeType
+          });
+        }
+        
+        return result;
       });
-      console.log('[useUploadFiles] File lists refresh complete');
+    },
+    onSuccess: (_, variables) => {
+      if (variables.missionId !== null) {
+        queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'] });
+      }
     },
     onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('[useUploadFiles] File upload failed:', errorMessage);
-      throw new Error(`Failed to upload files: ${errorMessage}`);
+      console.error('Upload failed:', getActorErrorMessage(error));
     },
   });
 }
 
 export function useCreateLink() {
-  const { actor, status } = useBackendActor();
+  const { actor } = useBackendActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, url, folderId, missionId }: { name: string; url: string; folderId?: bigint | null; missionId?: bigint | null }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
+    mutationFn: async (params: {
+      name: string;
+      url: string;
+      folderId: bigint | null;
+      missionId: bigint | null;
+    }) => {
+      if (!actor) throw createActorNotReadyError();
+
+      const startTime = performance.now();
+      const result = await actor.createLink(params.name, params.url, params.folderId, params.missionId);
+      
+      if (perfDiag.isEnabled()) {
+        const duration = performance.now() - startTime;
+        perfDiag.logOperation('Link creation', duration, {
+          linkName: params.name
+        });
       }
       
-      const response = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
-      return { id: response.id, name, url, folderId, missionId };
+      return result;
     },
-    onSuccess: async (data) => {
-      console.log('[useCreateLink] Link created successfully, refreshing file lists');
-      
-      // Invalidate all file queries
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
-      
-      // Refetch the appropriate list based on where the link was created
-      if (data.missionId !== null && data.missionId !== undefined) {
-        await queryClient.refetchQueries({ 
-          queryKey: ['files', 'mission', data.missionId.toString()], 
-          type: 'all'
-        });
-      } else if (data.folderId !== null && data.folderId !== undefined) {
-        await queryClient.refetchQueries({ 
-          queryKey: ['files', 'folder', data.folderId.toString()], 
-          type: 'all'
-        });
+    onSuccess: (_, variables) => {
+      if (variables.missionId !== null) {
+        queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()] });
+      } else if (variables.folderId !== null) {
+        queryClient.invalidateQueries({ queryKey: ['files', 'folder', variables.folderId.toString()] });
       } else {
-        await queryClient.refetchQueries({ 
-          queryKey: ['files', 'not-in-folder'], 
-          type: 'all'
-        });
+        queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'] });
       }
-      
-      console.log('[useCreateLink] File lists refresh complete');
     },
     onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('[useCreateLink] Link creation failed:', errorMessage);
-      throw new Error(`Failed to create link: ${errorMessage}`);
+      console.error('Link creation failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useDeleteFiles() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (fileIds: bigint[]) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.deleteFiles(fileIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: (error) => {
+      console.error('Delete failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useMoveFilesToFolder() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { fileIds: bigint[]; folderId: bigint }) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.moveFilesToFolder(params.fileIds, params.folderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: (error) => {
+      console.error('Move to folder failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useBatchRemoveFromFolder() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (fileIds: bigint[]) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.batchRemoveFromFolder(fileIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: (error) => {
+      console.error('Batch remove from folder failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useCreateFolder() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (name: string) => {
+      if (!actor) throw createActorNotReadyError();
+      return actor.createFolder(name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+    },
+    onError: (error) => {
+      console.error('Create folder failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useRenameFolder() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { folderId: bigint; newName: string }) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.renameFolder(params.folderId, params.newName);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+    },
+    onError: (error) => {
+      console.error('Rename folder failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useDeleteFolder() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (folderId: bigint) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.deleteFolder(folderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: (error) => {
+      console.error('Delete folder failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useMoveFilesToMission() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { fileIds: bigint[]; missionId: bigint }) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.moveFilesToMission(params.fileIds, params.missionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+    },
+    onError: (error) => {
+      console.error('Move to mission failed:', getActorErrorMessage(error));
+    },
+  });
+}
+
+export function useGetCallerUserProfile() {
+  const { actor, status } = useBackendActor();
+  const { identity } = useInternetIdentity();
+
+  const query = useQuery({
+    queryKey: ['currentUserProfile'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getCallerUserProfile();
+    },
+    enabled: !!actor && status === 'ready' && !!identity,
+    retry: false,
+  });
+
+  return {
+    ...query,
+    isLoading: (status === 'initializing' || status === 'unavailable') || query.isLoading,
+    isFetched: status === 'ready' && query.isFetched,
+  };
+}
+
+export function useSaveCallerUserProfile() {
+  const { actor } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profile: { name: string }) => {
+      if (!actor) throw createActorNotReadyError();
+      await actor.saveCallerUserProfile(profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+    },
+    onError: (error) => {
+      console.error('Save profile failed:', getActorErrorMessage(error));
     },
   });
 }

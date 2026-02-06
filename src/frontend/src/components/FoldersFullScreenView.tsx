@@ -1,11 +1,8 @@
 import { useState } from 'react';
-import { Folder, Plus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ArrowLeft, Folder, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useGetFolders,
   useCreateFolder,
@@ -30,22 +24,15 @@ import type { Folder as FolderType } from '@/backend';
 import { toast } from 'sonner';
 import SwipeActionsRow from './SwipeActionsRow';
 
-interface FoldersDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface FoldersFullScreenViewProps {
+  onClose: () => void;
   onSelectFolder: (folder: FolderType) => void;
 }
 
-/**
- * DEPRECATED: This dialog component is kept for backward compatibility but should not be used.
- * Use FoldersFullScreenView instead for the primary Folders entry point from HomePage.
- * This component may be removed in a future version.
- */
-export default function FoldersDialog({
-  open,
-  onOpenChange,
+export default function FoldersFullScreenView({
+  onClose,
   onSelectFolder,
-}: FoldersDialogProps) {
+}: FoldersFullScreenViewProps) {
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -132,6 +119,11 @@ export default function FoldersDialog({
     setEditingName('');
   };
 
+  const handleFolderSelect = (folder: FolderType) => {
+    onSelectFolder(folder);
+    onClose();
+  };
+
   const renderFolderRow = (folder: FolderType) => {
     const folderId = folder.id.toString();
     const isEditing = editingFolderId === folder.id;
@@ -169,10 +161,7 @@ export default function FoldersDialog({
           <Button
             variant="ghost"
             className="flex-1 justify-start"
-            onClick={() => {
-              onSelectFolder(folder);
-              onOpenChange(false);
-            }}
+            onClick={() => handleFolderSelect(folder)}
           >
             <Folder className="h-4 w-4 mr-2" />
             {folder.name}
@@ -203,38 +192,48 @@ export default function FoldersDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] w-full">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Folder className="h-5 w-5" />
-              Folders
-            </DialogTitle>
-          </DialogHeader>
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-2 flex-1">
+            <Folder className="h-5 w-5" />
+            <h1 className="text-lg font-semibold">Folders</h1>
+          </div>
+        </div>
 
-          <div className="space-y-4">
-            {/* Create new folder */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="New folder name"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateFolder();
-                }}
-                disabled={!isActorReady || createFolderMutation.isPending}
-              />
-              <Button
-                onClick={handleCreateFolder}
-                disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
-                size="icon"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex flex-col p-4">
+          {/* Create new folder */}
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="New folder name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateFolder();
+              }}
+              disabled={!isActorReady || createFolderMutation.isPending}
+            />
+            <Button
+              onClick={handleCreateFolder}
+              disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
+              size="icon"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
 
-            {/* Folders list */}
-            <ScrollArea className="h-[300px] rounded-md border p-4">
+          {/* Folders list */}
+          <ScrollArea className="flex-1 rounded-md border">
+            <div className="p-4">
               {isLoading ? (
                 <div className="text-center text-muted-foreground py-8">
                   Loading folders...
@@ -252,10 +251,10 @@ export default function FoldersDialog({
                   {folders.map((folder) => renderFolderRow(folder))}
                 </div>
               )}
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteConfirmFolderId !== null} onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}>

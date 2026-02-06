@@ -1,24 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with Internet Identity login and a gallery; needs fixes to upload/gallery display, folders and missions creation, and splash screen behavior after login.",
-  "architectural_notes": [],
+  "summary": "New project",
+  "architectural_notes": [
+    "Θέμα απόδοσης: απαιτείται γρήγορο app startup και άμεση επαναφορά συνεδρίας (minimal loading) όταν ο χρήστης είναι ήδη συνδεδεμένος."
+  ],
   "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-splash-intro-screen-ui-so-it-displays-only-the-gallery-icon-animation-and-does-not-render-any-welcome-text-e-g-remove-the-welcome-to-mygallery-heading",
-      "title": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
+      "id": "feature-remove-or-significantly-reduce-any-ui-that-blocks-the-app-for-a-fixed-time-on-startup-when-the-user-is-already-authenticated-restored-session-so-the-main-home-screen-becomes-usable-immediately",
+      "title": "Remove or significantly reduce any UI that blocks the app for a fixed time on startup when the user is already authenticated (restored session), so the main Home screen becomes usable immediately.",
       "reqIds": [
-        "REQ-1"
+        "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-change-the-splash-intro-triggering-logic-so-that-when-a-user-opens-refreshes-the-app-while-already-authenticated-existing-internet-identity-session-delegation-the-splash-screen-is-shown-once-on-that-app-load-before-navigating-to-the-main-home-page",
-      "title": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+      "id": "feature-make-authenticated-startup-feel-smooth-by-using-progressive-rendering-for-initial-data-folders-files-missions-keep-the-ui-responsive-while-data-loads-and-avoid-showing-a-full-page-loading-spinner-during-normal-authenticated-startup",
+      "title": "Make authenticated startup feel smooth by using progressive rendering for initial data (folders/files/missions): keep the UI responsive while data loads and avoid showing a full-page loading spinner during normal authenticated startup.",
       "reqIds": [
-        "REQ-2"
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-opt-in-performance-timing-logs-for-the-startup-path-identity-restoration-actor-initialization-and-first-successful-data-fetches-using-the-existing-performance-diagnostics-utility-to-help-verify-improvements-and-detect-regressions",
+      "title": "Add opt-in performance timing logs for the startup path (identity restoration, actor initialization, and first successful data fetches) using the existing performance diagnostics utility, to help verify improvements and detect regressions.",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
@@ -26,30 +36,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix upload so user-uploaded files and links appear in the gallery",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Fix folders feature so users can create folders",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Fix missions feature so users can create missions",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "After Internet Identity login, splash should show only the icon (no 'welcome to gallery' text) and appear every time the user opens the app while signed in",
+      "summary": "Βελτίωση απόδοσης στην εκκίνηση/σύνδεση: όταν ανοίγει η εφαρμογή (ή ανοίγει ήδη συνδεδεμένη) να λειτουργεί άμεσα και ομαλά χωρίς καθυστερήσεις loading",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Adjust post-login splash screen to show only icon and appear on every app open while signed in",
+  "projectName": "Improve startup/login responsiveness (reduce blocking loading and delays)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

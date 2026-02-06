@@ -1,31 +1,70 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T16:14:45.403Z",
-  "summary": "REQ-1 and REQ-2 are largely implemented via an icon-only `IntroScreen` and new `App.tsx` logic to show the intro once per app load when an authenticated identity exists. However, the intro screen initially renders fully transparent/hidden for ~1s, which may violate the requirement that the icon be visible while the splash is visible. The diff also includes unrelated changes to actor initialization/admin token URL param utilities, which were not requested and may violate the constraint to confine changes to splash/intro behavior.",
+  "generatedAt": "2026-02-06T18:58:30.437Z",
+  "summary": "REQ-2 and parts of REQ-3 appear addressed by removing blocking intro logic at the App level and shifting HomePage to render an authenticated shell while actor/data initialize. REQ-4 is only partially evidenced: there are opt-in perf diagnostics for the first completion of folders/files/missions queries, but the diff summary does not provide clear evidence for identity restoration timing or actor-initialization-to-ready timing logs. Several unrelated UI/feature additions (PWA config, major CSS/theme changes, dev smoke test trigger, new icons) appear beyond the stated scope.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "When the splash screen is visible, the animated gallery icon remains visible and centered on the splash screen (icon-only splash).",
-      "reason": "`IntroScreen` initially renders the whole splash container with `opacity-0` and the icon wrapper with `opacity-0`/scaled down until a 1s timer flips `isAnimating` to true, meaning the icon is not visible during the initial portion of the splash render.",
+      "id": "REQ-4",
+      "requirement": "Emit opt-in performance timing logs for identity restoration/initialization.",
+      "reason": "The diff shows perfDiag instrumentation for initial folders/files/missions queries, but no changes or logs are shown for the identity restoration path (e.g., within useInternetIdentity or equivalent).",
       "evidence": [
-        "frontend/src/components/IntroScreen.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/hooks/useMissionsQueries.ts",
+        "frontend/src/contexts/ActorContext.tsx (imports perfDiag but truncated; no identity timing shown)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Emit opt-in performance timing logs for actor initialization to ready.",
+      "reason": "ActorContext imports perfDiag and records an initStartTime, but the provided truncated excerpt does not show perfDiag start/end timing tied to actor initialization completing (status ready). Without explicit evidence of log/timing emission, this requirement cannot be confirmed as implemented.",
+      "evidence": [
+        "frontend/src/contexts/ActorContext.tsx (truncated; shows initStartTime but no perfDiag calls in excerpt)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changes to actor initialization behavior (retry state/backoff, admin token normalization, error classification plumbing) unrelated to splash/intro behavior.",
-      "reason": "BuildRequest constrained changes to splash/intro behavior/UI and explicitly disallowed introducing unrelated flows; these actor initialization enhancements are not requested by REQ-1/REQ-2.",
+      "description": "Dev-only core flows smoke test runnable via URL param (runSmokeTest=true) with toast + console output.",
+      "reason": "Not requested; scope is startup responsiveness and performance logging, not adding test harness triggers.",
       "evidence": [
-        "frontend/src/contexts/ActorContext.tsx"
+        "frontend/src/pages/HomePage.tsx"
       ]
     },
     {
-      "description": "Expanded URL/session parameter utility functions and hash parameter clearing logic unrelated to splash/intro behavior.",
-      "reason": "Not requested by REQ-1/REQ-2 and outside the stated scope to keep changes confined to splash/intro behavior/UI.",
+      "description": "PWA configuration updates in the HTML entry point (favicons / apple-touch-icon / PWA-related config).",
+      "reason": "Not requested and outside startup/login responsiveness requirements.",
       "evidence": [
-        "frontend/src/utils/urlParams.ts"
+        "frontend/index.html (mentioned in frontend-file-summaries.txt)"
+      ]
+    },
+    {
+      "description": "Major global styling/theme system changes (OKLCH color system, mobile-only layout constraints, animations).",
+      "reason": "Not requested; could be considered a redesign beyond startup/loading responsiveness.",
+      "evidence": [
+        "frontend/src/index.css (mentioned in frontend-file-summaries.txt)"
+      ]
+    },
+    {
+      "description": "New/changed decorative/animated icon component (AnimatedGalleryIcon) and related header UI changes.",
+      "reason": "Not requested by any REQ; adds new visual features unrelated to startup responsiveness requirements.",
+      "evidence": [
+        "frontend/src/components/AnimatedGalleryIcon.tsx (mentioned in frontend-file-summaries.txt)",
+        "frontend/src/components/Header.tsx (mentioned in frontend-file-summaries.txt)"
+      ]
+    },
+    {
+      "description": "Folder dialog deprecation/backward-compatibility component changes (FoldersDialog) with swipe actions and delete confirmation UI behavior changes.",
+      "reason": "Not requested; requirements focus on startup/loading responsiveness, not folder dialog UX overhaul.",
+      "evidence": [
+        "frontend/src/components/FoldersDialog.tsx (mentioned in frontend-file-summaries.txt)"
+      ]
+    },
+    {
+      "description": "Profile setup dialog text translation to English.",
+      "reason": "Not requested; unrelated to startup responsiveness requirements.",
+      "evidence": [
+        "frontend/src/components/ProfileSetupDialog.tsx (mentioned in frontend-file-summaries.txt)"
       ]
     }
   ],
@@ -33,9 +72,18 @@
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/App.tsx",
-    "frontend/src/components/IntroScreen.tsx",
+    "frontend/src/components/FilePreviewDialog.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/FoldersButton.tsx",
+    "frontend/src/components/FullScreenViewer.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/MissionsButton.tsx",
+    "frontend/src/components/MoveToMissionDialog.tsx",
+    "frontend/src/components/SendToFolderDialog.tsx",
     "frontend/src/contexts/ActorContext.tsx",
-    "frontend/src/utils/urlParams.ts",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/HomePage.tsx",
     "project_state.json"
   ]
 }

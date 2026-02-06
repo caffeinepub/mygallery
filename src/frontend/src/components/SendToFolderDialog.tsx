@@ -7,14 +7,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Folder, Home } from 'lucide-react';
-import { useGetFolders, useMoveFilesToFolder, useRemoveFromFolder } from '@/hooks/useQueries';
+import { useGetFolders, useMoveFilesToFolder, useBatchRemoveFromFolder } from '@/hooks/useQueries';
+import { perfDiag } from '@/utils/performanceDiagnostics';
 
 interface SendToFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fileIds: string[];
   currentFolderId?: bigint;
-  onMoveComplete?: () => void;
+  onComplete?: () => void;
 }
 
 export default function SendToFolderDialog({
@@ -22,36 +23,48 @@ export default function SendToFolderDialog({
   onOpenChange,
   fileIds,
   currentFolderId,
-  onMoveComplete,
+  onComplete,
 }: SendToFolderDialogProps) {
   const { data: folders, isLoading } = useGetFolders();
   const moveToFolder = useMoveFilesToFolder();
-  const removeFromFolder = useRemoveFromFolder();
+  const batchRemoveFromFolder = useBatchRemoveFromFolder();
 
   const handleMoveToFolder = async (folderId: bigint) => {
+    const operationId = `move-to-folder-${Date.now()}`;
+    perfDiag.startTiming(operationId, 'Move to folder (UI)', { fileCount: fileIds.length });
+
     try {
-      await moveToFolder.mutateAsync({ fileIds, folderId });
+      const bigintFileIds = fileIds.map(id => BigInt(id));
+      await moveToFolder.mutateAsync({ fileIds: bigintFileIds, folderId });
+      perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
-      onMoveComplete?.();
+      onComplete?.();
     } catch (error) {
+      perfDiag.endTiming(operationId, { success: false });
       console.error('Move to folder error:', error);
     }
   };
 
   const handleReturnToMain = async () => {
+    const operationId = `return-to-main-${Date.now()}`;
+    perfDiag.startTiming(operationId, 'Return to main collection (UI)', { fileCount: fileIds.length });
+
     try {
-      for (const fileId of fileIds) {
-        await removeFromFolder.mutateAsync(fileId);
-      }
+      const bigintFileIds = fileIds.map(id => BigInt(id));
+      await batchRemoveFromFolder.mutateAsync(bigintFileIds);
+      perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
-      onMoveComplete?.();
+      onComplete?.();
     } catch (error) {
+      perfDiag.endTiming(operationId, { success: false });
       console.error('Return to main error:', error);
     }
   };
 
+  const isProcessing = moveToFolder.isPending || batchRemoveFromFolder.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={isProcessing ? undefined : onOpenChange}>
       <DialogContent className="max-w-md max-h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Move to Folder</DialogTitle>
@@ -60,8 +73,12 @@ export default function SendToFolderDialog({
         <div className="flex-1 overflow-auto space-y-2">
           {currentFolderId !== undefined && (
             <Card
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
-              onClick={handleReturnToMain}
+              className={`transition-all ${
+                isProcessing 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'cursor-pointer hover:shadow-md hover:border-primary'
+              }`}
+              onClick={isProcessing ? undefined : handleReturnToMain}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -94,8 +111,12 @@ export default function SendToFolderDialog({
               .map((folder) => (
                 <Card
                   key={folder.id.toString()}
-                  className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
-                  onClick={() => handleMoveToFolder(folder.id)}
+                  className={`transition-all ${
+                    isProcessing 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'cursor-pointer hover:shadow-md hover:border-primary'
+                  }`}
+                  onClick={isProcessing ? undefined : () => handleMoveToFolder(folder.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -113,7 +134,12 @@ export default function SendToFolderDialog({
         </div>
 
         <div className="pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            className="w-full"
+            disabled={isProcessing}
+          >
             Cancel
           </Button>
         </div>

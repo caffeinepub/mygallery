@@ -1,36 +1,90 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Post-login splash screen: icon-only UI and show on every authenticated app open",
+  "title": "Improve authenticated startup responsiveness (remove blocking intro, progressive loading, perf timings)",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Make the post-login splash/intro screen render only the animated gallery icon with no welcome/title text.",
-      "acceptanceCriteria": [
-        "When the splash screen is visible, no welcome/title text is shown anywhere on the splash screen.",
-        "The animated gallery icon remains visible and centered on the splash screen."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/IntroScreen.tsx",
-          "operation": "modify",
-          "description": "Remove the heading/welcome text and adjust layout so the splash displays only the centered AnimatedGalleryIcon animation while preserving existing timing/transition behavior."
-        }
-      ]
-    },
-    {
       "id": "REQ-2",
-      "summary": "Show the splash once per app load whenever an authenticated session/delegation already exists, without affecting the unauthenticated welcome/login flow.",
+      "summary": "Stop showing a fixed-time blocking intro/splash during restored authenticated sessions so Home is usable immediately.",
       "acceptanceCriteria": [
-        "If the user is already authenticated and reloads/opens the app, the splash screen appears once before the Home page renders.",
-        "If the user is not authenticated, the app does not show this post-login splash and instead shows the unauthenticated welcome/login screen flow.",
-        "Within a single app load, the splash screen does not reappear again after it completes unless the page is reloaded/reopened or the user logs out and authenticates again."
+        "When the app is opened with an already-authenticated Internet Identity session, the Home screen renders immediately without a forced full-screen splash/intro delay.",
+        "Any remaining intro/splash experience (if kept) must not block interaction with the main screen for a fixed duration."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update AppContent splash-triggering logic to show IntroScreen once after Internet Identity finishes initializing whenever identity is present (including identities restored from an existing session), and reset the \"shown\" flag on logout so it can show again on the next login; keep changes confined to existing splash/intro behavior."
+          "description": "Change intro/splash gating so restored authenticated sessions do not trigger IntroScreen; only allow any intro experience on explicit login transitions (and ensure HomePage renders immediately on restore)."
+        },
+        {
+          "path": "frontend/src/components/IntroScreen.tsx",
+          "operation": "modify",
+          "description": "Adjust IntroScreen so it cannot block interaction (e.g., non-blocking overlay behavior) and remove any hard dependency on a fixed delay for usability."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Use progressive rendering on authenticated startup so the main layout appears immediately and sections show lightweight placeholders while initial data loads.",
+      "acceptanceCriteria": [
+        "On authenticated startup, the app shows the main layout immediately and displays lightweight skeleton/placeholder states within sections that are still loading (instead of a full-page blocking loader).",
+        "Floating action buttons and primary navigation do not appear ‘stuck’ in a loading state during normal actor initialization; if temporarily disabled, the UI clearly remains responsive."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Introduce an explicit 'authenticated startup loading' concept derived from actor readiness, and pass it into main sections so the UI shows placeholders (not empty/error flashes) while actor/data are still becoming ready."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Avoid empty-state flashes when queries are disabled/not-yet-started due to actor readiness; render a lightweight skeleton/placeholder state until initial files data is actually loaded or confirmed empty."
+        },
+        {
+          "path": "frontend/src/components/FileUploadSection.tsx",
+          "operation": "modify",
+          "description": "Ensure upload controls remain visually responsive during actor initialization (e.g., show disabled-but-available UI with clear status), avoiding any full-section blocking loader on authenticated startup."
+        },
+        {
+          "path": "frontend/src/components/FoldersButton.tsx",
+          "operation": "modify",
+          "description": "Refine disabled/initializing presentation so the FAB does not feel 'stuck' during normal actor initialization (keep tap feedback/clarity while remaining disabled until ready)."
+        },
+        {
+          "path": "frontend/src/components/MissionsButton.tsx",
+          "operation": "modify",
+          "description": "Refine disabled/initializing presentation so the FAB does not feel 'stuck' during normal actor initialization (keep tap feedback/clarity while remaining disabled until ready)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add opt-in performance timing logs for identity restoration, actor initialization, and first successful initial data fetches using the existing performance diagnostics utility.",
+      "acceptanceCriteria": [
+        "When performance diagnostics are enabled (via the existing localStorage/URL flag), console timings are emitted for: identity initialization, actor initialization to ready, and the first completion of initial folders/files/missions queries.",
+        "When diagnostics are not enabled, there is no additional console noise and negligible runtime overhead."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useInternetIdentity.ts",
+          "operation": "modify",
+          "description": "Wrap the startup identity restoration/initialization path with the existing performance diagnostics helpers so identity initialization timing is logged only when diagnostics are enabled."
+        },
+        {
+          "path": "frontend/src/contexts/ActorContext.tsx",
+          "operation": "modify",
+          "description": "Add opt-in timing around actor initialization-to-ready (including any one-time initialization work) using the existing performance diagnostics utility; ensure no extra console noise when disabled."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add opt-in timing for the first successful completion of the initial folders and initial main files queries (only once per app load/session) using the existing performance diagnostics utility."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Add opt-in timing for the first successful completion of the initial missions list query (only once per app load/session) using the existing performance diagnostics utility."
         }
       ]
     }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
 
 interface UploadItem {
   displayName: string;
@@ -25,6 +25,8 @@ const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export function UploadProvider({ children }: { children: ReactNode }) {
   const [uploadBatches, setUploadBatches] = useState<UploadBatch[]>([]);
+  const progressUpdateScheduled = useRef(false);
+  const pendingUpdates = useRef<Map<string, Map<string, number>>>(new Map());
 
   const startUpload = useCallback((files: File[]): string => {
     const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -46,22 +48,51 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     return uploadId;
   }, []);
 
-  const updateProgress = useCallback((uploadId: string, itemName: string, progress: number) => {
+  const flushProgressUpdates = useCallback(() => {
+    if (pendingUpdates.current.size === 0) {
+      progressUpdateScheduled.current = false;
+      return;
+    }
+
+    const updates = new Map(pendingUpdates.current);
+    pendingUpdates.current.clear();
+
     setUploadBatches(prev =>
-      prev.map(batch =>
-        batch.id === uploadId
-          ? {
-              ...batch,
-              items: batch.items.map(item =>
-                item.displayName === itemName ? { ...item, progress } : item
-              ),
-            }
-          : batch
-      )
+      prev.map(batch => {
+        const batchUpdates = updates.get(batch.id);
+        if (!batchUpdates) return batch;
+
+        return {
+          ...batch,
+          items: batch.items.map(item => {
+            const newProgress = batchUpdates.get(item.displayName);
+            return newProgress !== undefined ? { ...item, progress: newProgress } : item;
+          }),
+        };
+      })
     );
+
+    progressUpdateScheduled.current = false;
   }, []);
 
+  const updateProgress = useCallback((uploadId: string, itemName: string, progress: number) => {
+    // Accumulate updates
+    if (!pendingUpdates.current.has(uploadId)) {
+      pendingUpdates.current.set(uploadId, new Map());
+    }
+    pendingUpdates.current.get(uploadId)!.set(itemName, progress);
+
+    // Schedule flush on next animation frame if not already scheduled
+    if (!progressUpdateScheduled.current) {
+      progressUpdateScheduled.current = true;
+      requestAnimationFrame(flushProgressUpdates);
+    }
+  }, [flushProgressUpdates]);
+
   const completeUpload = useCallback((uploadId: string) => {
+    // Clear any pending updates for this upload
+    pendingUpdates.current.delete(uploadId);
+    
     setUploadBatches(prev => prev.filter(batch => batch.id !== uploadId));
   }, []);
 

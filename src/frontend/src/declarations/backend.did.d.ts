@@ -10,7 +10,15 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface DiagnosticResult { 'cycles' : bigint, 'build' : string }
+export interface DiagnosticResult {
+  'time' : bigint,
+  'deleteFilesLowLevelTime' : bigint,
+  'cycles' : bigint,
+  'deleteFolderTime' : bigint,
+  'build' : string,
+  'moveFilesToFolderTime' : bigint,
+  'uploadTime' : bigint,
+}
 export type ExternalBlob = Uint8Array;
 export interface FileMetadata {
   'id' : string,
@@ -31,7 +39,11 @@ export interface Folder {
   'name' : string,
   'createdAt' : Time,
 }
-export interface HealthResult { 'cycles' : bigint, 'build' : string }
+export interface HealthResult {
+  'time' : bigint,
+  'cycles' : bigint,
+  'build' : string,
+}
 export interface Mission {
   'id' : bigint,
   'tasks' : Array<Task>,
@@ -85,14 +97,16 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'batchRemoveFromFolder' : ActorMethod<[Array<bigint>], undefined>,
   'createFolder' : ActorMethod<[string], [] | [string]>,
   'createLink' : ActorMethod<
     [string, string, [] | [bigint], [] | [bigint]],
     UploadResponse
   >,
   'createMission' : ActorMethod<[string, Array<Task>], bigint>,
-  'deleteFile' : ActorMethod<[string], undefined>,
-  'deleteFiles' : ActorMethod<[Array<string>], undefined>,
+  'deleteFile' : ActorMethod<[bigint], undefined>,
+  'deleteFiles' : ActorMethod<[Array<bigint>], undefined>,
+  'deleteFilesLowLevel' : ActorMethod<[Array<bigint>], undefined>,
   'deleteFolder' : ActorMethod<[bigint], undefined>,
   'deleteMission' : ActorMethod<[bigint], undefined>,
   /**
@@ -103,7 +117,7 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDiagnostics' : ActorMethod<[], DiagnosticResult>,
-  'getFile' : ActorMethod<[string], [] | [FileMetadata]>,
+  'getFile' : ActorMethod<[bigint], [] | [FileMetadata]>,
   'getFilesForMission' : ActorMethod<[[] | [bigint]], Array<FileMetadata>>,
   'getFilesInFolder' : ActorMethod<[bigint, bigint, bigint], PaginatedFiles>,
   'getHealth' : ActorMethod<[], HealthResult>,
@@ -116,10 +130,10 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listMissions' : ActorMethod<[], Array<Mission>>,
-  'moveFileToFolder' : ActorMethod<[string, bigint], undefined>,
-  'moveFilesToFolder' : ActorMethod<[Array<string>, bigint], undefined>,
-  'moveFilesToMission' : ActorMethod<[Array<string>, bigint], undefined>,
-  'removeFromFolder' : ActorMethod<[string], undefined>,
+  'moveFileToFolder' : ActorMethod<[bigint, bigint], undefined>,
+  'moveFilesToFolder' : ActorMethod<[Array<bigint>, bigint], undefined>,
+  'moveFilesToMission' : ActorMethod<[Array<bigint>, bigint], undefined>,
+  'removeFromFolder' : ActorMethod<[bigint], undefined>,
   'renameFolder' : ActorMethod<[bigint, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'updateMission' : ActorMethod<[bigint, string, Array<Task>], undefined>,
