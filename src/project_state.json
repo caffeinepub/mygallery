@@ -4,29 +4,21 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "App gets stuck on loading screen; needs fix so app becomes usable and all functions are immediately available/working."
+    "Bug: After opening a link from the gallery and then closing the link page to return to the app, an 'unable to open link' message appears; it should not appear after closing the link page."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-indefinite-loading-state-by-ensuring-the-app-never-stays-on-the-loading-screen-forever-when-internet-identity-initialization-does-not-complete-e-g-stuck-in-isinitializing-add-a-deterministic-timeout-and-a-clear-fallback-ui-that-lets-the-user-proceed-to-the-welcome-login-screen-and-or-retry-initialization-e-g-reload-the-page",
-      "title": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
+      "id": "feature-fix-the-link-opening-flow-so-that-the-unable-to-open-link-fallback-dialog-is-not-shown-when-a-gallery-link-actually-opened-successfully-and-the-user-returns-to-the-app-after-closing-the-link-page-tab-this-includes-adjusting-the-logic-in-the-gallery-link-click-handler-so-the-fallback-ui-is-only-shown-when-the-browser-truly-blocked-opening-the-link-and-not-as-a-side-effect-of-leaving-returning-to-the-app-if-needed-incorporate-page-visibility-focus-handling-and-or-a-short-delay-before-showing-the-fallback-to-confirm-the-app-did-not-successfully-navigate-open-an-external-page",
+      "title": "Fix the link-opening flow so that the \"Unable to Open Link\" fallback dialog is not shown when a gallery link actually opened successfully and the user returns to the app after closing the link page/tab.\n\nThis includes adjusting the logic in the gallery link click handler so the fallback UI is only shown when the browser truly blocked opening the link (and not as a side-effect of leaving/returning to the app). If needed, incorporate page visibility/focus handling and/or a short delay before showing the fallback to confirm the app did not successfully navigate/open an external page.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-actor-backend-availability-explicit-in-the-ui-during-startup-so-the-app-is-usable-while-initialization-retries-are-happening-when-authenticated-but-the-backend-actor-is-not-ready-e-g-initializing-or-unavailable-render-the-main-layout-but-clearly-indicate-connecting-and-disable-actions-that-require-the-actor-until-it-becomes-ready-once-status-ready-all-core-actions-upload-list-gallery-folders-missions-become-enabled-without-requiring-a-manual-refresh",
-      "title": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [],
-  "projectName": "Fix app stuck on loading so the UI becomes usable and core flows are available",
+  "projectName": "Fix erroneous 'Unable to Open Link' message after returning from opened gallery link",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -10,10 +10,8 @@ import MissionsFullScreenView from '@/components/MissionsFullScreenView';
 import DecorativeBottomLine from '@/components/DecorativeBottomLine';
 import ActorInitErrorState from '@/components/ActorInitErrorState';
 import WelcomeIntroScreen from '@/components/WelcomeIntroScreen';
-import InternetIdentityInitFallbackScreen from '@/components/InternetIdentityInitFallbackScreen';
 import MobileOnlyLayout from '@/components/MobileOnlyLayout';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
-import { useInitializationTimeout } from '@/hooks/useInitializationTimeout';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
 import { useListMissions } from '@/hooks/useMissionsQueries';
@@ -26,7 +24,6 @@ export default function HomePage() {
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const { identity, isInitializing } = useInternetIdentity();
-  const { hasTimedOut, resetTimeout } = useInitializationTimeout({ isInitializing });
   const { status, error, retry, signOut, actor } = useBackendActor();
 
   // Only fetch data when authenticated and actor is ready
@@ -81,34 +78,8 @@ export default function HomePage() {
     setSelectedFolder(null);
   };
 
-  const handleProceedToLogin = () => {
-    resetTimeout();
-  };
-
-  const handleRetryInit = () => {
-    resetTimeout();
-    window.location.reload();
-  };
-
-  const handleReload = () => {
-    window.location.reload();
-  };
-
   const mainContent = useMemo(() => {
-    // Show Internet Identity initialization timeout fallback
-    if (!isAuthenticated && isInitializing && hasTimedOut) {
-      return (
-        <MobileOnlyLayout>
-          <InternetIdentityInitFallbackScreen
-            onProceedToLogin={handleProceedToLogin}
-            onRetry={handleRetryInit}
-            onReload={handleReload}
-          />
-        </MobileOnlyLayout>
-      );
-    }
-
-    // Show welcome intro for unauthenticated users (when not initializing or timeout acknowledged)
+    // Show welcome intro for unauthenticated users (every time there's no active session)
     if (!isAuthenticated && !isInitializing) {
       return (
         <MobileOnlyLayout>
@@ -133,6 +104,7 @@ export default function HomePage() {
     }
 
     // Show main app for authenticated users (even during initialization or unavailable state)
+    // No ConnectivityIndicator shown during silent retries
     if (isAuthenticated) {
       return (
         <MobileOnlyLayout>
@@ -172,7 +144,7 @@ export default function HomePage() {
       );
     }
 
-    // Fallback to loading (only during Internet Identity initialization before timeout)
+    // Fallback to loading (only during Internet Identity initialization)
     return (
       <MobileOnlyLayout>
         <div className="flex min-h-screen flex-col">
@@ -187,7 +159,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, hasTimedOut, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isMissionsOpen]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isMissionsOpen]);
 
   return mainContent;
 }

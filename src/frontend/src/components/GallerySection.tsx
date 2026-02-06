@@ -1,10 +1,9 @@
 import { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
 import { useGetFilesNotInFolder, useGetFilesInFolder, useDeleteFiles } from '@/hooks/useQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink, Loader2 } from 'lucide-react';
+import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink } from 'lucide-react';
 import FullScreenViewer from './FullScreenViewer';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
@@ -202,7 +201,6 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
   const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
   const [currentLinkUrl, setCurrentLinkUrl] = useState('');
 
-  const { status } = useBackendActor();
   const mainGalleryQuery = useGetFilesNotInFolder();
   const folderGalleryQuery = useGetFilesInFolder(selectedFolder?.id ?? null);
   const deleteFiles = useDeleteFiles();
@@ -283,7 +281,7 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
 
     const selectedFileObjects = files.filter(f => selectedFiles.has(f.id));
 
-    if (!('share' in navigator)) {
+    if (!navigator.share) {
       console.log('Web Share API not supported');
       return;
     }
@@ -370,33 +368,6 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
       exitSelectionMode();
     }
   }, [selectionMode, selectedFiles.size, exitSelectionMode]);
-
-  // Show connecting state when actor is not ready
-  if (status !== 'ready' && status !== 'error') {
-    return (
-      <section>
-        <div className="mb-6">
-          {selectedFolder && (
-            <Button variant="ghost" onClick={onBackToMain} className="mb-4" disabled>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to collection
-            </Button>
-          )}
-          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
-          <p className="mt-1 text-muted-foreground">{subtitle}</p>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-            <p className="text-lg font-medium">
-              {status === 'initializing' ? 'Connecting...' : 'Reconnecting...'}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">Please wait</p>
-          </CardContent>
-        </Card>
-      </section>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -538,17 +509,15 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
                 <Target className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">Mission</span>
               </Button>
-              {'share' in navigator && (
-                <Button
-                  variant="secondary"
-                  onClick={handleShare}
-                  disabled={isSharing}
-                  className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
-                >
-                  <Share2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="truncate">Share</span>
-                </Button>
-              )}
+              <Button
+                variant="secondary"
+                onClick={handleShare}
+                disabled={isSharing}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Share2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Share</span>
+              </Button>
               <Button
                 variant="secondary"
                 onClick={handleDownload}
@@ -571,14 +540,12 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
         </div>
       )}
 
-      {viewableFiles.length > 0 && (
-        <FullScreenViewer
-          files={viewableFiles}
-          initialIndex={selectedIndex}
-          open={viewerOpen}
-          onOpenChange={setViewerOpen}
-        />
-      )}
+      <FullScreenViewer
+        files={viewableFiles}
+        initialIndex={selectedIndex}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
 
       <SendToFolderDialog
         open={sendToFolderOpen}

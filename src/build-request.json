@@ -1,52 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Fix app stuck on loading so the UI becomes usable and core flows are available",
-  "priority": "high",
+  "title": "Fix erroneous 'Unable to Open Link' message after returning from opened gallery link",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
+      "text": "Fix the link-opening flow so that the \"Unable to Open Link\" fallback dialog is not shown when a gallery link actually opened successfully and the user returns to the app after closing the link page/tab.\n\nThis includes adjusting the logic in the gallery link click handler so the fallback UI is only shown when the browser truly blocked opening the link (and not as a side-effect of leaving/returning to the app). If needed, incorporate page visibility/focus handling and/or a short delay before showing the fallback to confirm the app did not successfully navigate/open an external page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Διόρθωσε το bug που κάνει την εγαρμογη να φορτώνει / loading ώστε να είναι λειτουργικό το app και όλες οι λειτουργίες να είναι άμεσα διαθέσιμες και λειτουργικές"
+          "Όταν ανεβάζω ένα link στο gallery και το ανοίξω και μετά το κλείσω ... εμφανίζεται ένα μύνημα unable to open link . Να μην εμφανίζεται το μήνυμα unable to open link μετά το κλείσιμο της σελίδας του link"
         ]
       },
       "acceptanceCriteria": [
-        "If `useInternetIdentity().isInitializing` remains true longer than a defined threshold (e.g., 8–15 seconds), the UI exits the spinner-only screen and shows a usable fallback screen with clear actions (Retry / Reload / Sign in).",
-        "Users can always reach a screen where they can click the login button; they are not trapped on a spinner-only view.",
-        "User-facing copy for the fallback and actions is in English."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "...ώστε να είναι λειτουργικό το app και όλες οι λειτουργίες να είναι άμεσα διαθέσιμες και λειτουργικές"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When authenticated and `status !== 'ready'`, the app does not show a full-screen blocking loader; it shows the normal shell and a clear connection state indicator, and interactive features that require the actor are disabled consistently.",
-        "When actor status transitions to `ready`, disabled controls become enabled automatically and queries load data without user intervention.",
-        "When actor initialization ultimately fails (final error state), the existing error UI is shown and provides working Retry and Sign out actions."
+        "Given a link item in the gallery, when the user taps it and the link opens in a new tab/window (or browser view) and the user later closes that page to return to the app, the app must not display the \"Unable to Open Link\" dialog/message.",
+        "Given a link item in the gallery, when the browser truly blocks opening the link (e.g., window.open returns null and the page does not become hidden/navigate), the app must still show the existing \"Unable to Open Link\" fallback dialog with retry/copy options.",
+        "Returning to the app after attempting to open a link must not automatically trigger the fallback dialog if it was not already shown at the time of the click.",
+        "No regression: link items still open externally when possible, and the existing fallback dialog remains usable for real failures."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under `frontend/src/hooks/useInternetIdentity.ts` or other paths listed in `frontend.immutablePaths` in SYSTEM_CONTEXT.",
-    "Keep the backend architecture as a single Motoko actor (no new backend services)."
+    "Frontend immutable paths must not be modified: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui/*.",
+    "Keep the backend as a single Motoko actor; no backend changes are required for this bug fix."
   ],
   "nonGoals": [
-    "Do not implement new product features unrelated to the loading/initialization bug.",
-    "Do not address the separate, already-tracked issue about the erroneous \"Unable to Open Link\" fallback dialog when returning from an external link (handled by an existing feature)."
+    "Redesigning the gallery UI/visual theme.",
+    "Changing how links are stored or uploaded to the backend.",
+    "Adding new authentication methods or external integrations."
   ],
   "imageRequirements": {
     "required": [],

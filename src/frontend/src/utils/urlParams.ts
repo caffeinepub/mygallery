@@ -206,3 +206,21 @@ export function getSecretFromHash(paramName: string): string | null {
 export function getSecretParameter(paramName: string): string | null {
     return getSecretFromHash(paramName);
 }
+
+/**
+ * Gets a normalized admin token that treats whitespace-only tokens as absent
+ * This prevents empty string bootstrap attempts that would fail
+ *
+ * @param paramName - The name of the admin token parameter
+ * @returns The normalized token (non-empty string) or null if absent/whitespace-only
+ */
+export function getNormalizedAdminToken(paramName: string): string | null {
+    const token = getSecretParameter(paramName);
+    
+    // Treat null, empty string, or whitespace-only as absent
+    if (!token || token.trim() === '') {
+        return null;
+    }
+    
+    return token.trim();
+}

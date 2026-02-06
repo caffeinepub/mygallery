@@ -1,72 +1,32 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Unblock startup loading and make initialization/connection states usable",
+  "title": "Fix false 'Unable to Open Link' dialog after returning from successfully opened gallery links",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add a deterministic timeout for Internet Identity initialization so users never get stuck on a spinner-only Loading screen, and provide an English fallback UI with clear actions to proceed or retry.",
+      "summary": "Make external link opening detection resilient so the fallback dialog only appears on true browser-blocked opens, not after returning to the app.",
       "acceptanceCriteria": [
-        "If `useInternetIdentity().isInitializing` remains true longer than a defined threshold (e.g., 8–15 seconds), the UI exits the spinner-only screen and shows a usable fallback screen with clear actions (Retry / Reload / Sign in).",
-        "Users can always reach a screen where they can click the login button; they are not trapped on a spinner-only view.",
-        "User-facing copy for the fallback and actions is in English."
+        "Given a link item in the gallery, when the user taps it and the link opens in a new tab/window (or browser view) and the user later closes that page to return to the app, the app must not display the \"Unable to Open Link\" dialog/message.",
+        "Given a link item in the gallery, when the browser truly blocks opening the link (e.g., window.open returns null and the page does not become hidden/navigate), the app must still show the existing \"Unable to Open Link\" fallback dialog with retry/copy options.",
+        "Returning to the app after attempting to open a link must not automatically trigger the fallback dialog if it was not already shown at the time of the click.",
+        "No regression: link items still open externally when possible, and the existing fallback dialog remains usable for real failures."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useInitializationTimeout.ts",
-          "operation": "create",
-          "description": "Create a small React hook that starts a timer when a boolean \"initializing\" flag is true and exposes a timed-out state after a fixed threshold (e.g., 10s), with a way to reset/acknowledge the timeout so the user can proceed. This must not modify or depend on changes to useInternetIdentity.ts."
-        },
-        {
-          "path": "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
-          "operation": "create",
-          "description": "Create a dedicated fallback screen shown when Internet Identity initialization exceeds the timeout, with English copy and clear actions: proceed to a screen with a login button, retry initialization (UI-level reset), and reload the page. Use shadcn-ui primitives (e.g., Button/Card) for consistent styling. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/utils/externalOpen.ts",
           "operation": "modify",
-          "description": "Replace the current spinner-only \"Loading...\" fallback for unauthenticated startup with logic that: (1) shows the normal WelcomeIntroScreen when not authenticated even if initialization timed out, and (2) when initialization is taking too long, renders the new InternetIdentityInitFallbackScreen instead of an indefinite spinner. Wire the fallback screen actions to allow reaching a screen containing the existing login button (WelcomeIntroScreen) and provide retry/reload behavior."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Ensure top-level app rendering never traps users behind a spinner-only experience: keep intro-after-login behavior intact, but make sure AppContent/HomePage can render the timeout fallback and/or WelcomeIntroScreen even if Internet Identity remains stuck in isInitializing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Expose backend actor connection state during startup without blocking the whole UI; render the main shell while connecting, consistently disable actor-dependent actions, and auto-enable core flows once the actor becomes ready.",
-      "acceptanceCriteria": [
-        "When authenticated and `status !== 'ready'`, the app does not show a full-screen blocking loader; it shows the normal shell and a clear connection state indicator, and interactive features that require the actor are disabled consistently.",
-        "When actor status transitions to `ready`, disabled controls become enabled automatically and queries load data without user intervention.",
-        "When actor initialization ultimately fails (final error state), the existing error UI is shown and provides working Retry and Sign out actions."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ConnectivityIndicator.tsx",
-          "operation": "modify",
-          "description": "Implement a compact UI indicator that reflects actor connection state (e.g., \"Connecting…\" for initializing/unavailable) and can be embedded in the header/shell. Keep copy in English and avoid blocking layout. Use shadcn-ui primitives if available (e.g., Badge/Tooltip) for consistent styling. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/Header.tsx",
-          "operation": "modify",
-          "description": "Wire ConnectivityIndicator into the authenticated app header area so users can always see when the app is connecting/retrying (status initializing/unavailable) while keeping the normal shell visible. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/FileUploadSection.tsx",
-          "operation": "modify",
-          "description": "Align disabled/connecting copy with REQ-2: when status is not ready, keep upload/link creation controls disabled consistently and show wording that matches the new connection state indicator (e.g., \"Connecting…\" / \"Reconnecting…\"), while preserving existing behavior when ready."
+          "description": "Adjust the external-open helper(s) to support a more reliable success/failure signal for window.open, incorporating a short delay and page visibility/focus signals (e.g., visibilitychange/blur/pagehide) so the app can distinguish true popup blocking from a successful external navigation and subsequent return."
         },
         {
           "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Prevent misleading empty/error states while the actor is not ready by rendering a clear in-shell \"Connecting…\" state (instead of \"No files\") when authenticated but status !== ready, and by disabling gallery actions that require the actor until status becomes ready. Once status transitions to ready, ensure the component naturally renders fetched data without requiring refresh."
+          "description": "Update the gallery link click handler to use the improved external-open detection and only open the existing LinkOpenFallbackDialog when the open is confirmed blocked (not when the user returns from a successfully opened link). Ensure no delayed fallback is triggered on visibility/focus restoration."
         },
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/components/FullScreenViewer.tsx",
           "operation": "modify",
-          "description": "Update the authenticated rendering branch to explicitly handle actor statuses: keep the main shell visible for initializing/unavailable with a connection indicator present, ensure actor-dependent affordances (folders/missions entry points and other key actions) remain disabled until ready, and preserve the existing final error state rendering (ActorInitErrorState) with working Retry and Sign out actions."
+          "description": "Align the viewer's \"Open externally\" flow with the same improved external-open detection so its fallback dialog is also only shown for true blocked opens, preventing similar false-positive behavior."
         }
       ]
     }

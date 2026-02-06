@@ -1,11 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Prevent the app from getting stuck on an indefinite “Loading...” screen during Internet Identity startup, and make startup/actor readiness states usable and clear.
+**Goal:** Prevent the erroneous “Unable to Open Link” fallback dialog from appearing after a gallery link successfully opens and the user returns to the app.
 
 **Planned changes:**
-- Add a deterministic timeout for Internet Identity initialization; if initialization exceeds the threshold, replace the spinner-only view with a fallback screen in English that lets users retry/reload and reach the welcome/login screen.
-- Update startup UI so that when a user is authenticated but the backend actor is not ready, the main app shell renders with a clear “Connecting…” indicator and disables actor-dependent actions until readiness.
-- Ensure actor-dependent controls automatically enable and data loads when actor status transitions to `ready`, without requiring a manual refresh; show existing error UI with working Retry and Sign out if initialization ultimately fails.
+- Update the gallery link click/open handler logic so the fallback dialog is shown only when opening is truly blocked/failed (not triggered by leaving and returning to the app).
+- If needed, incorporate page visibility/focus detection and/or a short delay before showing the fallback to confirm whether an external page/tab actually opened.
 
-**User-visible outcome:** Users are no longer trapped on a perpetual loading screen; they can always reach login and use the app shell during startup, see connection status, and core actions become available automatically once the backend actor is ready.
+**User-visible outcome:** Tapping a gallery link opens it externally when possible, and returning to the app after closing the link no longer triggers an “Unable to Open Link” message; the fallback dialog still appears for real open failures and remains usable (retry/copy).

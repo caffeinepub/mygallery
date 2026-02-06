@@ -38,7 +38,7 @@ export default function FileUploadSection() {
       if (!files || files.length === 0) return;
 
       if (status !== 'ready') {
-        toast.error('Please wait for the connection to be ready');
+        toast.error('Please wait for the application to initialize');
         return;
       }
 
@@ -72,7 +72,7 @@ export default function FileUploadSection() {
       e.preventDefault();
 
       if (status !== 'ready') {
-        toast.error('Please wait for the connection to be ready');
+        toast.error('Please wait for the application to initialize');
         return;
       }
 
@@ -129,7 +129,6 @@ export default function FileUploadSection() {
   );
 
   const isDisabled = status !== 'ready';
-  const statusText = status === 'initializing' ? 'Connecting...' : status === 'unavailable' ? 'Reconnecting...' : 'Loading...';
 
   const triggerFileInput = () => {
     if (!isDisabled) {
@@ -153,7 +152,7 @@ export default function FileUploadSection() {
                 <Upload className={`w-12 h-12 mb-3 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
                 <p className={`mb-2 text-sm ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
                   <span className="font-semibold">
-                    {isDisabled ? statusText : 'Click to upload'}
+                    {isDisabled ? 'Loading...' : 'Click to upload'}
                   </span>
                   {!isDisabled && ' or paste link'}
                 </p>
@@ -207,12 +206,12 @@ export default function FileUploadSection() {
             <Label htmlFor="link-url">URL *</Label>
             <Input
               id="link-url"
-              type="url"
+              type="text"
               placeholder="https://example.com"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               disabled={isDisabled || createLinkMutation.isPending}
-              required
+              className="w-full"
             />
           </div>
           <div className="space-y-2">
@@ -220,16 +219,17 @@ export default function FileUploadSection() {
             <Input
               id="link-name"
               type="text"
-              placeholder="My Link"
+              placeholder="My favorite website"
               value={linkName}
               onChange={(e) => setLinkName(e.target.value)}
               disabled={isDisabled || createLinkMutation.isPending}
+              className="w-full"
             />
           </div>
           <Button
             type="submit"
-            className="w-full"
             disabled={isDisabled || createLinkMutation.isPending}
+            className="w-full"
           >
             {createLinkMutation.isPending ? 'Adding...' : 'Add Link'}
           </Button>

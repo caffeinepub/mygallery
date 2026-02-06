@@ -10,7 +10,6 @@ import {
 import { LogOut } from 'lucide-react';
 import AnimatedGalleryIcon from './AnimatedGalleryIcon';
 import UnifiedProgressBar from './UnifiedProgressBar';
-import ConnectivityIndicator from './ConnectivityIndicator';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 
@@ -69,7 +68,6 @@ export default function Header() {
           </Button>
         </div>
       </div>
-      <ConnectivityIndicator />
       <UnifiedProgressBar />
     </header>
   );
