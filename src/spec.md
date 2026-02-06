@@ -1,13 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix folder creation so it works reliably in all states and update the folders list to show rename/delete actions only after a swipe reveal.
+**Goal:** Fix frontend deletion bugs for the first created folder/mission (id 0) and prevent erroneous “Unable to Open Link” messages after successfully opening mission link attachments.
 
 **Planned changes:**
-- Fix the folder creation flow so creating a folder works whether the folders list is empty or already populated, and the newly created folder appears in the list immediately without requiring reload/navigation/refresh.
-- Ensure folder creation does not depend on a previously populated folders query (works on first-time use).
-- Add error handling so failed folder creation shows an error and does not insert a phantom folder entry into the list.
-- Update the folders list rows so rename and delete actions are hidden by default and only revealed via a left-swipe gesture.
-- Ensure swipe actions behavior supports: one row open at a time, tapping/clicking outside closes, and works on touch (and remains usable with pointer input) without showing actions by default.
+- Update the Folders delete UI flow to correctly handle deleting the first folder (id 0) as well as any other folder.
+- Update the Missions delete UI flow to correctly handle deleting the first mission (id 0) as well as any other mission (including from any relevant mission views where deletion is available).
+- Adjust mission link-attachment opening behavior so the “Unable to Open Link” fallback appears only when the link truly fails to open (not after returning from a successfully opened link).
 
-**User-visible outcome:** Users can always create new folders and see them appear instantly in the folders list, and folder rename/delete actions are only shown after swiping a folder row (with proper open/close behavior).
+**User-visible outcome:** Users can delete their first and subsequent folders/missions via the normal confirmation dialog flow, and opening a mission link no longer triggers an incorrect “Unable to Open Link” message after returning to the app.

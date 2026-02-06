@@ -1,7 +1,7 @@
 import { useState, useMemo, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Calendar, FileType, Download, ExternalLink, FolderInput, Trash2 } from 'lucide-react';
+import { Calendar, FileType, Download, ExternalLink, FolderInput, Trash2, Target } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { FileMetadata } from '@/backend';
 import SendToFolderDialog from './SendToFolderDialog';
+import MoveToMissionDialog from './MoveToMissionDialog';
 import { useDeleteFile } from '@/hooks/useQueries';
 import { getFileCategory } from '@/utils/filePreview';
 
@@ -85,6 +86,7 @@ FilePreview.displayName = 'FilePreview';
 
 export default function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialogProps) {
   const [showSendToFolder, setShowSendToFolder] = useState(false);
+  const [showMoveToMission, setShowMoveToMission] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteFileMutation = useDeleteFile();
 
@@ -100,16 +102,20 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
   }, []);
 
   const handleOpenInNewTab = () => {
-    window.open(file.blob.getDirectURL(), '_blank');
+    if (file.blob) {
+      window.open(file.blob.getDirectURL(), '_blank');
+    }
   };
 
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = file.blob.getDirectURL();
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (file.blob) {
+      const link = document.createElement('a');
+      link.href = file.blob.getDirectURL();
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const handleDelete = async () => {
@@ -122,8 +128,8 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
   };
 
   const fileCategory = getFileCategory(file.mimeType);
-  const fileUrl = file.blob.getDirectURL();
-  const showPreviewActions = ['image', 'video', 'pdf', 'office'].includes(fileCategory);
+  const fileUrl = file.blob?.getDirectURL() || '';
+  const showPreviewActions = ['image', 'video', 'pdf', 'office'].includes(fileCategory) && file.blob;
 
   return (
     <>
@@ -133,22 +139,24 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
             <DialogTitle className="truncate pr-8">{file.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 flex-1 overflow-auto">
-            <div className="overflow-hidden rounded-lg bg-muted">
-              <FilePreview file={file} fileCategory={fileCategory} fileUrl={fileUrl} />
-              
-              {fileCategory === 'unsupported' && (
-                <div className="flex gap-3 justify-center pb-8">
-                  <Button onClick={handleOpenInNewTab} variant="default">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open in new tab
-                  </Button>
-                  <Button onClick={handleDownload} variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
-                </div>
-              )}
-            </div>
+            {file.blob && (
+              <div className="overflow-hidden rounded-lg bg-muted">
+                <FilePreview file={file} fileCategory={fileCategory} fileUrl={fileUrl} />
+                
+                {fileCategory === 'unsupported' && (
+                  <div className="flex gap-3 justify-center pb-8">
+                    <Button onClick={handleOpenInNewTab} variant="default">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in new tab
+                    </Button>
+                    <Button onClick={handleDownload} variant="outline">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="grid gap-2 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -188,6 +196,15 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
               </Button>
 
               <Button
+                onClick={() => setShowMoveToMission(true)}
+                variant="outline"
+                size="sm"
+              >
+                <Target className="mr-2 h-4 w-4" />
+                Move to mission
+              </Button>
+
+              <Button
                 onClick={() => setShowDeleteConfirm(true)}
                 variant="destructive"
                 size="sm"
@@ -206,6 +223,12 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
         onOpenChange={setShowSendToFolder}
         fileIds={[file.id]}
         currentFolderId={file.folderId}
+      />
+
+      <MoveToMissionDialog
+        open={showMoveToMission}
+        onOpenChange={setShowMoveToMission}
+        fileIds={[file.id]}
       />
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

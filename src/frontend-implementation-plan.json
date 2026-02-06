@@ -1,50 +1,63 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Folders: reliable create + swipe-only row actions",
+  "title": "Fix BigInt id=0 deletion flows and prevent false link-open fallback",
   "requirements": [
     {
-      "id": "REQ-5",
-      "summary": "Make folder creation succeed consistently and ensure the newly created folder appears in the folders list immediately without requiring reload/navigation/refresh.",
+      "id": "REQ-1",
+      "summary": "Fix folder deletion confirmation handler so folder id 0 can be deleted (no falsy BigInt guards).",
       "acceptanceCriteria": [
-        "When the folders list is empty, creating a folder succeeds and the new folder appears in the list immediately.",
-        "When the folders list already contains folders, creating an additional folder succeeds and the new folder appears in the list immediately.",
-        "Folder creation does not rely on the folder list query being previously populated (i.e., it works even on first-time use).",
-        "If folder creation fails (backend error / actor not ready), the UI shows an error and does not add a phantom folder entry to the list."
+        "Create a first folder (the first created folder for a user) and delete it successfully via the UI confirmation dialog.",
+        "Create multiple folders and delete any of them successfully via the same UI flow.",
+        "Deleting a folder with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Harden the folder creation mutation so that after a successful create it triggers an immediate folders list refresh even when the folders query is not currently active (e.g., first-time use / dialog just opened). Ensure error paths do not update the folders cache, and keep actor-not-ready failures surfaced cleanly."
-        },
-        {
           "path": "frontend/src/components/FoldersDialog.tsx",
           "operation": "modify",
-          "description": "Update the create-folder submit flow to rely on the improved mutation refresh behavior so the list updates immediately in the dialog (including when starting from zero folders). Ensure failures show an error and do not display a newly created folder row unless the backend create succeeded."
+          "description": "Replace the delete confirmation onClick logic that uses a truthy/falsy guard (e.g., `deleteConfirmFolderId && ...`) with an explicit null check so BigInt(0) triggers deletion; keep dialog close/reset behavior consistent on success/error."
         }
       ]
     },
     {
-      "id": "REQ-6",
-      "summary": "Hide rename/delete actions by default and reveal them only via swipe/reveal interaction, with one row open at a time and outside-click/tap to close.",
+      "id": "REQ-2",
+      "summary": "Fix mission deletion and mission detail fetch logic so mission id 0 works correctly in list and detail views.",
       "acceptanceCriteria": [
-        "In the folders list, rename and delete actions are hidden by default for each folder row.",
-        "Swiping left on a folder row reveals the rename and delete actions for that row.",
-        "Only one folder row’s swipe actions can be open at a time; opening one closes any previously open row.",
-        "Tapping/clicking outside an open swipe row closes it.",
-        "The swipe behavior works on touch devices; if pointer input is supported (mouse/trackpad), the same reveal interaction remains usable without showing actions by default."
+        "Create a first mission (the first created mission for a user) and delete it successfully via the UI confirmation dialog in the missions list.",
+        "Create multiple missions and delete any of them successfully via the same UI flow.",
+        "Deleting a mission with id 0 does not get blocked by truthy/falsy checks in UI event handlers."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FoldersDialog.tsx",
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Remove the always-visible rename/delete icon buttons from the default folder row rendering and consistently use the swipe/reveal row interaction for actions. Keep the existing single-open-row state (openSwipeRowId) so opening one row closes any previously open row."
+          "description": "Update the missions list delete confirmation dialog action to avoid truthy/falsy BigInt guards (e.g., replace `deleteConfirmMissionId && handleDelete...` with an explicit `!== null` check) so mission id 0 can be deleted."
         },
         {
-          "path": "frontend/src/components/SwipeActionsRow.tsx",
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
           "operation": "modify",
-          "description": "Extend the swipe-to-reveal behavior so it remains usable with pointer input (mouse/trackpad) without showing actions by default (e.g., pointer-driven drag/reveal). Preserve outside click/tap to close, and ensure the actions remain visually hidden until the row is revealed."
+          "description": "Fix `useGetMission` query function to not treat missionId=0 as absent (replace `!missionId` checks with explicit `missionId === null` checks) so the first mission can load in the detail view when applicable."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Make external link opening detection reliable so the 'Unable to Open Link' dialog only appears when the browser actually blocks opening.",
+      "acceptanceCriteria": [
+        "Clicking a mission link attachment opens the URL externally; when the user returns to the app, the link fallback dialog/message is not shown.",
+        "The fallback dialog is shown only when the browser actually blocks opening the link (e.g., window.open returns null or throws), not due to unreliable window state checks.",
+        "User-facing dialog text remains in English (e.g., 'Unable to Open Link')."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/externalOpen.ts",
+          "operation": "modify",
+          "description": "Adjust `openExternally()` to consider the open successful unless `window.open` returns null/undefined or throws; remove/avoid unreliable checks like reading `newWindow.closed` that can cause false negatives after a successful open."
+        },
+        {
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Ensure the link-attachment click flow relies on the updated `openExternally()` return value only (no additional window state assumptions), so the LinkOpenFallbackDialog opens only on true failure; keep existing English dialog title/text."
         }
       ]
     }

@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-folder-creation-flow-so-a-user-can-always-create-a-new-folder-both-when-they-have-zero-folders-and-when-they-already-have-folders-and-the-newly-created-folder-reliably-appears-in-the-folders-list-immediately-after-creation-without-requiring-app-reload-navigation-or-manual-refresh",
-      "featureTitle": "Fix the folder creation flow so a user can always create a new folder (both when they have zero folders and when they already have folders), and the newly created folder reliably appears in the folders list immediately after creation (without requiring app reload, navigation, or manual refresh).",
+      "featureId": "feature-fix-the-folders-delete-flow-so-the-first-folder-a-user-creates-folder-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-folders-as-well",
+      "featureTitle": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
       "files": [
-        "frontend/src/components/FoldersDialog.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/FoldersDialog.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,16 +17,16 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-5"
+        "REQ-1"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-the-folders-list-ui-so-the-delete-and-rename-edit-title-actions-are-only-visible-after-a-swipe-gesture-reveals-them-the-actions-must-not-be-visible-by-default-before-the-swipe-reveal",
-      "featureTitle": "Update the folders list UI so the delete and rename (edit title) actions are only visible after a swipe gesture reveals them; the actions must not be visible by default before the swipe reveal.",
+      "featureId": "feature-fix-the-missions-delete-flow-so-the-first-mission-a-user-creates-mission-id-0-can-be-deleted-and-ensure-deletion-works-for-all-subsequent-missions-as-well-from-both-the-missions-list-and-mission-detail-views-if-applicable",
+      "featureTitle": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
       "files": [
-        "frontend/src/components/FoldersDialog.tsx",
-        "frontend/src/components/SwipeActionsRow.tsx"
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -39,7 +38,27 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-6"
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-opening-a-link-attachment-inside-a-mission-a-link-that-was-sent-moved-from-the-gallery-to-a-mission-do-not-show-the-unable-to-open-link-fallback-message-after-the-user-closes-returns-from-the-link-if-the-link-actually-opened-successfully",
+      "featureTitle": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
+      "files": [
+        "frontend/src/utils/externalOpen.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

@@ -4,29 +4,13 @@
  */
 
 import { QueryClient } from '@tanstack/react-query';
-import type { Note, Mission } from '@/backend';
+import type { Mission } from '@/backend';
 
 export interface CacheDiagnostics {
   entityId: string;
   inListCache: boolean;
   inDetailCache: boolean;
   listCacheSize: number;
-}
-
-export function diagnoseNoteCache(
-  queryClient: QueryClient,
-  noteId: bigint
-): CacheDiagnostics {
-  const noteIdStr = noteId.toString();
-  const listData = queryClient.getQueryData<Note[]>(['notes', 'list']);
-  const detailData = queryClient.getQueryData<Note | null>(['notes', 'detail', noteIdStr]);
-
-  return {
-    entityId: noteIdStr,
-    inListCache: listData ? listData.some(n => n.id.toString() === noteIdStr) : false,
-    inDetailCache: detailData !== undefined,
-    listCacheSize: listData?.length ?? 0,
-  };
 }
 
 export function diagnoseMissionCache(
@@ -47,7 +31,7 @@ export function diagnoseMissionCache(
 
 export function logDeleteMutationLifecycle(
   phase: 'onMutate' | 'onSuccess' | 'onError' | 'onSettled',
-  entityType: 'note' | 'mission',
+  entityType: 'mission',
   entityId: string,
   diagnostics: CacheDiagnostics,
   error?: unknown

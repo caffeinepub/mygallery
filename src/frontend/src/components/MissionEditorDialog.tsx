@@ -76,7 +76,8 @@ export default function MissionEditorDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to create mission:', error);
-      toast.error('Failed to create mission');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create mission';
+      toast.error(errorMessage);
     }
   };
 

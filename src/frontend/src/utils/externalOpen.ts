@@ -6,11 +6,13 @@ export function openExternally(url: string): boolean {
   try {
     const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
     
-    // Check if the window was blocked
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+    // Check if the window was blocked (null or undefined means blocked)
+    if (!newWindow) {
       return false;
     }
     
+    // Consider the open successful if window.open returned a window reference
+    // Do not check newWindow.closed as it can be unreliable immediately after opening
     return true;
   } catch (error) {
     console.error('Failed to open external window:', error);

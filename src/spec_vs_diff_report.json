@@ -1,25 +1,57 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T13:52:30.433Z",
-  "summary": "REQ-5 and REQ-6 appear to be implemented via (1) a hardened folder creation mutation that invalidates and force-refetches the folders query, plus UI error handling when the actor is not ready, and (2) a new swipe-to-reveal row component that hides actions by default, supports touch + mouse dragging, enforces a single open row via parent state, and closes on outside click/tap.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-06T13:03:07.238Z",
+  "summary": "REQ-1 appears implemented by switching folder deletion state/handlers to explicit null checks (allowing id 0). REQ-2 appears partially addressed for deletion in the missions list view via explicit bigint/null handling, but evidence is insufficient for deletion from mission detail views. REQ-3 introduces a safer external link open helper that avoids unreliable window state checks, but the diff does not show mission link attachments actually using it, so end-to-end behavior change is not confirmed from the provided evidence.",
+  "missing_requirements": [
     {
-      "description": "Added/expanded URL parameter + sessionStorage persistence utilities (including hash/query parsing and session persistence helpers), which is unrelated to folder creation flow or swipe-to-reveal folder actions.",
-      "reason": "BuildRequest focuses only on folder creation/listing consistency and swipe-to-reveal rename/delete actions; URL param/session persistence behavior was not requested.",
+      "id": "REQ-2",
+      "requirement": "Ensure the first mission (id 0) can be deleted from both the missions list and mission detail views (if applicable), without truthy/falsy checks blocking id 0.",
+      "reason": "The diff shows list-view deletion state/handlers in MissionsFullScreenView, but does not provide evidence that deletion from the mission detail view is fixed/implemented (file is imported but not shown).",
       "evidence": [
-        "frontend/src/utils/urlParams.ts"
+        "frontend/src/components/MissionsFullScreenView.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "When opening a link attachment inside a Mission, do not show the 'Unable to Open Link' fallback after returning if the link opened successfully; only show fallback when window.open is actually blocked/throws.",
+      "reason": "A new openExternally helper is added that matches the acceptance criteria, but the diff summary does not show the mission link attachment click handler being updated to use this helper (or otherwise changing the fallback logic in the Mission UI).",
+      "evidence": [
+        "frontend/src/utils/externalOpen.ts",
+        "frontend/src/components/MissionsFullScreenView.tsx (truncated)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "hallucinated_features": [
+    {
+      "description": "Added file download utility (downloadFile) alongside external link opening utility.",
+      "reason": "The BuildRequest is limited to deletion bugs and link-opening fallback behavior; a generic file download helper is not requested.",
+      "evidence": [
+        "frontend/src/utils/externalOpen.ts"
+      ]
+    },
+    {
+      "description": "Expanded URL parameter utilities to support sessionStorage persistence and hash parameter clearing.",
+      "reason": "No requirements mention URL parameter parsing/persistence; this appears unrelated to deletion and mission link fallback behavior.",
+      "evidence": [
+        "frontend/src/utils/urlParams.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Changed missions list sorting logic and added extensive React Query cache refresh/prefetch behavior for missions creation/update.",
+      "reason": "REQ-2 focuses on deletion of mission id 0; sorting/caching/prefetch changes are not requested and may be scope expansion.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+      ]
+    }
+  ],
+  "confidence": 0.64,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/SwipeActionsRow.tsx",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/utils/externalOpen.ts",
     "frontend/src/utils/urlParams.ts",
     "project_state.json"
   ]

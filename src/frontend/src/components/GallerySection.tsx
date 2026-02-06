@@ -3,11 +3,13 @@ import { useGetFilesNotInFolder, useGetFilesInFolder, useDeleteFiles } from '@/h
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2 } from 'lucide-react';
+import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink } from 'lucide-react';
 import FullScreenViewer from './FullScreenViewer';
 import SendToFolderDialog from './SendToFolderDialog';
+import MoveToMissionDialog from './MoveToMissionDialog';
+import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
 import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
-import { downloadFile } from '@/utils/externalOpen';
+import { downloadFile, openExternally } from '@/utils/externalOpen';
 import type { FileMetadata, Folder } from '@/backend';
 
 interface GallerySectionProps {
@@ -35,6 +37,8 @@ const FileCard = memo(({
   const longPressTriggeredRef = useRef<boolean>(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  const isLink = !!file.link;
+
   const getFileIcon = useCallback((mimeType: string) => {
     if (mimeType.startsWith('image/')) return FileImage;
     if (mimeType.startsWith('video/')) return FileVideo;
@@ -44,8 +48,9 @@ const FileCard = memo(({
     return FileIcon;
   }, []);
 
-  const Icon = getFileIcon(file.mimeType);
-  const isImage = file.mimeType.startsWith('image/');
+  const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
+  const isImage = !isLink && file.mimeType.startsWith('image/');
+  const isVideo = !isLink && file.mimeType.startsWith('video/');
 
   const clearTimer = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -129,7 +134,11 @@ const FileCard = memo(({
       <div className={`relative w-[100px] h-[100px] overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02] ${
         isSelected ? 'ring-4 ring-primary shadow-lg scale-[1.02]' : ''
       }`}>
-        {isImage ? (
+        {isLink ? (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+            <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+          </div>
+        ) : isImage && file.blob ? (
           <>
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -145,7 +154,7 @@ const FileCard = memo(({
               onLoad={() => setImageLoaded(true)}
             />
           </>
-        ) : file.mimeType.startsWith('video/') ? (
+        ) : isVideo && file.blob ? (
           <video src={file.blob.getDirectURL()} className="h-full w-full object-cover" preload="metadata" />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -158,6 +167,11 @@ const FileCard = memo(({
         {isSelected && (
           <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1 shadow-md">
             <Check className="h-4 w-4" />
+          </div>
+        )}
+        {isLink && !isSelected && (
+          <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-md">
+            <ExternalLink className="h-3 w-3" />
           </div>
         )}
       </div>
@@ -182,7 +196,10 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
+  const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
+  const [currentLinkUrl, setCurrentLinkUrl] = useState('');
 
   const mainGalleryQuery = useGetFilesNotInFolder();
   const folderGalleryQuery = useGetFilesInFolder(selectedFolder?.id ?? null);
@@ -210,6 +227,19 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
     } else {
       const file = files?.[index];
       if (!file) return;
+
+      // Handle link items
+      if (file.link) {
+        const opened = openExternally(file.link);
+        if (!opened) {
+          setCurrentLinkUrl(file.link);
+          setLinkFallbackOpen(true);
+        }
+        return;
+      }
+
+      // Handle file items
+      if (!file.blob) return;
 
       // Check if file should download directly (unsupported types)
       if (shouldDownloadDirectly(file)) {
@@ -242,6 +272,10 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
     setSendToFolderOpen(true);
   }, []);
 
+  const handleMoveToMission = useCallback(() => {
+    setMoveToMissionOpen(true);
+  }, []);
+
   const handleShare = useCallback(async () => {
     if (!files || selectedFiles.size === 0) return;
 
@@ -254,11 +288,13 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
 
     setIsSharing(true);
     try {
-      const filePromises = selectedFileObjects.map(async (file) => {
-        const response = await fetch(file.blob.getDirectURL());
-        const blob = await response.blob();
-        return new File([blob], file.name, { type: file.mimeType });
-      });
+      const filePromises = selectedFileObjects
+        .filter(f => f.blob) // Only share files with blobs, not links
+        .map(async (file) => {
+          const response = await fetch(file.blob!.getDirectURL());
+          const blob = await response.blob();
+          return new File([blob], file.name, { type: file.mimeType });
+        });
 
       const filesToShare = await Promise.all(filePromises);
 
@@ -284,10 +320,12 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
     const selectedFileObjects = files.filter(f => selectedFiles.has(f.id));
     
     for (const file of selectedFileObjects) {
-      try {
-        await downloadFile(file.blob.getDirectURL(), file.name);
-      } catch (error) {
-        console.error('Download failed for', file.name, error);
+      if (file.blob) {
+        try {
+          await downloadFile(file.blob.getDirectURL(), file.name);
+        } catch (error) {
+          console.error('Download failed for', file.name, error);
+        }
       }
     }
     
@@ -308,6 +346,22 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
   const handleMoveComplete = useCallback(() => {
     exitSelectionMode();
   }, [exitSelectionMode]);
+
+  const handleRetryOpenLink = useCallback(() => {
+    if (currentLinkUrl) {
+      openExternally(currentLinkUrl);
+    }
+  }, [currentLinkUrl]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (currentLinkUrl && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(currentLinkUrl);
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+      }
+    }
+  }, [currentLinkUrl]);
 
   useEffect(() => {
     if (selectionMode && selectedFiles.size === 0) {
@@ -394,6 +448,9 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
     );
   }
 
+  // Filter out link items for the viewer (only show files with blobs)
+  const viewableFiles = files.filter(f => f.blob);
+
   return (
     <section className="relative pb-32">
       <div className="mb-6">
@@ -409,7 +466,7 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
             <p className="mt-1 text-muted-foreground">
               {selectionMode 
                 ? `${selectedFiles.size} selected of ${files.length}`
-                : `${files.length} ${files.length === 1 ? 'file' : 'files'}`
+                : `${files.length} ${files.length === 1 ? 'item' : 'items'}`
               }
             </p>
           </div>
@@ -432,9 +489,9 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
         ))}
       </div>
 
-      {files.length > 0 && !selectionMode && (
+      {viewableFiles.length > 0 && !selectionMode && (
         <FullScreenViewer
-          files={files}
+          files={viewableFiles}
           initialIndex={selectedIndex}
           open={viewerOpen}
           onOpenChange={setViewerOpen}
@@ -448,6 +505,10 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
               <Button variant="outline" onClick={handleSendToFolder} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
                 <FolderInput className="mr-2 h-4 w-4 flex-shrink-0" />
                 <span className="truncate">Move to Folder</span>
+              </Button>
+              <Button variant="outline" onClick={handleMoveToMission} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
+                <Target className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Move to mission</span>
               </Button>
               <Button variant="outline" onClick={handleShare} disabled={isSharing} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
                 <Share2 className="mr-2 h-4 w-4 flex-shrink-0" />
@@ -472,6 +533,21 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
         fileIds={Array.from(selectedFiles)}
         currentFolderId={selectedFolder?.id}
         onMoveComplete={handleMoveComplete}
+      />
+
+      <MoveToMissionDialog
+        open={moveToMissionOpen}
+        onOpenChange={setMoveToMissionOpen}
+        fileIds={Array.from(selectedFiles)}
+        onMoveComplete={handleMoveComplete}
+      />
+
+      <LinkOpenFallbackDialog
+        open={linkFallbackOpen}
+        onOpenChange={setLinkFallbackOpen}
+        linkUrl={currentLinkUrl}
+        onRetryOpen={handleRetryOpenLink}
+        onCopyLink={handleCopyLink}
       />
     </section>
   );

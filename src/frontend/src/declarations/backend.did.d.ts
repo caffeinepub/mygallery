@@ -14,12 +14,15 @@ export interface DiagnosticResult { 'cycles' : bigint, 'build' : string }
 export type ExternalBlob = Uint8Array;
 export interface FileMetadata {
   'id' : string,
+  'fileLocation' : [] | [string],
   'owner' : Principal,
-  'blob' : ExternalBlob,
+  'blob' : [] | [ExternalBlob],
+  'link' : [] | [string],
   'name' : string,
   'createdAt' : Time,
   'size' : bigint,
   'mimeType' : string,
+  'missionId' : [] | [bigint],
   'folderId' : [] | [bigint],
 }
 export interface Folder {
@@ -35,13 +38,6 @@ export interface Mission {
   'title' : string,
   'created' : bigint,
   'owner' : Principal,
-}
-export interface Note {
-  'id' : bigint,
-  'title' : string,
-  'content' : string,
-  'createdAt' : Time,
-  'updatedAt' : Time,
 }
 export interface PaginatedFiles {
   'files' : Array<FileMetadata>,
@@ -90,13 +86,15 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createFolder' : ActorMethod<[string], [] | [string]>,
+  'createLink' : ActorMethod<
+    [string, string, [] | [bigint], [] | [bigint]],
+    UploadResponse
+  >,
   'createMission' : ActorMethod<[string, Array<Task>], bigint>,
-  'createNote' : ActorMethod<[string, string], bigint>,
   'deleteFile' : ActorMethod<[string], undefined>,
   'deleteFiles' : ActorMethod<[Array<string>], undefined>,
   'deleteFolder' : ActorMethod<[bigint], undefined>,
   'deleteMission' : ActorMethod<[bigint], undefined>,
-  'deleteNote' : ActorMethod<[bigint], undefined>,
   /**
    * / Admin-only method to get all files regardless of owner
    */
@@ -106,10 +104,11 @@ export interface _SERVICE {
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDiagnostics' : ActorMethod<[], DiagnosticResult>,
   'getFile' : ActorMethod<[string], [] | [FileMetadata]>,
+  'getFilesForMission' : ActorMethod<[[] | [bigint]], Array<FileMetadata>>,
   'getFilesInFolder' : ActorMethod<[bigint, bigint, bigint], PaginatedFiles>,
   'getHealth' : ActorMethod<[], HealthResult>,
+  'getLinksForUser' : ActorMethod<[Principal], Array<FileMetadata>>,
   'getMission' : ActorMethod<[bigint], [] | [Mission]>,
-  'getNote' : ActorMethod<[bigint], [] | [Note]>,
   'getPaginatedFiles' : ActorMethod<
     [SortDirection, bigint, bigint],
     PaginatedFiles
@@ -117,16 +116,15 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listMissions' : ActorMethod<[], Array<Mission>>,
-  'listNotes' : ActorMethod<[], Array<Note>>,
   'moveFileToFolder' : ActorMethod<[string, bigint], undefined>,
   'moveFilesToFolder' : ActorMethod<[Array<string>, bigint], undefined>,
+  'moveFilesToMission' : ActorMethod<[Array<string>, bigint], undefined>,
   'removeFromFolder' : ActorMethod<[string], undefined>,
   'renameFolder' : ActorMethod<[bigint, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'updateMission' : ActorMethod<[bigint, string, Array<Task>], undefined>,
-  'updateNote' : ActorMethod<[bigint, string, string], undefined>,
   'uploadFile' : ActorMethod<
-    [string, string, bigint, ExternalBlob],
+    [string, string, bigint, ExternalBlob, [] | [bigint]],
     UploadResponse
   >,
 }

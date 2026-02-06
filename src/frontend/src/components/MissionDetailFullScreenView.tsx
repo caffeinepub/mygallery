@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Save, Trash2, Check, Edit2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, Check, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,9 +16,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useGetMission, useUpdateMission, useDeleteMission } from '@/hooks/useMissionsQueries';
+import { useGetFilesForMission } from '@/hooks/useQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { toast } from 'sonner';
-import type { Task } from '@/backend';
+import FullScreenViewer from './FullScreenViewer';
+import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
+import { openExternally } from '@/utils/externalOpen';
+import type { Task, FileMetadata } from '@/backend';
 
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
@@ -36,9 +40,14 @@ export default function MissionDetailFullScreenView({
   const [initialTasks, setInitialTasks] = useState<Task[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
+  const [currentLinkUrl, setCurrentLinkUrl] = useState('');
 
   const { status } = useBackendActor();
   const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
+  const { data: attachedFiles, isLoading: isLoadingFiles } = useGetFilesForMission(missionId);
   const updateMissionMutation = useUpdateMission();
   const deleteMissionMutation = useDeleteMission();
 
@@ -155,9 +164,57 @@ export default function MissionDetailFullScreenView({
     }
   };
 
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return FileImage;
+    if (mimeType.startsWith('video/')) return FileVideo;
+    if (mimeType === 'application/pdf') return FileText;
+    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mimeType === 'application/msword') return FileText;
+    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimeType === 'application/vnd.ms-excel') return FileSpreadsheet;
+    return FileIcon;
+  };
+
+  const handleAttachmentClick = (file: FileMetadata, blobIndex: number) => {
+    // Handle link items - open externally
+    if (file.link) {
+      const opened = openExternally(file.link);
+      if (!opened) {
+        setCurrentLinkUrl(file.link);
+        setLinkFallbackOpen(true);
+      }
+      return;
+    }
+
+    // Handle file items with blobs - open in viewer
+    if (file.blob) {
+      setSelectedFileIndex(blobIndex);
+      setViewerOpen(true);
+    }
+  };
+
+  const handleRetryOpenLink = () => {
+    if (currentLinkUrl) {
+      openExternally(currentLinkUrl);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (currentLinkUrl && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(currentLinkUrl);
+        toast.success('Link copied to clipboard');
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+        toast.error('Failed to copy link');
+      }
+    }
+  };
+
   const progress = calculateProgress(tasks);
   const isCompleted = tasks.length > 0 && progress === 100;
   const changesDetected = hasChanges();
+
+  // Filter files with blobs for the viewer (exclude links)
+  const viewableFiles = attachedFiles?.filter(f => f.blob) || [];
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -270,7 +327,7 @@ export default function MissionDetailFullScreenView({
         </div>
       )}
 
-      {/* Main Content - Tasks List */}
+      {/* Main Content - Tasks List + Attachments */}
       <div className="flex-1 overflow-hidden">
         {isLoadingMission ? (
           <div className="flex items-center justify-center h-full">
@@ -322,6 +379,78 @@ export default function MissionDetailFullScreenView({
                     </Button>
                   </div>
                 ))
+              )}
+
+              {/* Attachments Section */}
+              {attachedFiles && attachedFiles.length > 0 && (
+                <div className="mt-8 pt-6 border-t">
+                  <h3 className="text-lg font-semibold mb-4">Attachments</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {attachedFiles.map((file) => {
+                      const isLink = !!file.link;
+                      const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
+                      const isImage = !isLink && file.mimeType.startsWith('image/') && file.blob;
+                      const isVideo = !isLink && file.mimeType.startsWith('video/') && file.blob;
+                      
+                      // Calculate the blob-only index for this file (for viewer navigation)
+                      const blobIndex = file.blob 
+                        ? viewableFiles.findIndex(vf => vf.id === file.id)
+                        : -1;
+                      
+                      return (
+                        <div
+                          key={file.id}
+                          className="group cursor-pointer relative select-none"
+                          onClick={() => handleAttachmentClick(file, blobIndex)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleAttachmentClick(file, blobIndex);
+                            }
+                          }}
+                        >
+                          <div className="relative w-[100px] h-[100px] overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]">
+                            {isLink ? (
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                                <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                              </div>
+                            ) : isImage ? (
+                              <img
+                                src={file.blob!.getDirectURL()}
+                                alt={file.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : isVideo ? (
+                              <video src={file.blob!.getDirectURL()} className="h-full w-full object-cover" preload="metadata" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Icon className="h-10 w-10 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
+                            {isLink && (
+                              <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-md">
+                                <ExternalLink className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="mt-1.5 text-xs truncate w-[100px]" title={file.name}>
+                            {file.name}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isLoadingFiles && (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  Loading attachments...
+                </div>
               )}
             </div>
           </ScrollArea>
@@ -385,6 +514,25 @@ export default function MissionDetailFullScreenView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Full Screen Viewer for File Attachments (not links) */}
+      {viewableFiles.length > 0 && (
+        <FullScreenViewer
+          files={viewableFiles}
+          initialIndex={selectedFileIndex}
+          open={viewerOpen}
+          onOpenChange={setViewerOpen}
+        />
+      )}
+
+      {/* Link Open Fallback Dialog */}
+      <LinkOpenFallbackDialog
+        open={linkFallbackOpen}
+        onOpenChange={setLinkFallbackOpen}
+        linkUrl={currentLinkUrl}
+        onRetryOpen={handleRetryOpenLink}
+        onCopyLink={handleCopyLink}
+      />
     </div>
   );
 }

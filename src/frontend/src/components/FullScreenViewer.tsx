@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, ExternalLink } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, ExternalLink, Target } from 'lucide-react';
 import { useDeleteFile } from '@/hooks/useQueries';
 import SendToFolderDialog from './SendToFolderDialog';
+import MoveToMissionDialog from './MoveToMissionDialog';
 import ExternalOpenFallbackDialog from './ExternalOpenFallbackDialog';
 import { getFileCategory } from '@/utils/filePreview';
 import { openExternally, downloadFile } from '@/utils/externalOpen';
@@ -19,6 +20,7 @@ interface FullScreenViewerProps {
 export default function FullScreenViewer({ files, initialIndex, open, onOpenChange }: FullScreenViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
+  const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [fallbackDialogOpen, setFallbackDialogOpen] = useState(false);
@@ -62,7 +64,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   };
 
   const handleDownload = async () => {
-    if (!currentFile) return;
+    if (!currentFile || !currentFile.blob) return;
 
     try {
       await downloadFile(currentFile.blob.getDirectURL(), currentFile.name);
@@ -89,7 +91,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   };
 
   const handleShare = async () => {
-    if (!currentFile) return;
+    if (!currentFile || !currentFile.blob) return;
 
     if (!navigator.share) {
       console.log('Web Share API not supported');
@@ -116,8 +118,12 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     setSendToFolderOpen(true);
   };
 
+  const handleMoveToMission = () => {
+    setMoveToMissionOpen(true);
+  };
+
   const handleOpenExternally = () => {
-    if (!currentFile) return;
+    if (!currentFile || !currentFile.blob) return;
     const success = openExternally(currentFile.blob.getDirectURL());
     if (!success) {
       setFallbackDialogOpen(true);
@@ -125,7 +131,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   };
 
   const handleFallbackDownload = async () => {
-    if (!currentFile) return;
+    if (!currentFile || !currentFile.blob) return;
     try {
       await downloadFile(currentFile.blob.getDirectURL(), currentFile.name);
     } catch (error) {
@@ -134,7 +140,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   };
 
   const handleFallbackRetry = () => {
-    if (!currentFile) return;
+    if (!currentFile || !currentFile.blob) return;
     openExternally(currentFile.blob.getDirectURL());
   };
 
@@ -161,7 +167,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, handlePrevious, handleNext, onOpenChange]);
 
-  if (!currentFile) return null;
+  if (!currentFile || !currentFile.blob) return null;
 
   const fileCategory = getFileCategory(currentFile.mimeType);
   const isImage = fileCategory === 'image';
@@ -264,15 +270,23 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                   <Button
                     variant="secondary"
                     onClick={handleSendToFolder}
-                    className="flex-1 min-w-[110px] max-w-[180px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                   >
                     <FolderInput className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Move</span>
+                    <span className="truncate">Folder</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={handleMoveToMission}
+                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                  >
+                    <Target className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Mission</span>
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={handleShare}
-                    className="flex-1 min-w-[110px] max-w-[180px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                   >
                     <Share2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Share</span>
@@ -281,7 +295,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                     <Button
                       variant="secondary"
                       onClick={handleOpenExternally}
-                      className="flex-1 min-w-[110px] max-w-[180px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                      className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                     >
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                       <span className="truncate">New Tab</span>
@@ -290,7 +304,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                   <Button
                     variant="secondary"
                     onClick={handleDownload}
-                    className="flex-1 min-w-[110px] max-w-[180px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                   >
                     <Download className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Download</span>
@@ -299,7 +313,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                     variant="destructive"
                     onClick={handleDelete}
                     disabled={deleteFile.isPending}
-                    className="flex-1 min-w-[110px] max-w-[180px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Delete</span>
@@ -324,7 +338,14 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         onMoveComplete={handleMoveComplete}
       />
 
-      {currentFile && (
+      <MoveToMissionDialog
+        open={moveToMissionOpen}
+        onOpenChange={setMoveToMissionOpen}
+        fileIds={[currentFile.id]}
+        onMoveComplete={handleMoveComplete}
+      />
+
+      {currentFile && currentFile.blob && (
         <ExternalOpenFallbackDialog
           open={fallbackDialogOpen}
           onOpenChange={setFallbackDialogOpen}

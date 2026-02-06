@@ -6,6 +6,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,6 +45,7 @@ export default function FoldersDialog({
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
   const [editingName, setEditingName] = useState('');
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
+  const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<bigint | null>(null);
 
   const { status } = useBackendActor();
   const { data: folders = [], isLoading } = useGetFolders();
@@ -57,7 +68,8 @@ export default function FoldersDialog({
       toast.success('Folder created successfully');
     } catch (error) {
       console.error('Failed to create folder:', error);
-      toast.error('Failed to create folder');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create folder';
+      toast.error(errorMessage);
     }
   };
 
@@ -76,8 +88,14 @@ export default function FoldersDialog({
       toast.success('Folder renamed successfully');
     } catch (error) {
       console.error('Failed to rename folder:', error);
-      toast.error('Failed to rename folder');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to rename folder';
+      toast.error(errorMessage);
     }
+  };
+
+  const handleOpenDeleteConfirm = (folderId: bigint) => {
+    setOpenSwipeRowId(null);
+    setDeleteConfirmFolderId(folderId);
   };
 
   const handleDeleteFolder = async (folderId: bigint) => {
@@ -88,11 +106,13 @@ export default function FoldersDialog({
 
     try {
       await deleteFolderMutation.mutateAsync(folderId);
+      setDeleteConfirmFolderId(null);
       setOpenSwipeRowId(null);
       toast.success('Folder deleted successfully');
     } catch (error) {
       console.error('Failed to delete folder:', error);
-      toast.error('Failed to delete folder');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete folder';
+      toast.error(errorMessage);
     }
   };
 
@@ -161,7 +181,7 @@ export default function FoldersDialog({
         <SwipeActionsRow
           key={folderId}
           onEdit={() => startEditing(folder)}
-          onDelete={() => handleDeleteFolder(folder.id)}
+          onDelete={() => handleOpenDeleteConfirm(folder.id)}
           isOpen={openSwipeRowId === folderId}
           onOpenChange={(open) => {
             setOpenSwipeRowId(open ? folderId : null);
@@ -177,58 +197,89 @@ export default function FoldersDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Folder className="h-5 w-5" />
-            Folders
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Folder className="h-5 w-5" />
+              Folders
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Create new folder */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="New folder name"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder();
-              }}
-              disabled={!isActorReady || createFolderMutation.isPending}
-            />
-            <Button
-              onClick={handleCreateFolder}
-              disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
-              size="icon"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="space-y-4">
+            {/* Create new folder */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="New folder name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFolder();
+                }}
+                disabled={!isActorReady || createFolderMutation.isPending}
+              />
+              <Button
+                onClick={handleCreateFolder}
+                disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
+                size="icon"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Folders list */}
+            <ScrollArea className="h-[300px] rounded-md border p-4">
+              {isLoading ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading folders...
+                </div>
+              ) : !isActorReady ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading...
+                </div>
+              ) : folders.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No folders yet. Create one to get started!
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {folders.map((folder) => renderFolderRow(folder))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* Folders list */}
-          <ScrollArea className="h-[300px] rounded-md border p-4">
-            {isLoading ? (
-              <div className="text-center text-muted-foreground py-8">
-                Loading folders...
-              </div>
-            ) : !isActorReady ? (
-              <div className="text-center text-muted-foreground py-8">
-                Loading...
-              </div>
-            ) : folders.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No folders yet. Create one to get started!
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {folders.map((folder) => renderFolderRow(folder))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-      </DialogContent>
-    </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmFolderId !== null} onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this folder and all files inside it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteFolderMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirmFolderId !== null && handleDeleteFolder(deleteConfirmFolderId)}
+              disabled={deleteFolderMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteFolderMutation.isPending ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  Deleting...
+                </>
+              ) : (
+                'OK'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

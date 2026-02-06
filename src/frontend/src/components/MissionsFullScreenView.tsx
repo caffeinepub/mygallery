@@ -45,6 +45,12 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
     return (completed / missionTasks.length) * 100;
   };
 
+  const handleOpenDeleteConfirm = (missionId: bigint) => {
+    // Close any open swipe row
+    setOpenSwipeRowId(null);
+    setDeleteConfirmMissionId(missionId);
+  };
+
   const handleDeleteMission = async (missionId: bigint) => {
     if (!isActorReady) {
       toast.error('Please wait for the application to initialize');
@@ -89,12 +95,6 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
 
   const handleBackFromDetail = () => {
     setSelectedMissionId(null);
-  };
-
-  const handleOpenDeleteConfirm = (missionId: bigint) => {
-    // Close any open swipe row
-    setOpenSwipeRowId(null);
-    setDeleteConfirmMissionId(missionId);
   };
 
   // Show mission detail view if a mission is selected
@@ -249,15 +249,15 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
       <AlertDialog open={deleteConfirmMissionId !== null} onOpenChange={(open) => !open && setDeleteConfirmMissionId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Mission</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this mission? This action cannot be undone.
+              This will permanently delete this mission and all its tasks. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMissionMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteConfirmMissionId && handleDeleteMission(deleteConfirmMissionId)}
+              onClick={() => deleteConfirmMissionId !== null && handleDeleteMission(deleteConfirmMissionId)}
               disabled={deleteMissionMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
@@ -267,7 +267,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
                   Deleting...
                 </>
               ) : (
-                'Delete'
+                'OK'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

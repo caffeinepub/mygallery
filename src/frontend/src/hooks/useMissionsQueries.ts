@@ -24,6 +24,7 @@ export function useListMissions() {
     enabled: !!actor && status === 'ready' && !!identity,
     staleTime: 0,
     gcTime: 15 * 60 * 1000,
+    refetchOnMount: true,
   });
 }
 
@@ -34,12 +35,13 @@ export function useGetMission(missionId: bigint | null) {
   return useQuery<Mission | null>({
     queryKey: ['missions', 'detail', missionId?.toString()],
     queryFn: async () => {
-      if (!actor || !missionId) return null;
+      if (!actor || missionId === null) return null;
       return await actor.getMission(missionId);
     },
     enabled: !!actor && status === 'ready' && !!identity && missionId !== null,
     staleTime: 0,
     gcTime: 15 * 60 * 1000,
+    refetchOnMount: true,
   });
 }
 
@@ -56,18 +58,31 @@ export function useCreateMission() {
       return missionId;
     },
     onSuccess: async (missionId) => {
+      console.log('[useCreateMission] Mission created successfully, refreshing missions list');
+      // Invalidate and refetch missions list to ensure new mission appears
       await queryClient.invalidateQueries({ queryKey: ['missions', 'list'] });
-      await queryClient.prefetchQuery({
-        queryKey: ['missions', 'detail', missionId.toString()],
-        queryFn: async () => {
-          if (!actor) return null;
-          return await actor.getMission(missionId);
-        },
+      await queryClient.refetchQueries({ 
+        queryKey: ['missions', 'list'], 
+        type: 'all' // Refetch all matching queries, not just active ones
       });
+      
+      // Prefetch the mission detail to ensure it's available immediately
+      if (actor) {
+        await queryClient.prefetchQuery({
+          queryKey: ['missions', 'detail', missionId.toString()],
+          queryFn: async () => {
+            return await actor.getMission(missionId);
+          },
+        });
+      }
+      
+      console.log('[useCreateMission] Missions list refresh complete');
       return missionId;
     },
     onError: (err) => {
-      console.error('Create mission failed:', getActorErrorMessage(err));
+      const errorMessage = getActorErrorMessage(err);
+      console.error('[useCreateMission] Create mission failed:', errorMessage);
+      throw new Error(`Failed to create mission: ${errorMessage}`);
     },
   });
 }
@@ -82,13 +97,27 @@ export function useUpdateMission() {
         throw createActorNotReadyError();
       }
       await actor.updateMission(missionId, title, tasks);
+      return { missionId, title, tasks };
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['missions', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['missions', 'detail', variables.missionId.toString()] });
+    onSuccess: async (variables) => {
+      // Invalidate and refetch both list and detail to ensure persistence
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'] });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', variables.missionId.toString()] });
+      
+      // Force refetch to ensure data is fresh
+      await queryClient.refetchQueries({ 
+        queryKey: ['missions', 'list'], 
+        type: 'all' 
+      });
+      await queryClient.refetchQueries({ 
+        queryKey: ['missions', 'detail', variables.missionId.toString()], 
+        type: 'all' 
+      });
     },
     onError: (err) => {
-      console.error('Update mission failed:', getActorErrorMessage(err));
+      const errorMessage = getActorErrorMessage(err);
+      console.error('Update mission failed:', errorMessage);
+      throw new Error(`Failed to update mission: ${errorMessage}`);
     },
   });
 }

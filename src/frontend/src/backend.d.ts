@@ -14,17 +14,6 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface Note {
-    id: bigint;
-    title: string;
-    content: string;
-    createdAt: Time;
-    updatedAt: Time;
-}
-export interface PaginatedFiles {
-    files: Array<FileMetadata>;
-    hasMore: boolean;
-}
 export interface Mission {
     id: bigint;
     tasks: Array<Task>;
@@ -32,22 +21,29 @@ export interface Mission {
     created: bigint;
     owner: Principal;
 }
-export type Time = bigint;
+export interface PaginatedFiles {
+    files: Array<FileMetadata>;
+    hasMore: boolean;
+}
 export interface UserProfile {
     name: string;
 }
-export interface UploadResponse {
-    id: string;
-}
+export type Time = bigint;
 export interface FileMetadata {
     id: string;
+    fileLocation?: string;
     owner: Principal;
-    blob: ExternalBlob;
+    blob?: ExternalBlob;
+    link?: string;
     name: string;
     createdAt: Time;
     size: bigint;
     mimeType: string;
+    missionId?: bigint;
     folderId?: bigint;
+}
+export interface UploadResponse {
+    id: string;
 }
 export interface Task {
     task: string;
@@ -80,13 +76,12 @@ export enum UserRole {
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createFolder(name: string): Promise<string | null>;
+    createLink(name: string, url: string, folderId: bigint | null, missionId: bigint | null): Promise<UploadResponse>;
     createMission(title: string, tasks: Array<Task>): Promise<bigint>;
-    createNote(title: string, content: string): Promise<bigint>;
     deleteFile(id: string): Promise<void>;
     deleteFiles(fileIds: Array<string>): Promise<void>;
     deleteFolder(folderId: bigint): Promise<void>;
     deleteMission(missionId: bigint): Promise<void>;
-    deleteNote(noteId: bigint): Promise<void>;
     /**
      * / Admin-only method to get all files regardless of owner
      */
@@ -96,21 +91,21 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getDiagnostics(): Promise<DiagnosticResult>;
     getFile(fileId: string): Promise<FileMetadata | null>;
+    getFilesForMission(missionId: bigint | null): Promise<Array<FileMetadata>>;
     getFilesInFolder(folderId: bigint, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
     getHealth(): Promise<HealthResult>;
+    getLinksForUser(user: Principal): Promise<Array<FileMetadata>>;
     getMission(missionId: bigint): Promise<Mission | null>;
-    getNote(noteId: bigint): Promise<Note | null>;
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;
-    listNotes(): Promise<Array<Note>>;
     moveFileToFolder(fileId: string, folderId: bigint): Promise<void>;
     moveFilesToFolder(fileIds: Array<string>, folderId: bigint): Promise<void>;
+    moveFilesToMission(fileIds: Array<string>, missionId: bigint): Promise<void>;
     removeFromFolder(fileId: string): Promise<void>;
     renameFolder(folderId: bigint, newName: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;
-    updateNote(noteId: bigint, newTitle: string, newContent: string): Promise<void>;
-    uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob): Promise<UploadResponse>;
+    uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob, missionId: bigint | null): Promise<UploadResponse>;
 }

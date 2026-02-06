@@ -1,52 +1,62 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T13:52:30.451Z",
+  "generatedAt": "2026-02-06T13:03:07.241Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-5",
-        "summary": "Fix the folder creation flow so a user can always create a new folder (both when they have zero folders and when they already have folders), and the newly created folder reliably appears in the folders list immediately after creation (without requiring app reload, navigation, or manual refresh).",
+        "id": "REQ-1",
+        "summary": "Fix the Folders delete flow so the first folder a user creates (folder id 0) can be deleted, and ensure deletion works for all subsequent folders as well.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/components/FoldersDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
           "frontend/src/components/FoldersDialog.tsx"
         ]
       },
       {
-        "id": "REQ-6",
-        "summary": "Update the folders list UI so the delete and rename (edit title) actions are only visible after a swipe gesture reveals them; the actions must not be visible by default before the swipe reveal.",
+        "id": "REQ-2",
+        "summary": "Fix the Missions delete flow so the first mission a user creates (mission id 0) can be deleted, and ensure deletion works for all subsequent missions as well (from both the missions list and mission detail views if applicable).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/FoldersDialog.tsx",
-          "frontend/src/components/SwipeActionsRow.tsx"
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/FoldersDialog.tsx",
-          "frontend/src/components/SwipeActionsRow.tsx"
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "When opening a link attachment inside a Mission (a link that was sent/moved from the Gallery to a Mission), do not show the 'Unable to Open Link' fallback message after the user closes/returns from the link if the link actually opened successfully.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/externalOpen.ts",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/externalOpen.ts"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/components/FoldersDialog.tsx",
-    "frontend/src/components/SwipeActionsRow.tsx",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/utils/externalOpen.ts",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

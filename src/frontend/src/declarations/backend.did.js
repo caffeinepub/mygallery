@@ -24,6 +24,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const UploadResponse = IDL.Record({ 'id' : IDL.Text });
 export const Task = IDL.Record({
   'task' : IDL.Text,
   'completed' : IDL.Bool,
@@ -33,12 +34,15 @@ export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const Time = IDL.Int;
 export const FileMetadata = IDL.Record({
   'id' : IDL.Text,
+  'fileLocation' : IDL.Opt(IDL.Text),
   'owner' : IDL.Principal,
-  'blob' : ExternalBlob,
+  'blob' : IDL.Opt(ExternalBlob),
+  'link' : IDL.Opt(IDL.Text),
   'name' : IDL.Text,
   'createdAt' : Time,
   'size' : IDL.Nat,
   'mimeType' : IDL.Text,
+  'missionId' : IDL.Opt(IDL.Nat),
   'folderId' : IDL.Opt(IDL.Nat),
 });
 export const Folder = IDL.Record({
@@ -67,18 +71,10 @@ export const Mission = IDL.Record({
   'created' : IDL.Int,
   'owner' : IDL.Principal,
 });
-export const Note = IDL.Record({
-  'id' : IDL.Nat,
-  'title' : IDL.Text,
-  'content' : IDL.Text,
-  'createdAt' : Time,
-  'updatedAt' : Time,
-});
 export const SortDirection = IDL.Variant({
   'asc' : IDL.Null,
   'desc' : IDL.Null,
 });
-export const UploadResponse = IDL.Record({ 'id' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -110,27 +106,39 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createFolder' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], []),
+  'createLink' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
+      [UploadResponse],
+      [],
+    ),
   'createMission' : IDL.Func([IDL.Text, IDL.Vec(Task)], [IDL.Nat], []),
-  'createNote' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
   'deleteFile' : IDL.Func([IDL.Text], [], []),
   'deleteFiles' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
   'deleteFolder' : IDL.Func([IDL.Nat], [], []),
   'deleteMission' : IDL.Func([IDL.Nat], [], []),
-  'deleteNote' : IDL.Func([IDL.Nat], [], []),
   'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
   'getAllFolders' : IDL.Func([], [IDL.Vec(Folder)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getDiagnostics' : IDL.Func([], [DiagnosticResult], ['query']),
   'getFile' : IDL.Func([IDL.Text], [IDL.Opt(FileMetadata)], ['query']),
+  'getFilesForMission' : IDL.Func(
+      [IDL.Opt(IDL.Nat)],
+      [IDL.Vec(FileMetadata)],
+      ['query'],
+    ),
   'getFilesInFolder' : IDL.Func(
       [IDL.Nat, IDL.Nat, IDL.Nat],
       [PaginatedFiles],
       ['query'],
     ),
   'getHealth' : IDL.Func([], [HealthResult], ['query']),
+  'getLinksForUser' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(FileMetadata)],
+      ['query'],
+    ),
   'getMission' : IDL.Func([IDL.Nat], [IDL.Opt(Mission)], ['query']),
-  'getNote' : IDL.Func([IDL.Nat], [IDL.Opt(Note)], ['query']),
   'getPaginatedFiles' : IDL.Func(
       [SortDirection, IDL.Nat, IDL.Nat],
       [PaginatedFiles],
@@ -143,16 +151,15 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listMissions' : IDL.Func([], [IDL.Vec(Mission)], ['query']),
-  'listNotes' : IDL.Func([], [IDL.Vec(Note)], ['query']),
   'moveFileToFolder' : IDL.Func([IDL.Text, IDL.Nat], [], []),
   'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
+  'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
   'removeFromFolder' : IDL.Func([IDL.Text], [], []),
   'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
-  'updateNote' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
   'uploadFile' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob],
+      [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(IDL.Nat)],
       [UploadResponse],
       [],
     ),
@@ -177,6 +184,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const UploadResponse = IDL.Record({ 'id' : IDL.Text });
   const Task = IDL.Record({
     'task' : IDL.Text,
     'completed' : IDL.Bool,
@@ -186,12 +194,15 @@ export const idlFactory = ({ IDL }) => {
   const Time = IDL.Int;
   const FileMetadata = IDL.Record({
     'id' : IDL.Text,
+    'fileLocation' : IDL.Opt(IDL.Text),
     'owner' : IDL.Principal,
-    'blob' : ExternalBlob,
+    'blob' : IDL.Opt(ExternalBlob),
+    'link' : IDL.Opt(IDL.Text),
     'name' : IDL.Text,
     'createdAt' : Time,
     'size' : IDL.Nat,
     'mimeType' : IDL.Text,
+    'missionId' : IDL.Opt(IDL.Nat),
     'folderId' : IDL.Opt(IDL.Nat),
   });
   const Folder = IDL.Record({
@@ -217,15 +228,7 @@ export const idlFactory = ({ IDL }) => {
     'created' : IDL.Int,
     'owner' : IDL.Principal,
   });
-  const Note = IDL.Record({
-    'id' : IDL.Nat,
-    'title' : IDL.Text,
-    'content' : IDL.Text,
-    'createdAt' : Time,
-    'updatedAt' : Time,
-  });
   const SortDirection = IDL.Variant({ 'asc' : IDL.Null, 'desc' : IDL.Null });
-  const UploadResponse = IDL.Record({ 'id' : IDL.Text });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -257,27 +260,39 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createFolder' : IDL.Func([IDL.Text], [IDL.Opt(IDL.Text)], []),
+    'createLink' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Opt(IDL.Nat), IDL.Opt(IDL.Nat)],
+        [UploadResponse],
+        [],
+      ),
     'createMission' : IDL.Func([IDL.Text, IDL.Vec(Task)], [IDL.Nat], []),
-    'createNote' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
     'deleteFile' : IDL.Func([IDL.Text], [], []),
     'deleteFiles' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
     'deleteFolder' : IDL.Func([IDL.Nat], [], []),
     'deleteMission' : IDL.Func([IDL.Nat], [], []),
-    'deleteNote' : IDL.Func([IDL.Nat], [], []),
     'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
     'getAllFolders' : IDL.Func([], [IDL.Vec(Folder)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getDiagnostics' : IDL.Func([], [DiagnosticResult], ['query']),
     'getFile' : IDL.Func([IDL.Text], [IDL.Opt(FileMetadata)], ['query']),
+    'getFilesForMission' : IDL.Func(
+        [IDL.Opt(IDL.Nat)],
+        [IDL.Vec(FileMetadata)],
+        ['query'],
+      ),
     'getFilesInFolder' : IDL.Func(
         [IDL.Nat, IDL.Nat, IDL.Nat],
         [PaginatedFiles],
         ['query'],
       ),
     'getHealth' : IDL.Func([], [HealthResult], ['query']),
+    'getLinksForUser' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(FileMetadata)],
+        ['query'],
+      ),
     'getMission' : IDL.Func([IDL.Nat], [IDL.Opt(Mission)], ['query']),
-    'getNote' : IDL.Func([IDL.Nat], [IDL.Opt(Note)], ['query']),
     'getPaginatedFiles' : IDL.Func(
         [SortDirection, IDL.Nat, IDL.Nat],
         [PaginatedFiles],
@@ -290,16 +305,15 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listMissions' : IDL.Func([], [IDL.Vec(Mission)], ['query']),
-    'listNotes' : IDL.Func([], [IDL.Vec(Note)], ['query']),
     'moveFileToFolder' : IDL.Func([IDL.Text, IDL.Nat], [], []),
     'moveFilesToFolder' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
+    'moveFilesToMission' : IDL.Func([IDL.Vec(IDL.Text), IDL.Nat], [], []),
     'removeFromFolder' : IDL.Func([IDL.Text], [], []),
     'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
-    'updateNote' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
     'uploadFile' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob],
+        [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(IDL.Nat)],
         [UploadResponse],
         [],
       ),

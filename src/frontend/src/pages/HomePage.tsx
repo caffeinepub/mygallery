@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FileUploadSection from '@/components/FileUploadSection';
 import GallerySection from '@/components/GallerySection';
 import FoldersButton from '@/components/FoldersButton';
 import FoldersDialog from '@/components/FoldersDialog';
-import NotesButton from '@/components/NotesButton';
-import NotesFullScreenView from '@/components/NotesFullScreenView';
 import MissionsButton from '@/components/MissionsButton';
 import MissionsFullScreenView from '@/components/MissionsFullScreenView';
 import DecorativeBottomLine from '@/components/DecorativeBottomLine';
@@ -15,27 +13,60 @@ import WelcomeIntroScreen from '@/components/WelcomeIntroScreen';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
-import { useListNotes } from '@/hooks/useNotesQueries';
 import { useListMissions } from '@/hooks/useMissionsQueries';
+import { runCoreFlowsSmokeTest, formatSmokeTestResults } from '@/utils/smokeTestCoreFlows';
+import { toast } from 'sonner';
 import type { Folder } from '@/backend';
 
 export default function HomePage() {
   const [isFoldersDialogOpen, setIsFoldersDialogOpen] = useState(false);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const { identity, isInitializing } = useInternetIdentity();
-  const { status, error, retry, signOut } = useBackendActor();
+  const { status, error, retry, signOut, actor } = useBackendActor();
 
   // Only fetch data when authenticated and actor is ready
   useGetFolders();
   useGetFilesNotInFolder();
-  useListNotes();
   useListMissions();
 
   const isAuthenticated = !!identity;
   const isActorReady = status === 'ready';
   const isFinalFailure = status === 'error' && error;
+
+  // Dev-only smoke test trigger (only in development mode with URL param)
+  useEffect(() => {
+    if (import.meta.env.DEV && isActorReady && actor) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('runSmokeTest') === 'true') {
+        // Remove the param to prevent re-running on refresh
+        urlParams.delete('runSmokeTest');
+        const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
+        window.history.replaceState({}, '', newUrl);
+        
+        // Run smoke test
+        console.log('[Dev] Running core flows smoke test...');
+        toast.info('Running smoke test...');
+        
+        runCoreFlowsSmokeTest(actor)
+          .then((results) => {
+            const formatted = formatSmokeTestResults(results);
+            console.log(formatted);
+            
+            const allPassed = results.every(r => r.success);
+            if (allPassed) {
+              toast.success('Smoke test passed! Check console for details.');
+            } else {
+              toast.error('Smoke test failed! Check console for details.');
+            }
+          })
+          .catch((error) => {
+            console.error('[Dev] Smoke test error:', error);
+            toast.error('Smoke test error! Check console for details.');
+          });
+      }
+    }
+  }, [isActorReady, actor]);
 
   const handleFolderSelect = (folder: Folder) => {
     setSelectedFolder(folder);
@@ -70,9 +101,7 @@ export default function HomePage() {
     if (isAuthenticated) {
       return (
         <>
-          {isNotesOpen ? (
-            <NotesFullScreenView onClose={() => setIsNotesOpen(false)} />
-          ) : isMissionsOpen ? (
+          {isMissionsOpen ? (
             <MissionsFullScreenView onClose={() => setIsMissionsOpen(false)} />
           ) : (
             <div className="flex min-h-screen flex-col">
@@ -90,10 +119,6 @@ export default function HomePage() {
               <DecorativeBottomLine />
               <FoldersButton 
                 onClick={() => setIsFoldersDialogOpen(true)} 
-                disabled={!isActorReady}
-              />
-              <NotesButton 
-                onClick={() => setIsNotesOpen(true)} 
                 disabled={!isActorReady}
               />
               <MissionsButton 
@@ -125,7 +150,7 @@ export default function HomePage() {
         <Footer />
       </div>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isNotesOpen, isMissionsOpen]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersDialogOpen, isMissionsOpen]);
 
   return mainContent;
 }

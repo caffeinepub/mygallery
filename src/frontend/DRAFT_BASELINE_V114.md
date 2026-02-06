@@ -76,3 +76,17 @@ If rollback is needed in the future, use this baseline as the reference point:
 - **Date**: February 3, 2026
 - **State**: Verified 1:1 parity
 - **Documentation**: This file + RESTORE_LIVE_V114_CHECKLIST.md + V114_BASELINE_FRONTEND_FILES.txt
+
+---
+
+## Core Flows Smoke Test (Development Only)
+
+### Purpose
+Validate that the four core application flows remain functional after any code changes:
+1. Folder creation
+2. Mission creation
+3. File upload
+4. Link creation
+
+### How to Run
+In development mode, append `?runSmokeTest=true` to the URL after logging in and waiting for the actor to be ready:
