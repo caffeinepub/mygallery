@@ -1,39 +1,66 @@
 {
   "kind": "build_request",
-  "title": "Fix erroneous 'Unable to Open Link' message after returning from opened gallery link",
+  "title": "Adjust post-login splash screen to show only icon and appear on every app open while signed in",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the link-opening flow so that the \"Unable to Open Link\" fallback dialog is not shown when a gallery link actually opened successfully and the user returns to the app after closing the link page/tab.\n\nThis includes adjusting the logic in the gallery link click handler so the fallback UI is only shown when the browser truly blocked opening the link (and not as a side-effect of leaving/returning to the app). If needed, incorporate page visibility/focus handling and/or a short delay before showing the fallback to confirm the app did not successfully navigate/open an external page.",
+      "text": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Όταν ανεβάζω ένα link στο gallery και το ανοίξω και μετά το κλείσω ... εμφανίζεται ένα μύνημα unable to open link . Να μην εμφανίζεται το μήνυμα unable to open link μετά το κλείσιμο της σελίδας του link"
+          "After Internet Identity login, the splash should show only the icon (no 'welcome to gallery' text)"
         ]
       },
       "acceptanceCriteria": [
-        "Given a link item in the gallery, when the user taps it and the link opens in a new tab/window (or browser view) and the user later closes that page to return to the app, the app must not display the \"Unable to Open Link\" dialog/message.",
-        "Given a link item in the gallery, when the browser truly blocks opening the link (e.g., window.open returns null and the page does not become hidden/navigate), the app must still show the existing \"Unable to Open Link\" fallback dialog with retry/copy options.",
-        "Returning to the app after attempting to open a link must not automatically trigger the fallback dialog if it was not already shown at the time of the click.",
-        "No regression: link items still open externally when possible, and the existing fallback dialog remains usable for real failures."
+        "When the splash screen is visible, no welcome/title text is shown anywhere on the splash screen.",
+        "The animated gallery icon remains visible and centered on the splash screen."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "The splash should appear every time I enter the app while signed in."
+        ]
+      },
+      "acceptanceCriteria": [
+        "If the user is already authenticated and reloads/opens the app, the splash screen appears once before the Home page renders.",
+        "If the user is not authenticated, the app does not show this post-login splash and instead shows the unauthenticated welcome/login screen flow.",
+        "Within a single app load, the splash screen does not reappear again after it completes unless the page is reloaded/reopened or the user logs out and authenticates again."
       ]
     }
   ],
   "constraints": [
-    "Frontend immutable paths must not be modified: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui/*.",
-    "Keep the backend as a single Motoko actor; no backend changes are required for this bug fix."
+    "Frontend immutable paths must not be edited: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Keep all changes confined to the existing splash/intro behavior and UI; do not introduce new authentication providers or flows."
   ],
   "nonGoals": [
-    "Redesigning the gallery UI/visual theme.",
-    "Changing how links are stored or uploaded to the backend.",
-    "Adding new authentication methods or external integrations."
+    "Fixing upload/gallery display issues.",
+    "Fixing folders creation flows.",
+    "Fixing missions creation flows.",
+    "Changing the unauthenticated WelcomeIntroScreen content or layout beyond what is required for the splash behavior."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

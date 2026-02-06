@@ -3,7 +3,7 @@ import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 import { type backendInterface } from '../backend';
 import { createActorWithConfig } from '../config';
-import { getNormalizedAdminToken } from '../utils/urlParams';
+import { getSecretParameter } from '../utils/urlParams';
 import { mapActorInitError, type ErrorClassification } from '@/utils/actorInitializationMessaging';
 
 type ActorStatus = 'idle' | 'initializing' | 'ready' | 'unavailable' | 'error';
@@ -29,6 +29,17 @@ const MAX_RETRY_DELAY = 30000; // 30 seconds
 const BACKOFF_MULTIPLIER = 1.5;
 const MAX_RETRY_ATTEMPTS = 5; // Maximum number of retry attempts before final failure
 const MAX_RETRY_TIME = 60000; // Maximum total retry time (60 seconds) before final failure
+
+/**
+ * Helper function to get normalized admin token (treats whitespace-only as absent)
+ */
+function getNormalizedAdminToken(paramName: string): string | null {
+  const token = getSecretParameter(paramName);
+  if (!token || token.trim() === '') {
+    return null;
+  }
+  return token.trim();
+}
 
 export function ActorProvider({ children }: { children: React.ReactNode }) {
   const { identity, clear } = useInternetIdentity();

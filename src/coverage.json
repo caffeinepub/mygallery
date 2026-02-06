@@ -1,28 +1,35 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T15:03:01.419Z",
+  "generatedAt": "2026-02-06T16:14:45.405Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the link-opening flow so that the \"Unable to Open Link\" fallback dialog is not shown when a gallery link actually opened successfully and the user returns to the app after closing the link page/tab.\n\nThis includes adjusting the logic in the gallery link click handler so the fallback UI is only shown when the browser truly blocked opening the link (and not as a side-effect of leaving/returning to the app). If needed, incorporate page visibility/focus handling and/or a short delay before showing the fallback to confirm the app did not successfully navigate/open an external page.",
+        "summary": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/externalOpen.ts",
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FullScreenViewer.tsx"
+          "frontend/src/components/IntroScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/utils/externalOpen.ts",
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FullScreenViewer.tsx"
+          "frontend/src/components/IntroScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx"
         ]
       }
     ]
@@ -32,9 +39,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/FullScreenViewer.tsx",
-    "frontend/src/components/GallerySection.tsx",
-    "frontend/src/utils/externalOpen.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/IntroScreen.tsx",
+    "frontend/src/contexts/ActorContext.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

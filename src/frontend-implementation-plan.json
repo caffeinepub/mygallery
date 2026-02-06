@@ -1,32 +1,36 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix false 'Unable to Open Link' dialog after returning from successfully opened gallery links",
+  "title": "Post-login splash screen: icon-only UI and show on every authenticated app open",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Make external link opening detection resilient so the fallback dialog only appears on true browser-blocked opens, not after returning to the app.",
+      "summary": "Make the post-login splash/intro screen render only the animated gallery icon with no welcome/title text.",
       "acceptanceCriteria": [
-        "Given a link item in the gallery, when the user taps it and the link opens in a new tab/window (or browser view) and the user later closes that page to return to the app, the app must not display the \"Unable to Open Link\" dialog/message.",
-        "Given a link item in the gallery, when the browser truly blocks opening the link (e.g., window.open returns null and the page does not become hidden/navigate), the app must still show the existing \"Unable to Open Link\" fallback dialog with retry/copy options.",
-        "Returning to the app after attempting to open a link must not automatically trigger the fallback dialog if it was not already shown at the time of the click.",
-        "No regression: link items still open externally when possible, and the existing fallback dialog remains usable for real failures."
+        "When the splash screen is visible, no welcome/title text is shown anywhere on the splash screen.",
+        "The animated gallery icon remains visible and centered on the splash screen."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/externalOpen.ts",
+          "path": "frontend/src/components/IntroScreen.tsx",
           "operation": "modify",
-          "description": "Adjust the external-open helper(s) to support a more reliable success/failure signal for window.open, incorporating a short delay and page visibility/focus signals (e.g., visibilitychange/blur/pagehide) so the app can distinguish true popup blocking from a successful external navigation and subsequent return."
-        },
+          "description": "Remove the heading/welcome text and adjust layout so the splash displays only the centered AnimatedGalleryIcon animation while preserving existing timing/transition behavior."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Show the splash once per app load whenever an authenticated session/delegation already exists, without affecting the unauthenticated welcome/login flow.",
+      "acceptanceCriteria": [
+        "If the user is already authenticated and reloads/opens the app, the splash screen appears once before the Home page renders.",
+        "If the user is not authenticated, the app does not show this post-login splash and instead shows the unauthenticated welcome/login screen flow.",
+        "Within a single app load, the splash screen does not reappear again after it completes unless the page is reloaded/reopened or the user logs out and authenticates again."
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/components/GallerySection.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update the gallery link click handler to use the improved external-open detection and only open the existing LinkOpenFallbackDialog when the open is confirmed blocked (not when the user returns from a successfully opened link). Ensure no delayed fallback is triggered on visibility/focus restoration."
-        },
-        {
-          "path": "frontend/src/components/FullScreenViewer.tsx",
-          "operation": "modify",
-          "description": "Align the viewer's \"Open externally\" flow with the same improved external-open detection so its fallback dialog is also only shown for true blocked opens, preventing similar false-positive behavior."
+          "description": "Update AppContent splash-triggering logic to show IntroScreen once after Internet Identity finishes initializing whenever identity is present (including identities restored from an existing session), and reset the \"shown\" flag on logout so it can show again on the next login; keep changes confined to existing splash/intro behavior."
         }
       ]
     }

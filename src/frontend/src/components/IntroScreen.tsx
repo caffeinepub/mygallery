@@ -33,10 +33,8 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
         !isAnimating && isAnimating !== null ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      {/* Welcome Message */}
-      <div className="text-center space-y-8">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome to MyGallery</h1>
-        
+      {/* Icon-only splash screen */}
+      <div className="text-center">
         {/* Animation Stage */}
         <div
           className={`flex items-center justify-center transition-all duration-1000 ease-in-out ${

@@ -5,30 +5,38 @@ import IntroScreen from './components/IntroScreen';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { UploadProvider } from './contexts/UploadContext';
 import { ActorProvider } from './contexts/ActorContext';
+import { useBackendActor } from './contexts/ActorContext';
 
 function AppContent() {
-  const { identity, isInitializing, loginStatus } = useInternetIdentity();
+  const { identity, isInitializing } = useInternetIdentity();
+  const { signOut } = useBackendActor();
   const [showIntro, setShowIntro] = useState(false);
-  const [hasShownIntroThisSession, setHasShownIntroThisSession] = useState(false);
+  const [hasShownIntroThisLoad, setHasShownIntroThisLoad] = useState(false);
 
-  // Show intro screen only when user successfully logs in (not when delegation already exists)
+  // Show intro screen once per app load when authenticated (including restored sessions)
   useEffect(() => {
     // Only show intro if:
-    // 1. User has identity
-    // 2. Not initializing
-    // 3. Login status is 'success' (meaning they just completed login, not loaded from storage)
-    // 4. Haven't shown intro this session yet
-    if (identity && !isInitializing && loginStatus === 'success' && !hasShownIntroThisSession) {
+    // 1. User has identity (authenticated)
+    // 2. Not initializing (Internet Identity has finished loading)
+    // 3. Haven't shown intro this app load yet
+    if (identity && !isInitializing && !hasShownIntroThisLoad) {
       setShowIntro(true);
-      setHasShownIntroThisSession(true);
+      setHasShownIntroThisLoad(true);
     }
-  }, [identity, isInitializing, loginStatus, hasShownIntroThisSession]);
+  }, [identity, isInitializing, hasShownIntroThisLoad]);
 
   const handleIntroComplete = () => {
     setShowIntro(false);
   };
 
-  // Show intro screen after successful login
+  // Reset splash flag when identity is cleared (logout)
+  useEffect(() => {
+    if (!identity) {
+      setHasShownIntroThisLoad(false);
+    }
+  }, [identity]);
+
+  // Show intro screen after authentication
   if (showIntro) {
     return <IntroScreen onComplete={handleIntroComplete} />;
   }

@@ -1,24 +1,55 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "App with Internet Identity login and a gallery; needs fixes to upload/gallery display, folders and missions creation, and splash screen behavior after login.",
   "architectural_notes": [],
-  "known_issues": [
-    "Bug: After opening a link from the gallery and then closing the link page to return to the app, an 'unable to open link' message appears; it should not appear after closing the link page."
-  ],
+  "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-link-opening-flow-so-that-the-unable-to-open-link-fallback-dialog-is-not-shown-when-a-gallery-link-actually-opened-successfully-and-the-user-returns-to-the-app-after-closing-the-link-page-tab-this-includes-adjusting-the-logic-in-the-gallery-link-click-handler-so-the-fallback-ui-is-only-shown-when-the-browser-truly-blocked-opening-the-link-and-not-as-a-side-effect-of-leaving-returning-to-the-app-if-needed-incorporate-page-visibility-focus-handling-and-or-a-short-delay-before-showing-the-fallback-to-confirm-the-app-did-not-successfully-navigate-open-an-external-page",
-      "title": "Fix the link-opening flow so that the \"Unable to Open Link\" fallback dialog is not shown when a gallery link actually opened successfully and the user returns to the app after closing the link page/tab.\n\nThis includes adjusting the logic in the gallery link click handler so the fallback UI is only shown when the browser truly blocked opening the link (and not as a side-effect of leaving/returning to the app). If needed, incorporate page visibility/focus handling and/or a short delay before showing the fallback to confirm the app did not successfully navigate/open an external page.",
+      "id": "feature-update-the-splash-intro-screen-ui-so-it-displays-only-the-gallery-icon-animation-and-does-not-render-any-welcome-text-e-g-remove-the-welcome-to-mygallery-heading",
+      "title": "Update the splash/intro screen UI so it displays only the gallery icon animation and does not render any welcome text (e.g., remove the \"Welcome to MyGallery\" heading).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-change-the-splash-intro-triggering-logic-so-that-when-a-user-opens-refreshes-the-app-while-already-authenticated-existing-internet-identity-session-delegation-the-splash-screen-is-shown-once-on-that-app-load-before-navigating-to-the-main-home-page",
+      "title": "Change the splash/intro triggering logic so that when a user opens/refreshes the app while already authenticated (existing Internet Identity session/delegation), the splash screen is shown once on that app load before navigating to the main Home page.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix erroneous 'Unable to Open Link' message after returning from opened gallery link",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Fix upload so user-uploaded files and links appear in the gallery",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix folders feature so users can create folders",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Fix missions feature so users can create missions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "After Internet Identity login, splash should show only the icon (no 'welcome to gallery' text) and appear every time the user opens the app while signed in",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Adjust post-login splash screen to show only icon and appear on every app open while signed in",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
