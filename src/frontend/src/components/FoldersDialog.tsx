@@ -199,7 +199,7 @@ export default function FoldersDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Folder className="h-5 w-5" />

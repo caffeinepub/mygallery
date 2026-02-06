@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { Upload, Link as LinkIcon } from 'lucide-react';
 import { useUploadFiles, useCreateLink } from '@/hooks/useQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
@@ -18,7 +18,7 @@ export default function FileUploadSection() {
   const uploadFilesMutation = useUploadFiles();
   const createLinkMutation = useCreateLink();
   const { status } = useBackendActor();
-  const { startUpload, updateProgress, completeUpload } = useUpload();
+  const { startUpload, startLinkUpload, updateProgress, completeUpload } = useUpload();
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkName, setLinkName] = useState('');
@@ -38,7 +38,7 @@ export default function FileUploadSection() {
       if (!files || files.length === 0) return;
 
       if (status !== 'ready') {
-        toast.error('Please wait for the application to initialize');
+        toast.error('Please wait for the connection to be ready');
         return;
       }
 
@@ -72,7 +72,7 @@ export default function FileUploadSection() {
       e.preventDefault();
 
       if (status !== 'ready') {
-        toast.error('Please wait for the application to initialize');
+        toast.error('Please wait for the connection to be ready');
         return;
       }
 
@@ -87,27 +87,49 @@ export default function FileUploadSection() {
       }
 
       const displayName = linkName.trim() || new URL(linkUrl).hostname;
+      
+      // Start tracked link upload
+      const uploadId = startLinkUpload(displayName);
+      let currentProgress = 0;
 
       try {
+        // Simulate progress during the backend call
+        const progressInterval = setInterval(() => {
+          currentProgress = Math.min(currentProgress + 15, 90);
+          updateProgress(uploadId, displayName, currentProgress);
+        }, 200);
+
         await createLinkMutation.mutateAsync({
           name: displayName,
           url: linkUrl,
         });
+
+        clearInterval(progressInterval);
+        
+        // Complete to 100% before clearing
+        updateProgress(uploadId, displayName, 100);
+        
+        // Small delay to show 100% before clearing
+        setTimeout(() => {
+          completeUpload(uploadId);
+        }, 300);
 
         toast.success('Link added successfully');
         setLinkUrl('');
         setLinkName('');
         setShowLinkForm(false);
       } catch (error) {
+        completeUpload(uploadId);
         console.error('Create link error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to add link. Please try again.';
         toast.error(errorMessage);
       }
     },
-    [linkUrl, linkName, status, createLinkMutation]
+    [linkUrl, linkName, status, createLinkMutation, startLinkUpload, updateProgress, completeUpload]
   );
 
   const isDisabled = status !== 'ready';
+  const statusText = status === 'initializing' ? 'Connecting...' : status === 'unavailable' ? 'Reconnecting...' : 'Loading...';
 
   const triggerFileInput = () => {
     if (!isDisabled) {
@@ -131,7 +153,7 @@ export default function FileUploadSection() {
                 <Upload className={`w-12 h-12 mb-3 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
                 <p className={`mb-2 text-sm ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
                   <span className="font-semibold">
-                    {isDisabled ? 'Loading...' : 'Click to upload'}
+                    {isDisabled ? statusText : 'Click to upload'}
                   </span>
                   {!isDisabled && ' or paste link'}
                 </p>
@@ -176,7 +198,7 @@ export default function FileUploadSection() {
                 setLinkUrl('');
                 setLinkName('');
               }}
-              disabled={isDisabled}
+              disabled={isDisabled || createLinkMutation.isPending}
             >
               Cancel
             </Button>
@@ -185,12 +207,12 @@ export default function FileUploadSection() {
             <Label htmlFor="link-url">URL *</Label>
             <Input
               id="link-url"
-              type="text"
+              type="url"
               placeholder="https://example.com"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
-              disabled={isDisabled}
-              className="w-full"
+              disabled={isDisabled || createLinkMutation.isPending}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -198,17 +220,16 @@ export default function FileUploadSection() {
             <Input
               id="link-name"
               type="text"
-              placeholder="My favorite website"
+              placeholder="My Link"
               value={linkName}
               onChange={(e) => setLinkName(e.target.value)}
-              disabled={isDisabled}
-              className="w-full"
+              disabled={isDisabled || createLinkMutation.isPending}
             />
           </div>
           <Button
             type="submit"
-            disabled={isDisabled || createLinkMutation.isPending}
             className="w-full"
+            disabled={isDisabled || createLinkMutation.isPending}
           >
             {createLinkMutation.isPending ? 'Adding...' : 'Add Link'}
           </Button>

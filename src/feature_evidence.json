@@ -2,12 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-replace-the-existing-blue-suitcase-icon-with-a-minimal-purple-target-mission-icon-in-all-requested-ui-locations-1-the-top-left-icon-on-the-yellow-page-of-the-app-and-2-the-icon-shown-in-the-welcome-intro-onboarding-screen-implement-the-icon-using-the-existing-missions-purple-theme-e-g-tailwind-text-missions-accent-so-it-reads-as-a-mission-related-app-element",
-      "featureTitle": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
+      "featureId": "feature-fix-the-indefinite-loading-state-by-ensuring-the-app-never-stays-on-the-loading-screen-forever-when-internet-identity-initialization-does-not-complete-e-g-stuck-in-isinitializing-add-a-deterministic-timeout-and-a-clear-fallback-ui-that-lets-the-user-proceed-to-the-welcome-login-screen-and-or-retry-initialization-e-g-reload-the-page",
+      "featureTitle": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
       "files": [
-        "frontend/src/components/MissionTargetIcon.tsx",
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/components/WelcomeIntroScreen.tsx"
+        "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
+        "frontend/src/hooks/useInitializationTimeout.ts",
+        "frontend/src/pages/HomePage.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -20,6 +20,30 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-actor-backend-availability-explicit-in-the-ui-during-startup-so-the-app-is-usable-while-initialization-retries-are-happening-when-authenticated-but-the-backend-actor-is-not-ready-e-g-initializing-or-unavailable-render-the-main-layout-but-clearly-indicate-connecting-and-disable-actions-that-require-the-actor-until-it-becomes-ready-once-status-ready-all-core-actions-upload-list-gallery-folders-missions-become-enabled-without-requiring-a-manual-refresh",
+      "featureTitle": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
+      "files": [
+        "frontend/src/components/ConnectivityIndicator.tsx",
+        "frontend/src/components/FileUploadSection.tsx",
+        "frontend/src/components/GallerySection.tsx",
+        "frontend/src/components/Header.tsx",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

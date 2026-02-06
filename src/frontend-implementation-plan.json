@@ -1,32 +1,72 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Swap suitcase branding icon to minimal purple mission target across onboarding and missions UI",
+  "title": "Unblock startup loading and make initialization/connection states usable",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace the existing suitcase icon with a minimal purple target/mission icon on the welcome intro/onboarding screen and the yellow page’s top-left icon area, using the existing missions accent theme token for consistent light/dark legibility.",
+      "summary": "Add a deterministic timeout for Internet Identity initialization so users never get stuck on a spinner-only Loading screen, and provide an English fallback UI with clear actions to proceed or retry.",
       "acceptanceCriteria": [
-        "On the welcome intro screen, the current icon is replaced by a minimal target icon rendered in purple (missions accent).",
-        "On the yellow page’s top-left area, the current suitcase icon is replaced by the same minimal purple target icon.",
-        "No other UI text is changed as part of this request.",
-        "The replacement uses existing styling/theme tokens (missions accent) and remains legible in both light and dark mode."
+        "If `useInternetIdentity().isInitializing` remains true longer than a defined threshold (e.g., 8–15 seconds), the UI exits the spinner-only screen and shows a usable fallback screen with clear actions (Retry / Reload / Sign in).",
+        "Users can always reach a screen where they can click the login button; they are not trapped on a spinner-only view.",
+        "User-facing copy for the fallback and actions is in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionTargetIcon.tsx",
+          "path": "frontend/src/hooks/useInitializationTimeout.ts",
           "operation": "create",
-          "description": "Create a small shared React component that renders a minimal target/mission icon (e.g., lucide-react Target) styled with the existing missions purple theme token (Tailwind text-missions-accent) and supports a configurable size/className so it can be reused in multiple UI locations."
+          "description": "Create a small React hook that starts a timer when a boolean \"initializing\" flag is true and exposes a timed-out state after a fixed threshold (e.g., 10s), with a way to reset/acknowledge the timeout so the user can proceed. This must not modify or depend on changes to useInternetIdentity.ts."
         },
         {
-          "path": "frontend/src/components/WelcomeIntroScreen.tsx",
-          "operation": "modify",
-          "description": "Replace the current onboarding icon usage with the shared MissionTargetIcon component so the welcome intro/onboarding screen shows the minimal purple target icon using missions accent styling; keep all existing copy/text unchanged."
+          "path": "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
+          "operation": "create",
+          "description": "Create a dedicated fallback screen shown when Internet Identity initialization exceeds the timeout, with English copy and clear actions: proceed to a screen with a login button, retry initialization (UI-level reset), and reload the page. Use shadcn-ui primitives (e.g., Button/Card) for consistent styling. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Update the top-left icon in the missions (yellow-themed) header area to use the same shared MissionTargetIcon component to ensure the suitcase icon (if present) is replaced consistently and the icon color uses text-missions-accent for light/dark legibility."
+          "description": "Replace the current spinner-only \"Loading...\" fallback for unauthenticated startup with logic that: (1) shows the normal WelcomeIntroScreen when not authenticated even if initialization timed out, and (2) when initialization is taking too long, renders the new InternetIdentityInitFallbackScreen instead of an indefinite spinner. Wire the fallback screen actions to allow reaching a screen containing the existing login button (WelcomeIntroScreen) and provide retry/reload behavior."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Ensure top-level app rendering never traps users behind a spinner-only experience: keep intro-after-login behavior intact, but make sure AppContent/HomePage can render the timeout fallback and/or WelcomeIntroScreen even if Internet Identity remains stuck in isInitializing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Expose backend actor connection state during startup without blocking the whole UI; render the main shell while connecting, consistently disable actor-dependent actions, and auto-enable core flows once the actor becomes ready.",
+      "acceptanceCriteria": [
+        "When authenticated and `status !== 'ready'`, the app does not show a full-screen blocking loader; it shows the normal shell and a clear connection state indicator, and interactive features that require the actor are disabled consistently.",
+        "When actor status transitions to `ready`, disabled controls become enabled automatically and queries load data without user intervention.",
+        "When actor initialization ultimately fails (final error state), the existing error UI is shown and provides working Retry and Sign out actions."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ConnectivityIndicator.tsx",
+          "operation": "modify",
+          "description": "Implement a compact UI indicator that reflects actor connection state (e.g., \"Connecting…\" for initializing/unavailable) and can be embedded in the header/shell. Keep copy in English and avoid blocking layout. Use shadcn-ui primitives if available (e.g., Badge/Tooltip) for consistent styling. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Wire ConnectivityIndicator into the authenticated app header area so users can always see when the app is connecting/retrying (status initializing/unavailable) while keeping the normal shell visible. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/FileUploadSection.tsx",
+          "operation": "modify",
+          "description": "Align disabled/connecting copy with REQ-2: when status is not ready, keep upload/link creation controls disabled consistently and show wording that matches the new connection state indicator (e.g., \"Connecting…\" / \"Reconnecting…\"), while preserving existing behavior when ready."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Prevent misleading empty/error states while the actor is not ready by rendering a clear in-shell \"Connecting…\" state (instead of \"No files\") when authenticated but status !== ready, and by disabling gallery actions that require the actor until status becomes ready. Once status transitions to ready, ensure the component naturally renders fetched data without requiring refresh."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Update the authenticated rendering branch to explicitly handle actor statuses: keep the main shell visible for initializing/unavailable with a connection indicator present, ensure actor-dependent affordances (folders/missions entry points and other key actions) remain disabled until ready, and preserve the existing final error state rendering (ActorInitErrorState) with working Retry and Sign out actions."
         }
       ]
     }

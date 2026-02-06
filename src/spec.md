@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Replace the existing blue suitcase icon with a minimal purple mission target icon in the specified UI locations.
+**Goal:** Prevent the app from getting stuck on an indefinite “Loading...” screen during Internet Identity startup, and make startup/actor readiness states usable and clear.
 
 **Planned changes:**
-- Update the top-left icon on the yellow page to use a minimal target/mission icon styled with the existing missions purple accent token (e.g., `text-missions-accent`).
-- Update the icon shown on the welcome intro/onboarding screen to use the same minimal purple target/mission icon and styling.
-- Ensure the new icon remains legible in both light and dark mode without changing any UI text.
+- Add a deterministic timeout for Internet Identity initialization; if initialization exceeds the threshold, replace the spinner-only view with a fallback screen in English that lets users retry/reload and reach the welcome/login screen.
+- Update startup UI so that when a user is authenticated but the backend actor is not ready, the main app shell renders with a clear “Connecting…” indicator and disables actor-dependent actions until readiness.
+- Ensure actor-dependent controls automatically enable and data loads when actor status transitions to `ready`, without requiring a manual refresh; show existing error UI with working Retry and Sign out if initialization ultimately fails.
 
-**User-visible outcome:** Users see a consistent minimal purple target/mission icon (instead of the blue suitcase) on both the yellow page’s top-left area and the welcome intro/onboarding screen.
+**User-visible outcome:** Users are no longer trapped on a perpetual loading screen; they can always reach login and use the app shell during startup, see connection status, and core actions become available automatically once the backend actor is ready.

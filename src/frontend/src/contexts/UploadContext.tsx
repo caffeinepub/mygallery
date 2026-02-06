@@ -1,22 +1,23 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-interface FileProgress {
-  fileName: string;
+interface UploadItem {
+  displayName: string;
   progress: number;
 }
 
 interface UploadBatch {
   id: string;
-  files: FileProgress[];
+  items: UploadItem[];
 }
 
 interface UploadContextType {
   uploadBatches: UploadBatch[];
   totalProgress: number;
   isUploading: boolean;
-  fileCount: number;
+  itemCount: number;
   startUpload: (files: File[]) => string;
-  updateProgress: (uploadId: string, fileName: string, progress: number) => void;
+  startLinkUpload: (linkName: string) => string;
+  updateProgress: (uploadId: string, itemName: string, progress: number) => void;
   completeUpload: (uploadId: string) => void;
 }
 
@@ -29,20 +30,30 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newBatch: UploadBatch = {
       id: uploadId,
-      files: files.map(file => ({ fileName: file.name, progress: 0 })),
+      items: files.map(file => ({ displayName: file.name, progress: 0 })),
     };
     setUploadBatches(prev => [...prev, newBatch]);
     return uploadId;
   }, []);
 
-  const updateProgress = useCallback((uploadId: string, fileName: string, progress: number) => {
+  const startLinkUpload = useCallback((linkName: string): string => {
+    const uploadId = `link-upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newBatch: UploadBatch = {
+      id: uploadId,
+      items: [{ displayName: linkName, progress: 0 }],
+    };
+    setUploadBatches(prev => [...prev, newBatch]);
+    return uploadId;
+  }, []);
+
+  const updateProgress = useCallback((uploadId: string, itemName: string, progress: number) => {
     setUploadBatches(prev =>
       prev.map(batch =>
         batch.id === uploadId
           ? {
               ...batch,
-              files: batch.files.map(file =>
-                file.fileName === fileName ? { ...file, progress } : file
+              items: batch.items.map(item =>
+                item.displayName === itemName ? { ...item, progress } : item
               ),
             }
           : batch
@@ -54,13 +65,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setUploadBatches(prev => prev.filter(batch => batch.id !== uploadId));
   }, []);
 
-  const allFiles = uploadBatches.flatMap(batch => batch.files);
-  const totalProgress = allFiles.length > 0
-    ? Math.round(allFiles.reduce((sum, file) => sum + file.progress, 0) / allFiles.length)
+  const allItems = uploadBatches.flatMap(batch => batch.items);
+  const totalProgress = allItems.length > 0
+    ? Math.round(allItems.reduce((sum, item) => sum + item.progress, 0) / allItems.length)
     : 0;
 
   const isUploading = uploadBatches.length > 0;
-  const fileCount = allFiles.length;
+  const itemCount = allItems.length;
 
   return (
     <UploadContext.Provider
@@ -68,8 +79,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         uploadBatches,
         totalProgress,
         isUploading,
-        fileCount,
+        itemCount,
         startUpload,
+        startLinkUpload,
         updateProgress,
         completeUpload,
       }}

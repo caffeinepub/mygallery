@@ -1,28 +1,48 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T13:15:02.818Z",
+  "generatedAt": "2026-02-06T15:17:41.684Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
+        "summary": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/MissionTargetIcon.tsx",
-          "frontend/src/components/WelcomeIntroScreen.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/src/hooks/useInitializationTimeout.ts",
+          "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/MissionTargetIcon.tsx",
-          "frontend/src/components/WelcomeIntroScreen.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/src/hooks/useInitializationTimeout.ts",
+          "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/ConnectivityIndicator.tsx",
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/ConnectivityIndicator.tsx",
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/pages/HomePage.tsx"
         ]
       }
     ]
@@ -32,9 +52,14 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/MissionTargetIcon.tsx",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/WelcomeIntroScreen.tsx",
+    "frontend/src/components/ConnectivityIndicator.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/components/InternetIdentityInitFallbackScreen.tsx",
+    "frontend/src/contexts/ActorContext.tsx",
+    "frontend/src/hooks/useInitializationTimeout.ts",
+    "frontend/src/pages/HomePage.tsx",
     "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",

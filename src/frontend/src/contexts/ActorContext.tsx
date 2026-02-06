@@ -3,7 +3,7 @@ import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 import { type backendInterface } from '../backend';
 import { createActorWithConfig } from '../config';
-import { getNormalizedAdminToken } from '../utils/urlParams';
+import { getPersistedUrlParameter } from '../utils/urlParams';
 import { mapActorInitError, type ErrorClassification } from '@/utils/actorInitializationMessaging';
 
 type ActorStatus = 'idle' | 'initializing' | 'ready' | 'unavailable' | 'error';
@@ -108,9 +108,9 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
 
       const newActor = await createActorWithConfig(actorOptions);
       
-      // Only call _initializeAccessControlWithSecret if a normalized non-empty token is present
-      const adminToken = getNormalizedAdminToken('caffeineAdminToken');
-      if (adminToken) {
+      // Only call _initializeAccessControlWithSecret if a non-empty token is present
+      const adminToken = getPersistedUrlParameter('caffeineAdminToken');
+      if (adminToken && adminToken.trim()) {
         await newActor._initializeAccessControlWithSecret(adminToken);
       }
       

@@ -7,7 +7,6 @@ import Time "mo:core/Time";
 import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
-
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
@@ -16,7 +15,7 @@ import MixinAuthorization "authorization/MixinAuthorization";
 
 
 
- actor {
+actor {
   include MixinStorage();
 
   public type FileMetadata = {

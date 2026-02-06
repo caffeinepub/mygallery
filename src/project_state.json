@@ -3,27 +3,30 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "App gets stuck on loading screen; needs fix so app becomes usable and all functions are immediately available/working."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-replace-the-existing-blue-suitcase-icon-with-a-minimal-purple-target-mission-icon-in-all-requested-ui-locations-1-the-top-left-icon-on-the-yellow-page-of-the-app-and-2-the-icon-shown-in-the-welcome-intro-onboarding-screen-implement-the-icon-using-the-existing-missions-purple-theme-e-g-tailwind-text-missions-accent-so-it-reads-as-a-mission-related-app-element",
-      "title": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
+      "id": "feature-fix-the-indefinite-loading-state-by-ensuring-the-app-never-stays-on-the-loading-screen-forever-when-internet-identity-initialization-does-not-complete-e-g-stuck-in-isinitializing-add-a-deterministic-timeout-and-a-clear-fallback-ui-that-lets-the-user-proceed-to-the-welcome-login-screen-and-or-retry-initialization-e-g-reload-the-page",
+      "title": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    }
-  ],
-  "new_feature_requests": [
+    },
     {
-      "id": "AR-1",
-      "summary": "Replace the blue suitcase icon (top-left on the yellow page and in the welcome intro) with a minimal purple target/mission icon to better convey mission creation.",
-      "reqIds": [],
-      "status": "pending"
+      "id": "feature-make-actor-backend-availability-explicit-in-the-ui-during-startup-so-the-app-is-usable-while-initialization-retries-are-happening-when-authenticated-but-the-backend-actor-is-not-ready-e-g-initializing-or-unavailable-render-the-main-layout-but-clearly-indicate-connecting-and-disable-actions-that-require-the-actor-until-it-becomes-ready-once-status-ready-all-core-actions-upload-list-gallery-folders-missions-become-enabled-without-requiring-a-manual-refresh",
+      "title": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
     }
   ],
-  "projectName": "Replace blue suitcase icon with minimal purple mission target icon",
+  "new_feature_requests": [],
+  "projectName": "Fix app stuck on loading so the UI becomes usable and core flows are available",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

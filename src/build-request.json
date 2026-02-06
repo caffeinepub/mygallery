@@ -1,47 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Replace blue suitcase icon with minimal purple mission target icon",
-  "priority": "normal",
+  "title": "Fix app stuck on loading so the UI becomes usable and core flows are available",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Replace the existing “blue suitcase” icon with a minimal purple target/mission icon in all requested UI locations: (1) the top-left icon on the yellow page of the app, and (2) the icon shown in the welcome intro/onboarding screen. Implement the icon using the existing missions purple theme (e.g., Tailwind `text-missions-accent`) so it reads as a mission-related app element.",
+      "text": "Fix the indefinite loading state by ensuring the app never stays on the \"Loading...\" screen forever when Internet Identity initialization does not complete (e.g., stuck in `isInitializing`). Add a deterministic timeout and a clear fallback UI that lets the user proceed to the welcome/login screen and/or retry initialization (e.g., reload the page).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "να αντικατασταθει το εικονιδιο της μπλε βαλιτσας που βρισκεται στην κετρινκη σελιδα της εφαρμογης πανω αριστερα και στο welome intro της εφαρμογης με ενα εικονιδιο minimal mission. Το εικονιδιο να ειναι ενας στοχος χρωματος μωβ για να καταλαβαινει ο χρηστης οτι η εφαρμογη εχει να κανει με δημιουργια mission"
+          "Διόρθωσε το bug που κάνει την εγαρμογη να φορτώνει / loading ώστε να είναι λειτουργικό το app και όλες οι λειτουργίες να είναι άμεσα διαθέσιμες και λειτουργικές"
         ]
       },
       "acceptanceCriteria": [
-        "On the welcome intro screen, the current icon is replaced by a minimal target icon rendered in purple (missions accent).",
-        "On the yellow page’s top-left area, the current suitcase icon is replaced by the same minimal purple target icon.",
-        "No other UI text is changed as part of this request.",
-        "The replacement uses existing styling/theme tokens (missions accent) and remains legible in both light and dark mode."
+        "If `useInternetIdentity().isInitializing` remains true longer than a defined threshold (e.g., 8–15 seconds), the UI exits the spinner-only screen and shows a usable fallback screen with clear actions (Retry / Reload / Sign in).",
+        "Users can always reach a screen where they can click the login button; they are not trapped on a spinner-only view.",
+        "User-facing copy for the fallback and actions is in English."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Make actor/backend availability explicit in the UI during startup so the app is usable while initialization/retries are happening: when authenticated but the backend actor is not `ready` (e.g., `initializing` or `unavailable`), render the main layout but clearly indicate \"Connecting…\" and disable actions that require the actor until it becomes ready; once `status === 'ready'`, all core actions (upload, list gallery, folders, missions) become enabled without requiring a manual refresh.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "...ώστε να είναι λειτουργικό το app και όλες οι λειτουργίες να είναι άμεσα διαθέσιμες και λειτουργικές"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When authenticated and `status !== 'ready'`, the app does not show a full-screen blocking loader; it shows the normal shell and a clear connection state indicator, and interactive features that require the actor are disabled consistently.",
+        "When actor status transitions to `ready`, disabled controls become enabled automatically and queries load data without user intervention.",
+        "When actor initialization ultimately fails (final error state), the existing error UI is shown and provides working Retry and Sign out actions."
       ]
     }
   ],
   "constraints": [
-    "Frontend files in `frontend/src/components/ui` and paths listed in `frontend.immutablePaths` must not be edited."
+    "Do not modify files under `frontend/src/hooks/useInternetIdentity.ts` or other paths listed in `frontend.immutablePaths` in SYSTEM_CONTEXT.",
+    "Keep the backend architecture as a single Motoko actor (no new backend services)."
   ],
   "nonGoals": [
-    "Do not change mission functionality, data models, or backend logic.",
-    "Do not redesign the onboarding copy or flows beyond swapping the requested icon(s)."
+    "Do not implement new product features unrelated to the loading/initialization bug.",
+    "Do not address the separate, already-tracked issue about the erroneous \"Unable to Open Link\" fallback dialog when returning from an external link (handled by an existing feature)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

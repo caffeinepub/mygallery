@@ -1,9 +1,10 @@
 import { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
 import { useGetFilesNotInFolder, useGetFilesInFolder, useDeleteFiles } from '@/hooks/useQueries';
+import { useBackendActor } from '@/contexts/ActorContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink } from 'lucide-react';
+import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink, Loader2 } from 'lucide-react';
 import FullScreenViewer from './FullScreenViewer';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
@@ -201,6 +202,7 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
   const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
   const [currentLinkUrl, setCurrentLinkUrl] = useState('');
 
+  const { status } = useBackendActor();
   const mainGalleryQuery = useGetFilesNotInFolder();
   const folderGalleryQuery = useGetFilesInFolder(selectedFolder?.id ?? null);
   const deleteFiles = useDeleteFiles();
@@ -230,7 +232,7 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
 
       // Handle link items
       if (file.link) {
-        const opened = openExternally(file.link);
+        const opened = await openExternally(file.link);
         if (!opened) {
           setCurrentLinkUrl(file.link);
           setLinkFallbackOpen(true);
@@ -281,7 +283,7 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
 
     const selectedFileObjects = files.filter(f => selectedFiles.has(f.id));
 
-    if (!navigator.share) {
+    if (!('share' in navigator)) {
       console.log('Web Share API not supported');
       return;
     }
@@ -347,9 +349,9 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
     exitSelectionMode();
   }, [exitSelectionMode]);
 
-  const handleRetryOpenLink = useCallback(() => {
+  const handleRetryOpenLink = useCallback(async () => {
     if (currentLinkUrl) {
-      openExternally(currentLinkUrl);
+      await openExternally(currentLinkUrl);
     }
   }, [currentLinkUrl]);
 
@@ -368,6 +370,33 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
       exitSelectionMode();
     }
   }, [selectionMode, selectedFiles.size, exitSelectionMode]);
+
+  // Show connecting state when actor is not ready
+  if (status !== 'ready' && status !== 'error') {
+    return (
+      <section>
+        <div className="mb-6">
+          {selectedFolder && (
+            <Button variant="ghost" onClick={onBackToMain} className="mb-4" disabled>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to collection
+            </Button>
+          )}
+          <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h2>
+          <p className="mt-1 text-muted-foreground">{subtitle}</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+            <p className="text-lg font-medium">
+              {status === 'initializing' ? 'Connecting...' : 'Reconnecting...'}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Please wait</p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -489,7 +518,60 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
         ))}
       </div>
 
-      {viewableFiles.length > 0 && !selectionMode && (
+      {selectionMode && selectedFiles.size > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg z-40">
+          <div className="max-w-[430px] mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                onClick={handleSendToFolder}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <FolderInput className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Folder</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleMoveToMission}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Target className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Mission</span>
+              </Button>
+              {'share' in navigator && (
+                <Button
+                  variant="secondary"
+                  onClick={handleShare}
+                  disabled={isSharing}
+                  className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+                >
+                  <Share2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate">Share</span>
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                onClick={handleDownload}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Download className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Download</span>
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteFiles.isPending}
+                className="flex-1 min-w-[100px] max-w-[140px] h-9 text-xs font-medium"
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">Delete</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewableFiles.length > 0 && (
         <FullScreenViewer
           files={viewableFiles}
           initialIndex={selectedIndex}
@@ -498,40 +580,10 @@ export default function GallerySection({ selectedFolder, onBackToMain }: Gallery
         />
       )}
 
-      {selectionMode && selectedFiles.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border shadow-2xl z-50 safe-area-inset-bottom">
-          <div className="w-full px-3 py-3 sm:px-4 sm:py-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-3 max-w-4xl mx-auto">
-              <Button variant="outline" onClick={handleSendToFolder} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
-                <FolderInput className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Move to Folder</span>
-              </Button>
-              <Button variant="outline" onClick={handleMoveToMission} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
-                <Target className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Move to mission</span>
-              </Button>
-              <Button variant="outline" onClick={handleShare} disabled={isSharing} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
-                <Share2 className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{isSharing ? 'Sharing...' : 'Share'}</span>
-              </Button>
-              <Button variant="outline" onClick={handleDownload} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
-                <Download className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Download</span>
-              </Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={deleteFiles.isPending} className="w-full sm:flex-1 sm:max-w-xs h-11 sm:h-10 text-sm font-medium">
-                <Trash2 className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Delete</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <SendToFolderDialog
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
         fileIds={Array.from(selectedFiles)}
-        currentFolderId={selectedFolder?.id}
         onMoveComplete={handleMoveComplete}
       />
 

@@ -111,7 +111,7 @@ export default function MissionEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[90dvh] sm:h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[95vw] w-full h-[90dvh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="sr-only">Create New Mission</DialogTitle>
           <div className="space-y-3">

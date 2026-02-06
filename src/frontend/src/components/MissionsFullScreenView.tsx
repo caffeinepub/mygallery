@@ -21,7 +21,6 @@ import MissionEditorDialog from './MissionEditorDialog';
 import MissionDetailFullScreenView from './MissionDetailFullScreenView';
 import { useIsCoarsePointer } from '@/hooks/useIsCoarsePointer';
 import SwipeActionsRow from './SwipeActionsRow';
-import MissionTargetIcon from './MissionTargetIcon';
 
 interface MissionsFullScreenViewProps {
   onClose: () => void;
@@ -189,7 +188,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
-              <MissionTargetIcon size={24} />
+              <Target className="h-6 w-6 text-missions-accent" />
               <h1 className="text-2xl font-bold">Missions</h1>
             </div>
           </div>

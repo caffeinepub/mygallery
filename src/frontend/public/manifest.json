@@ -12,66 +12,67 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/assets/generated/mygallery-icon-48.dim_48x48.png",
+      "src": "/assets/generated/mygallery-mission-icon-48.dim_48x48.png",
       "sizes": "48x48",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-72.dim_72x72.png",
+      "src": "/assets/generated/mygallery-mission-icon-72.dim_72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-96.dim_96x96.png",
+      "src": "/assets/generated/mygallery-mission-icon-96.dim_96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-128.dim_128x128.png",
+      "src": "/assets/generated/mygallery-mission-icon-128.dim_128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-144.dim_144x144.png",
+      "src": "/assets/generated/mygallery-mission-icon-144.dim_144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-152.dim_152x152.png",
+      "src": "/assets/generated/mygallery-mission-icon-152.dim_152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-192.dim_192x192.png",
+      "src": "/assets/generated/mygallery-mission-icon-192.dim_192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-256.dim_256x256.png",
+      "src": "/assets/generated/mygallery-mission-icon-256.dim_256x256.png",
       "sizes": "256x256",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-384.dim_384x384.png",
+      "src": "/assets/generated/mygallery-mission-icon-384.dim_384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/generated/mygallery-icon-512.dim_512x512.png",
+      "src": "/assets/generated/mygallery-mission-icon-512.dim_512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "categories": ["productivity", "utilities", "photo"],
-  "screenshots": []
+  "screenshots": [],
+  "prefer_related_applications": false
 }

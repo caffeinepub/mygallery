@@ -1,5 +1,4 @@
 import LoginButton from '@/components/LoginButton';
-import MissionTargetIcon from '@/components/MissionTargetIcon';
 
 export default function WelcomeIntroScreen() {
   return (
@@ -8,7 +7,101 @@ export default function WelcomeIntroScreen() {
         <div className="text-center space-y-8 max-w-2xl">
           <div className="flex justify-center">
             <div className="rounded-full bg-missions-bg p-6">
-              <MissionTargetIcon size={64} />
+              <svg
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16"
+              >
+                {/* Outer target ring */}
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  className="fill-none stroke-missions-accent"
+                  strokeWidth="2"
+                />
+                
+                {/* Middle target ring */}
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="20"
+                  className="fill-none stroke-missions-accent"
+                  strokeWidth="2.5"
+                />
+                
+                {/* Inner target ring */}
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="12"
+                  className="fill-none stroke-missions-accent"
+                  strokeWidth="3"
+                />
+                
+                {/* Center bullseye */}
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="6"
+                  className="fill-missions-accent"
+                />
+                
+                {/* Crosshair vertical line */}
+                <line
+                  x1="32"
+                  y1="4"
+                  x2="32"
+                  y2="60"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                
+                {/* Crosshair horizontal line */}
+                <line
+                  x1="4"
+                  y1="32"
+                  x2="60"
+                  y2="32"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                
+                {/* Corner markers - top left */}
+                <path
+                  d="M 8 8 L 8 14 M 8 8 L 14 8"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                
+                {/* Corner markers - top right */}
+                <path
+                  d="M 56 8 L 56 14 M 56 8 L 50 8"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                
+                {/* Corner markers - bottom left */}
+                <path
+                  d="M 8 56 L 8 50 M 8 56 L 14 56"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                
+                {/* Corner markers - bottom right */}
+                <path
+                  d="M 56 56 L 56 50 M 56 56 L 50 56"
+                  className="stroke-missions-accent"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
           </div>
           

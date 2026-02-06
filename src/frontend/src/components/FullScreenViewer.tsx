@@ -122,9 +122,9 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     setMoveToMissionOpen(true);
   };
 
-  const handleOpenExternally = () => {
+  const handleOpenExternally = async () => {
     if (!currentFile || !currentFile.blob) return;
-    const success = openExternally(currentFile.blob.getDirectURL());
+    const success = await openExternally(currentFile.blob.getDirectURL());
     if (!success) {
       setFallbackDialogOpen(true);
     }
@@ -139,9 +139,9 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     }
   };
 
-  const handleFallbackRetry = () => {
+  const handleFallbackRetry = async () => {
     if (!currentFile || !currentFile.blob) return;
-    openExternally(currentFile.blob.getDirectURL());
+    await openExternally(currentFile.blob.getDirectURL());
   };
 
   const handleMoveComplete = () => {

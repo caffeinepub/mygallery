@@ -1,23 +1,71 @@
 /**
  * Attempts to open a URL in a new tab/window
- * Returns true if successful, false if blocked or failed
+ * Returns a promise that resolves to true if successful, false if blocked
+ * 
+ * Uses page visibility detection to distinguish between:
+ * - True popup blocking (window.open returns null, page stays visible)
+ * - Successful navigation (page loses focus/visibility)
  */
-export function openExternally(url: string): boolean {
-  try {
-    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-    
-    // Check if the window was blocked (null or undefined means blocked)
-    if (!newWindow) {
-      return false;
+export function openExternally(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      let resolved = false;
+      let visibilityChanged = false;
+      let blurOccurred = false;
+
+      // Track if page loses visibility or focus (indicates successful navigation)
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          visibilityChanged = true;
+        }
+      };
+
+      const handleBlur = () => {
+        blurOccurred = true;
+      };
+
+      // Add listeners
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', handleBlur);
+      window.addEventListener('pagehide', handleVisibilityChange);
+
+      // Cleanup function
+      const cleanup = () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('pagehide', handleVisibilityChange);
+      };
+
+      // Attempt to open the window
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+
+      // If window.open returns null, it's likely blocked
+      if (!newWindow) {
+        // Wait a short time to see if visibility changes anyway (some browsers delay the event)
+        setTimeout(() => {
+          cleanup();
+          if (!resolved) {
+            resolved = true;
+            // If page lost visibility/focus, consider it successful despite null return
+            resolve(visibilityChanged || blurOccurred);
+          }
+        }, 150);
+      } else {
+        // Window reference returned - likely successful
+        // Wait briefly to confirm (some browsers may still block)
+        setTimeout(() => {
+          cleanup();
+          if (!resolved) {
+            resolved = true;
+            resolve(true);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Failed to open external window:', error);
+      resolve(false);
     }
-    
-    // Consider the open successful if window.open returned a window reference
-    // Do not check newWindow.closed as it can be unreliable immediately after opening
-    return true;
-  } catch (error) {
-    console.error('Failed to open external window:', error);
-    return false;
-  }
+  });
 }
 
 /**

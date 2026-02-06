@@ -2,7 +2,7 @@ import { useUpload } from '@/contexts/UploadContext';
 import { Progress } from '@/components/ui/progress';
 
 export default function UnifiedProgressBar() {
-  const { isUploading, totalProgress, fileCount } = useUpload();
+  const { isUploading, totalProgress, itemCount } = useUpload();
 
   if (!isUploading) return null;
 
@@ -14,7 +14,7 @@ export default function UnifiedProgressBar() {
             <Progress value={totalProgress} className="h-2" />
           </div>
           <div className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-            {totalProgress}% • {fileCount} file{fileCount !== 1 ? 's' : ''}
+            {totalProgress}% • {itemCount} item{itemCount !== 1 ? 's' : ''}
           </div>
         </div>
       </div>
