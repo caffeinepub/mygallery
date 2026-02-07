@@ -1,37 +1,52 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-07T09:04:47.747Z",
-  "summary": "The diff implements a BigInt-safe task comparison utility and updates mission autosave change-detection to avoid JSON.stringify on BigInt-containing tasks (likely addressing the freeze/blank-screen). However, it also includes additional autosave behavioral changes (save-queuing and mission-switch resets) and updates to project metadata/summary files that were not requested.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-07T17:08:27.442Z",
+  "summary": "Diff implements cache updates for mission creation (new mission inserted into missions list cache, sorted newest-first) and adds mission detail hydration/autosave scaffolding plus optimistic task toggle logic. However, based on the truncated diff summary, reliable persisted task-toggle behavior (including failure rollback/resync and list/detail consistency after navigation) is not fully evidenced, and some added diagnostics/migration tooling appears beyond the explicit request.",
+  "missing_requirements": [
     {
-      "description": "Autosave behavior enhancements beyond BigInt-safe comparison: queuing pending updates while a save is in progress and resetting autosave internal state on missionId change.",
-      "reason": "REQ-2 asks only to make change-detection BigInt-safe (avoid JSON.stringify on BigInt). The added queuing/mission-switch reset logic changes autosave behavior beyond comparison logic, and the BuildRequest constraints ask to avoid changing app functionality beyond the freeze/blank-screen fix.",
+      "id": "REQ-2",
+      "requirement": "If the backend update fails when toggling a task, the UI must not silently drift; it must revert the optimistic toggle or clearly re-sync from backend so progress and completion match persisted state.",
+      "reason": "MissionDetailFullScreenView shows optimistic UI updates for toggling tasks, but the diff excerpt is truncated before any error/rollback/resync logic is shown, and the hook implementation of useToggleTaskCompletion is not included; therefore persistence failure-handling cannot be verified from provided evidence.",
       "evidence": [
-        "frontend/src/hooks/useMissionAutosave.ts"
+        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated)",
+        "frontend/src/hooks/useMissionsQueries.ts (truncated; useToggleTaskCompletion implementation not shown)"
       ]
     },
     {
-      "description": "Updates to repository metadata/state tracking files (project_state.json) marking requests as pending and adding project notes.",
-      "reason": "Not requested by the BuildRequest; unrelated to the runtime bug fix requirements.",
+      "id": "REQ-2",
+      "requirement": "After toggling tasks, navigating back to \"Your Missions\" must show correct completed task counts and progress for that mission, and re-opening the same mission must show the persisted completion state without rehydrating from stale cached data.",
+      "reason": "The diff summary does not show any explicit React Query cache updates/invalidations for task-toggle mutations that would keep the missions list and mission detail caches consistent across navigation. The relevant mutation hook (useToggleTaskCompletion) is referenced but not shown in the diff excerpt, so this requirement cannot be confirmed implemented.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "description": "Modification to frontend-file-summaries.txt containing broad component feature descriptions unrelated to the targeted bug fix.",
-      "reason": "Not requested by the BuildRequest and not necessary to implement REQ-1/REQ-2; also suggests unrelated changes (though this is only a summary file).",
-      "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/components/MissionDetailFullScreenView.tsx (imports useToggleTaskCompletion; truncated before completion handling)",
+        "frontend/src/hooks/useMissionsQueries.ts (truncated; no visible toggle mutation cache update/invalidation logic)"
       ]
     }
   ],
-  "confidence": 0.66,
+  "hallucinated_features": [
+    {
+      "description": "Added backend state migration module and wired actor initialization to run migrations.",
+      "reason": "BuildRequest focuses on fixing mission list refresh after creation and task completion/progress persistence behavior. A generalized backend migration framework/module is not explicitly requested in REQ-1 or REQ-2 (even if it may support the fix).",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo (\"import Migration \\\"migration\\\";\" and \"(with migration = Migration.run)\")"
+      ]
+    },
+    {
+      "description": "Added React Query diagnostic/logging utility imports in mission hooks.",
+      "reason": "The BuildRequest does not request adding diagnostics tooling; it requests functional fixes to mission creation refresh and task persistence.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (imports diagnoseMissionCache, logDeleteMutationLifecycle, formatActorError)"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useMissionAutosave.ts",
-    "frontend/src/utils/missionTaskCompare.ts",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json"
   ]
 }

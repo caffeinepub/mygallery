@@ -1,68 +1,60 @@
 {
   "kind": "build_request",
-  "title": "Fix freeze/blank-screen bug when completing all tasks in a mission",
-  "priority": "normal",
+  "title": "Fix Mission creation list refresh and task completion/progress persistence",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the bug where the app freezes and/or renders a blank screen when the user marks all tasks as completed inside a mission (including rapid toggling). The fix must not change any other app behavior or features.",
+      "text": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-12"
         ],
         "quotes": [
-          "Διόρθωσε το bug που κάνει την εφαρμογή να κολαει και να δείχνει καινή οθωνη όταν μαρκάρω όλα τα task σε mission Διόρθωσε το . Μην αλλαξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+          "When the user creates a new mission and presses the create mission button, the mission should appear in \"Your missions\" immediately without errors."
         ]
       },
       "acceptanceCriteria": [
-        "From Mission detail view, toggling tasks to complete (including completing the last remaining incomplete task) does not freeze the UI and does not show a blank/empty screen.",
-        "No runtime exception occurs during task toggling and autosave checks (specifically ensure there is no error related to serializing BigInt values).",
-        "Task completion state still persists as before: after closing/reopening the mission, all toggled completion states remain correct.",
-        "No other UI/feature behavior changes outside this bug fix (missions list, mission editor, folders, files, uploads)."
+        "From Missions list, open the mission creation dialog, create a mission, and close the dialog: the new mission is visible immediately in \"Your Missions\".",
+        "No runtime error is thrown during or after creation (including inside React Query mutation callbacks).",
+        "The new mission row shows the correct title, task count, and progress based on its tasks.",
+        "The list order remains consistent with existing sorting behavior (newest missions first, based on created timestamp)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update mission autosave change-detection logic so it can safely compare mission tasks that include BigInt identifiers without using JSON.stringify directly on BigInt-containing objects.",
-      "target": "frontend",
+      "text": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-12"
         ],
         "quotes": [
-          "Διόρθωσε το bug που κάνει την εφαρμογή να κολαει και να δείχνει καινή οθωνη όταν μαρκάρω όλα τα task σε mission"
+          "When the user enters one of their missions and clicks a task, the tasks should remain clicked with immediate progress bar updates, and the clicked tasks should remain as-is with correct progress during all navigation in the app; when returning to missions they should see completed tasks and progress bar correctly on each mission."
         ]
       },
       "acceptanceCriteria": [
-        "Autosave change detection and flush logic correctly determines whether tasks changed when taskId fields are BigInt.",
-        "The autosave hook does not throw when tasks are updated (toggle, add, remove) and remains debounced as before.",
-        "Marking tasks complete/incomplete continues to trigger background persistence without blocking the UI."
+        "In Mission detail view, toggling a task updates the checkbox UI and the mission progress bar immediately.",
+        "After toggling tasks, navigating back to \"Your Missions\" shows the correct completed task counts and progress bar for that mission.",
+        "Re-opening the same mission shows the same tasks still completed (persisted), with the progress bar matching the persisted completion state.",
+        "Task completion state is sourced consistently (no UI regressions where the mission detail re-hydrates from stale cached data and visually \"undoes\" recent toggles).",
+        "If the backend update fails, the UI does not silently drift: the app either reverts the optimistic toggle to the previous state or clearly re-syncs from backend so that mission progress and task completion are consistent with persisted state."
       ]
     }
   ],
   "constraints": [
-    "Do not change any app functionality beyond fixing the freeze/blank-screen bug related to marking all tasks in a mission.",
-    "Do not edit any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or any files in frontend/src/components/ui.",
-    "Maintain single-actor backend architecture; backend changes are not required unless strictly necessary to fix the described bug."
+    "Do not change anything outside the Mission feature flow (mission list, mission creation, mission detail, task toggling, mission progress calculations).",
+    "Do not modify any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
+    "Keep the existing single-actor backend architecture; do not introduce additional canisters or external storage."
   ],
   "nonGoals": [
-    "UI redesign or new UX flows.",
-    "Adding new mission features (e.g., bulk-complete button, new progress behavior).",
-    "Changing backend mission/task schemas or adding new persistence mechanisms."
+    "No redesign or feature expansion of Missions beyond fixing creation/list refresh and task completion/progress persistence.",
+    "No changes to authentication, folders, file management, uploads, links, or other non-mission features.",
+    "No new real-time syncing or websocket-based updates."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

@@ -63,6 +63,11 @@ export interface Task {
   'taskId' : bigint,
 }
 export interface TaskStatusUpdate { 'completed' : boolean, 'taskId' : bigint }
+export interface TaskView {
+  'task' : string,
+  'completed' : boolean,
+  'taskId' : bigint,
+}
 export type Time = bigint;
 export interface UploadResponse { 'id' : string }
 export interface UserProfile { 'name' : string }
@@ -128,6 +133,7 @@ export interface _SERVICE {
     [SortDirection, bigint, bigint],
     PaginatedFiles
   >,
+  'getTasks' : ActorMethod<[bigint], Array<TaskView>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listMissions' : ActorMethod<[], Array<Mission>>,
@@ -139,7 +145,7 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'toggleTaskCompletionStatus' : ActorMethod<
     [bigint, TaskStatusUpdate],
-    Mission
+    undefined
   >,
   'updateMission' : ActorMethod<[bigint, string, Array<Task>], undefined>,
   'uploadFile' : ActorMethod<

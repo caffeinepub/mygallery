@@ -1,34 +1,48 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Focus on fixing the Mission feature only: newly created missions must appear immediately in 'Your missions', and task completion/progress must persist and display correctly across navigation.",
   "architectural_notes": [
-    "When fixing the bug, do not change any other app functionality or behavior (minimal, targeted fix only)."
+    "Scope constraint: apply changes only to the Mission feature; do not modify other app functionality."
   ],
   "known_issues": [
-    "Bug: App freezes and shows a blank screen when marking all tasks in a mission."
+    "Mission creation does not reliably/instantly reflect in 'Your missions' list.",
+    "Task completion state and mission progress bar do not persist/update correctly across navigation."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-bug-where-the-app-freezes-and-or-renders-a-blank-screen-when-the-user-marks-all-tasks-as-completed-inside-a-mission-including-rapid-toggling-the-fix-must-not-change-any-other-app-behavior-or-features",
-      "title": "Fix the bug where the app freezes and/or renders a blank screen when the user marks all tasks as completed inside a mission (including rapid toggling). The fix must not change any other app behavior or features.",
+      "id": "feature-ensure-that-after-a-user-creates-a-new-mission-presses-the-create-mission-button-the-newly-created-mission-appears-immediately-in-the-your-missions-list-without-errors-and-without-requiring-the-user-to-manually-refresh-or-reopen-the-missions-view",
+      "title": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-mission-autosave-change-detection-logic-so-it-can-safely-compare-mission-tasks-that-include-bigint-identifiers-without-using-json-stringify-directly-on-bigint-containing-objects",
-      "title": "Update mission autosave change-detection logic so it can safely compare mission tasks that include BigInt identifiers without using JSON.stringify directly on BigInt-containing objects.",
+      "id": "feature-make-task-completion-toggles-within-a-mission-persist-reliably-when-a-user-checks-unchecks-a-task-in-a-mission-detail-view-the-checkbox-state-must-remain-correct-with-immediate-progress-bar-updates-the-completion-state-and-progress-must-remain-correct-throughout-navigation-within-the-app-and-when-returning-to-the-missions-list-or-re-opening-the-same-mission",
+      "title": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix freeze/blank-screen bug when completing all tasks in a mission",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "After tapping 'Create mission', the newly created mission should appear immediately in the user's 'Your missions' list without errors.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "When a user toggles tasks inside a mission, task completion state must persist and the mission progress bar must update immediately and remain correct across navigation; returning to missions list should show correct completed tasks and progress per mission.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix Mission creation list refresh and task completion/progress persistence",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

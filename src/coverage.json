@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-07T09:04:47.750Z",
+  "generatedAt": "2026-02-07T17:08:27.445Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,37 +12,46 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the bug where the app freezes and/or renders a blank screen when the user marks all tasks as completed inside a mission (including rapid toggling). The fix must not change any other app behavior or features.",
+        "summary": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useMissionAutosave.ts"
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/components/MissionEditorDialog.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useMissionAutosave.ts"
+          "frontend/src/hooks/useMissionsQueries.ts"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Update mission autosave change-detection logic so it can safely compare mission tasks that include BigInt identifiers without using JSON.stringify directly on BigInt-containing objects.",
+        "summary": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/missionTaskCompare.ts",
-          "frontend/src/hooks/useMissionAutosave.ts"
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/utils/missionTaskCompare.ts",
-          "frontend/src/hooks/useMissionAutosave.ts"
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useMissionAutosave.ts",
-    "frontend/src/utils/missionTaskCompare.ts",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -1,39 +1,98 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
-import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 
 module {
-  type Mission = {
-    id : Nat;
-    title : Text;
-    created : Int;
-    owner : Principal;
-    tasks : [Task];
-  };
+  type MissionId = Nat;
+  type TaskId = Nat;
 
-  type Task = {
-    taskId : Nat;
+  type OldTask = {
+    taskId : TaskId;
     task : Text;
     completed : Bool;
   };
 
-  type Missions = {
-    owner : Principal;
-    data : Map.Map<Nat, Mission>;
+  type OldMission = {
+    id : MissionId;
+    title : Text;
+    created : Int;
+    owner : Principal.Principal;
+    tasks : [OldTask];
+  };
+
+  type OldMissions = {
+    owner : Principal.Principal;
+    data : Map.Map<MissionId, OldMission>;
+  };
+
+  type OldPersistentMissions = {
+    nextMissionId : Nat;
+    map : Map.Map<Principal.Principal, OldMissions>;
   };
 
   type OldActor = {
-    persistentMissions : Map.Map<Principal, Missions>;
-    nextMissionId : Nat;
-    // Other state...
+    persistentMissions : OldPersistentMissions;
+    // ignore other fields
   };
 
-  public func run(old : OldActor) : { persistentMissions : { nextMissionId : Nat; map : Map.Map<Principal, Missions> } } {
+  type Task = {
+    taskId : TaskId;
+    task : Text;
+    completed : Bool;
+  };
+
+  type Mission = {
+    id : MissionId;
+    title : Text;
+    created : Int;
+    owner : Principal.Principal;
+    tasks : [Task];
+  };
+
+  type Missions = {
+    owner : Principal.Principal;
+    data : Map.Map<MissionId, Mission>;
+  };
+
+  type PersistentMissions = {
+    nextMissionId : Nat;
+    map : Map.Map<Principal.Principal, Missions>;
+  };
+
+  type NewActor = {
+    persistentMissions : PersistentMissions;
+  };
+
+  public func run(old : OldActor) : NewActor {
     let persistentMissions = {
-      map = old.persistentMissions;
-      nextMissionId = old.nextMissionId;
+      nextMissionId = old.persistentMissions.nextMissionId;
+      map = old.persistentMissions.map.map<Principal.Principal, OldMissions, Missions>(
+        func(_owner, oldMissions) {
+          {
+            owner = oldMissions.owner;
+            data = oldMissions.data.map<MissionId, OldMission, Mission>(
+              func(_missionId, oldMission) {
+                {
+                  id = oldMission.id;
+                  title = oldMission.title;
+                  created = oldMission.created;
+                  owner = oldMission.owner;
+                  tasks = oldMission.tasks.map(
+                    func(oldTask) {
+                      {
+                        oldTask with
+                        completed = oldTask.completed : Bool;
+                      };
+                    }
+                  );
+                };
+              }
+            );
+          };
+        }
+      );
     };
+
     {
       persistentMissions;
     };

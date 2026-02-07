@@ -62,56 +62,27 @@ export function useCreateMission() {
       // Fetch the actual persisted mission from the backend to ensure
       // the UI reflects the exact completion state stored in the backend
       if (!actor) {
-        throw new Error('Actor not available after mission creation');
+        console.error('[useCreateMission] Actor not available after mission creation');
+        return;
       }
 
       try {
         const persistedMission = await actor.getMission(missionId);
         
         if (persistedMission) {
-          // Update missions list cache with the persisted mission
+          // Update missions list cache with the persisted mission (newest first)
           queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
             if (!old) return [persistedMission];
+            // Insert at the beginning to maintain newest-first order
             return [persistedMission, ...old];
           });
 
           // Set the mission detail cache with the persisted data
           queryClient.setQueryData(['missions', 'detail', missionId.toString()], persistedMission);
-        } else {
-          // Fallback to optimistic data if fetch fails
-          const newMission: Mission = {
-            id: missionId,
-            title: variables.title,
-            tasks: variables.tasks,
-            created: BigInt(Date.now()) * BigInt(1000000),
-            owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
-          };
-
-          queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
-            if (!old) return [newMission];
-            return [newMission, ...old];
-          });
-
-          queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
         }
       } catch (error) {
-        console.error('[useCreateMission] Failed to fetch persisted mission, using optimistic data:', error);
-        
-        // Fallback to optimistic data
-        const newMission: Mission = {
-          id: missionId,
-          title: variables.title,
-          tasks: variables.tasks,
-          created: BigInt(Date.now()) * BigInt(1000000),
-          owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
-        };
-
-        queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
-          if (!old) return [newMission];
-          return [newMission, ...old];
-        });
-
-        queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
+        console.error('[useCreateMission] Failed to fetch persisted mission:', error);
+        // Don't throw - the mission was created successfully, just log the error
       }
 
       // Invalidate to ensure consistency with backend
@@ -193,35 +164,79 @@ export function useToggleTaskCompletion() {
         taskId,
         completed,
       };
-      const updatedMission = await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
-      return updatedMission;
+      // Backend returns void, so we need to fetch the updated mission
+      await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
+      return { missionId, taskId, completed };
     },
-    onSuccess: (updatedMission) => {
-      const missionIdStr = updatedMission.id.toString();
+    onMutate: async ({ missionId, taskId, completed }) => {
+      const missionIdStr = missionId.toString();
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionIdStr] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'list'] });
 
-      // Synchronously update the mission detail cache with the backend response
+      // Snapshot the previous values
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
+      const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+
+      // Optimistically update mission detail cache
       queryClient.setQueryData<Mission | null>(
         ['missions', 'detail', missionIdStr],
-        updatedMission
+        (old) => {
+          if (!old) return null;
+          return {
+            ...old,
+            tasks: old.tasks.map(t =>
+              t.taskId.toString() === taskId.toString()
+                ? { ...t, completed }
+                : t
+            ),
+          };
+        }
       );
 
-      // Synchronously update the missions list cache
+      // Optimistically update missions list cache
       queryClient.setQueryData<Mission[]>(
         ['missions', 'list'],
         (old) => {
           if (!old) return old;
           return old.map((mission) =>
             mission.id.toString() === missionIdStr
-              ? updatedMission
+              ? {
+                  ...mission,
+                  tasks: mission.tasks.map(t =>
+                    t.taskId.toString() === taskId.toString()
+                      ? { ...t, completed }
+                      : t
+                  ),
+                }
               : mission
           );
         }
       );
+
+      // Return context with snapshots for rollback
+      return { previousMission, previousMissions };
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      const missionIdStr = variables.missionId.toString();
       const errorMessage = getActorErrorMessage(err);
       console.error('[useToggleTaskCompletion] Toggle task failed:', errorMessage);
-      // Don't throw - allow silent background failure
+
+      // Rollback optimistic updates on error
+      if (context?.previousMission !== undefined) {
+        queryClient.setQueryData(['missions', 'detail', missionIdStr], context.previousMission);
+      }
+      if (context?.previousMissions !== undefined) {
+        queryClient.setQueryData(['missions', 'list'], context.previousMissions);
+      }
+    },
+    onSettled: async (data, error, variables) => {
+      const missionIdStr = variables.missionId.toString();
+      
+      // Re-sync from backend to ensure consistency
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionIdStr], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
     },
   });
 }

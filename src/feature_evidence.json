@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-bug-where-the-app-freezes-and-or-renders-a-blank-screen-when-the-user-marks-all-tasks-as-completed-inside-a-mission-including-rapid-toggling-the-fix-must-not-change-any-other-app-behavior-or-features",
-      "featureTitle": "Fix the bug where the app freezes and/or renders a blank screen when the user marks all tasks as completed inside a mission (including rapid toggling). The fix must not change any other app behavior or features.",
+      "featureId": "feature-ensure-that-after-a-user-creates-a-new-mission-presses-the-create-mission-button-the-newly-created-mission-appears-immediately-in-the-your-missions-list-without-errors-and-without-requiring-the-user-to-manually-refresh-or-reopen-the-missions-view",
+      "featureTitle": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
       "files": [
-        "frontend/src/hooks/useMissionAutosave.ts"
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,11 +22,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-mission-autosave-change-detection-logic-so-it-can-safely-compare-mission-tasks-that-include-bigint-identifiers-without-using-json-stringify-directly-on-bigint-containing-objects",
-      "featureTitle": "Update mission autosave change-detection logic so it can safely compare mission tasks that include BigInt identifiers without using JSON.stringify directly on BigInt-containing objects.",
+      "featureId": "feature-make-task-completion-toggles-within-a-mission-persist-reliably-when-a-user-checks-unchecks-a-task-in-a-mission-detail-view-the-checkbox-state-must-remain-correct-with-immediate-progress-bar-updates-the-completion-state-and-progress-must-remain-correct-throughout-navigation-within-the-app-and-when-returning-to-the-missions-list-or-re-opening-the-same-mission",
+      "featureTitle": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
       "files": [
-        "frontend/src/hooks/useMissionAutosave.ts",
-        "frontend/src/utils/missionTaskCompare.ts"
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",

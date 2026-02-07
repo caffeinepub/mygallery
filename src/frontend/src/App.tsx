@@ -9,7 +9,6 @@ import { useBackendActor } from './contexts/ActorContext';
 
 function AppContent() {
   const { identity, isInitializing } = useInternetIdentity();
-  const { signOut } = useBackendActor();
   const [showIntro, setShowIntro] = useState(false);
   const [hasShownIntroThisLoad, setHasShownIntroThisLoad] = useState(false);
 

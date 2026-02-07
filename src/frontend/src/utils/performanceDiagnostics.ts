@@ -13,14 +13,13 @@ interface TimingEntry {
 }
 
 class PerformanceDiagnostics {
-  private enabled: boolean = false;
+  private enabled: boolean | null = null;
   private timings: Map<string, TimingEntry> = new Map();
 
-  constructor() {
-    this.checkEnabled();
-  }
-
+  // Lazy initialization - only check enabled state when first needed
   private checkEnabled() {
+    if (this.enabled !== null) return;
+
     // Check localStorage
     const localStorageFlag = localStorage.getItem('perf_diagnostics') === 'true';
     
@@ -36,11 +35,12 @@ class PerformanceDiagnostics {
   }
 
   isEnabled(): boolean {
-    return this.enabled;
+    this.checkEnabled();
+    return this.enabled === true;
   }
 
   startTiming(operationId: string, operation: string, metadata?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.isEnabled()) return;
 
     this.timings.set(operationId, {
       operation,
@@ -50,7 +50,7 @@ class PerformanceDiagnostics {
   }
 
   endTiming(operationId: string, additionalMetadata?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.isEnabled()) return;
 
     const entry = this.timings.get(operationId);
     if (!entry) return;
@@ -71,7 +71,7 @@ class PerformanceDiagnostics {
   }
 
   logOperation(operation: string, duration: number, metadata?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.isEnabled()) return;
 
     console.log(
       `[PerfDiag] ${operation} took ${duration.toFixed(2)}ms`,

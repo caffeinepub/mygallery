@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the freeze/blank-screen issue when completing tasks in a mission, including rapid toggling, without changing any other app behavior.
+**Goal:** Fix mission creation so the Missions list refreshes immediately, and ensure task completion/progress state persists correctly across navigation and reloads.
 
 **Planned changes:**
-- Fix mission task toggle flow so completing the last remaining task (and rapid toggling) does not freeze the UI or render a blank screen.
-- Update mission autosave change-detection logic to safely compare tasks that include BigInt identifiers without using `JSON.stringify` on BigInt-containing objects.
-- Ensure task completion persistence and autosave behavior remain the same (debounced, background persistence, no runtime exceptions).
+- Update the mission creation flow so the newly created mission is reflected immediately in the “Your Missions” list (including correct title, task count, and progress) without requiring a manual refresh.
+- Eliminate runtime errors during/after mission creation (including within mutation callbacks) and keep list ordering consistent with existing sorting (newest first by created timestamp).
+- Make task completion toggles in mission detail persist reliably, with immediate checkbox + progress bar updates, and consistent state when returning to the missions list or re-opening a mission.
+- Ensure UI state stays consistent with persisted backend state on failures (avoid silent drift by reverting optimistic updates or re-syncing from backend).
 
-**User-visible outcome:** In the Mission detail view, users can mark tasks complete/incomplete (including completing all tasks) without the app freezing or showing a blank screen, and task completion states continue to persist as before.
+**User-visible outcome:** After creating a mission, it appears instantly in “Your Missions” without errors; task checkmarks and mission progress update immediately and remain correct when navigating around the app, returning to the missions list, or reopening the mission.

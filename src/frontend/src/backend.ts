@@ -150,6 +150,11 @@ export interface DiagnosticResult {
     moveFilesToFolderTime: bigint;
     uploadTime: bigint;
 }
+export interface TaskView {
+    task: string;
+    completed: boolean;
+    taskId: bigint;
+}
 export interface Folder {
     id: bigint;
     owner: Principal;
@@ -202,6 +207,7 @@ export interface backendInterface {
     getLinksForUser(user: Principal): Promise<Array<FileMetadata>>;
     getMission(missionId: bigint): Promise<Mission | null>;
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
+    getTasks(missionId: bigint): Promise<Array<TaskView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;
@@ -211,7 +217,7 @@ export interface backendInterface {
     removeFromFolder(fileId: bigint): Promise<void>;
     renameFolder(folderId: bigint, newName: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    toggleTaskCompletionStatus(missionId: bigint, taskStatusUpdate: TaskStatusUpdate): Promise<Mission>;
+    toggleTaskCompletionStatus(missionId: bigint, taskStatusUpdate: TaskStatusUpdate): Promise<void>;
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;
     uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob, missionId: bigint | null): Promise<UploadResponse>;
 }
@@ -624,6 +630,20 @@ export class Backend implements backendInterface {
             return from_candid_PaginatedFiles_n21(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getTasks(arg0: bigint): Promise<Array<TaskView>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTasks(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTasks(arg0);
+            return result;
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -750,7 +770,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async toggleTaskCompletionStatus(arg0: bigint, arg1: TaskStatusUpdate): Promise<Mission> {
+    async toggleTaskCompletionStatus(arg0: bigint, arg1: TaskStatusUpdate): Promise<void> {
         if (this.processError) {
             try {
                 const result = await this.actor.toggleTaskCompletionStatus(arg0, arg1);

@@ -1,12 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FileUploadSection from '@/components/FileUploadSection';
 import GallerySection from '@/components/GallerySection';
 import FoldersButton from '@/components/FoldersButton';
-import FoldersFullScreenView from '@/components/FoldersFullScreenView';
 import MissionsButton from '@/components/MissionsButton';
-import MissionsFullScreenView from '@/components/MissionsFullScreenView';
 import DecorativeBottomLine from '@/components/DecorativeBottomLine';
 import ActorInitErrorState from '@/components/ActorInitErrorState';
 import WelcomeIntroScreen from '@/components/WelcomeIntroScreen';
@@ -15,9 +13,11 @@ import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
 import { useListMissions } from '@/hooks/useMissionsQueries';
-import { runCoreFlowsSmokeTest, formatSmokeTestResults } from '@/utils/smokeTestCoreFlows';
-import { toast } from 'sonner';
 import type { Folder } from '@/backend';
+
+// Lazy-load full-screen views for better startup performance
+const FoldersFullScreenView = lazy(() => import('@/components/FoldersFullScreenView'));
+const MissionsFullScreenView = lazy(() => import('@/components/MissionsFullScreenView'));
 
 export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
@@ -38,6 +38,7 @@ export default function HomePage() {
   const isFinalFailure = status === 'error' && error;
 
   // Dev-only smoke test trigger (only in development mode with URL param)
+  // Dynamically import smoke test utilities to avoid bundling them in production
   useEffect(() => {
     if (import.meta.env.DEV && isActorReady && actor) {
       const urlParams = new URLSearchParams(window.location.search);
@@ -47,26 +48,34 @@ export default function HomePage() {
         const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
         window.history.replaceState({}, '', newUrl);
         
-        // Run smoke test
+        // Dynamically import smoke test utilities and toast
         console.log('[Dev] Running core flows smoke test...');
-        toast.info('Running smoke test...');
         
-        runCoreFlowsSmokeTest(actor)
-          .then((results) => {
-            const formatted = formatSmokeTestResults(results);
-            console.log(formatted);
-            
-            const allPassed = results.every(r => r.success);
-            if (allPassed) {
-              toast.success('Smoke test passed! Check console for details.');
-            } else {
-              toast.error('Smoke test failed! Check console for details.');
-            }
-          })
-          .catch((error) => {
-            console.error('[Dev] Smoke test error:', error);
-            toast.error('Smoke test error! Check console for details.');
-          });
+        Promise.all([
+          import('@/utils/smokeTestCoreFlows'),
+          import('sonner')
+        ]).then(([{ runCoreFlowsSmokeTest, formatSmokeTestResults }, { toast }]) => {
+          toast.info('Running smoke test...');
+          
+          runCoreFlowsSmokeTest(actor)
+            .then((results) => {
+              const formatted = formatSmokeTestResults(results);
+              console.log(formatted);
+              
+              const allPassed = results.every(r => r.success);
+              if (allPassed) {
+                toast.success('Smoke test passed! Check console for details.');
+              } else {
+                toast.error('Smoke test failed! Check console for details.');
+              }
+            })
+            .catch((error) => {
+              console.error('[Dev] Smoke test error:', error);
+              toast.error('Smoke test error! Check console for details.');
+            });
+        }).catch((error) => {
+          console.error('[Dev] Failed to load smoke test utilities:', error);
+        });
       }
     }
   }, [isActorReady, actor]);
@@ -124,48 +133,61 @@ export default function HomePage() {
     if (isAuthenticated) {
       return (
         <MobileOnlyLayout>
-          {isMissionsOpen ? (
-            <MissionsFullScreenView onClose={() => setIsMissionsOpen(false)} />
-          ) : isFoldersOpen ? (
-            <FoldersFullScreenView 
-              onClose={() => setIsFoldersOpen(false)} 
-              onSelectFolder={handleFolderSelect}
-            />
-          ) : (
+          <Suspense fallback={
             <div className="flex min-h-screen flex-col">
               <Header />
-              <main className="flex-1 container mx-auto px-4 py-8 pb-32">
-                {selectedFolder === null ? (
-                  <>
-                    <FileUploadSection />
+              <main className="flex flex-1 items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+                  <p className="text-muted-foreground">Loading...</p>
+                </div>
+              </main>
+              <Footer />
+            </div>
+          }>
+            {isMissionsOpen ? (
+              <MissionsFullScreenView onClose={() => setIsMissionsOpen(false)} />
+            ) : isFoldersOpen ? (
+              <FoldersFullScreenView 
+                onClose={() => setIsFoldersOpen(false)} 
+                onSelectFolder={handleFolderSelect}
+              />
+            ) : (
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1 container mx-auto px-4 py-8 pb-32">
+                  {selectedFolder === null ? (
+                    <>
+                      <FileUploadSection />
+                      <GallerySection 
+                        selectedFolder={null} 
+                        onBackToMain={handleBackToMain}
+                        onBulkSelectionChange={handleBulkSelectionChange}
+                      />
+                    </>
+                  ) : (
                     <GallerySection 
-                      selectedFolder={null} 
+                      selectedFolder={selectedFolder} 
                       onBackToMain={handleBackToMain}
                       onBulkSelectionChange={handleBulkSelectionChange}
                     />
-                  </>
-                ) : (
-                  <GallerySection 
-                    selectedFolder={selectedFolder} 
-                    onBackToMain={handleBackToMain}
-                    onBulkSelectionChange={handleBulkSelectionChange}
-                  />
-                )}
-              </main>
-              <DecorativeBottomLine />
-              <FoldersButton 
-                onClick={() => setIsFoldersOpen(true)} 
-                disabled={!isActorReady}
-                behindOverlay={isBulkSelectionActive}
-              />
-              <MissionsButton 
-                onClick={() => setIsMissionsOpen(true)} 
-                disabled={!isActorReady}
-                behindOverlay={isBulkSelectionActive}
-              />
-              <Footer />
-            </div>
-          )}
+                  )}
+                </main>
+                <DecorativeBottomLine />
+                <FoldersButton 
+                  onClick={() => setIsFoldersOpen(true)} 
+                  disabled={!isActorReady}
+                  behindOverlay={isBulkSelectionActive}
+                />
+                <MissionsButton 
+                  onClick={() => setIsMissionsOpen(true)} 
+                  disabled={!isActorReady}
+                  behindOverlay={isBulkSelectionActive}
+                />
+                <Footer />
+              </div>
+            )}
+          </Suspense>
         </MobileOnlyLayout>
       );
     }

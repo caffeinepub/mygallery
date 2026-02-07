@@ -93,23 +93,23 @@ export default function MissionDetailFullScreenView({
   };
 
   const handleToggleTask = (taskId: bigint) => {
+    // Find the task to get its current completion state
+    const currentTask = tasks.find(t => t.taskId.toString() === taskId.toString());
+    if (!currentTask) return;
+
+    const newCompletedState = !currentTask.completed;
+
     // Optimistically update UI immediately
     const updatedTasks = tasks.map(t => 
-      t.taskId.toString() === taskId.toString() ? { ...t, completed: !t.completed } : t
+      t.taskId.toString() === taskId.toString() ? { ...t, completed: newCompletedState } : t
     );
     setTasks(updatedTasks);
-    
-    // Find the task to get its new completion state
-    const toggledTask = updatedTasks.find(t => t.taskId.toString() === taskId.toString());
-    if (!toggledTask) return;
 
-    // Fire background save without awaiting - this ensures immediate persistence
-    // without blocking the UI or navigation
-    // Error handling is done in the mutation's onError callback
+    // Fire background save - mutation handles optimistic updates and rollback
     toggleTaskMutation.mutate({
       missionId,
       taskId,
-      completed: toggledTask.completed,
+      completed: newCompletedState,
     });
   };
 
@@ -171,13 +171,37 @@ export default function MissionDetailFullScreenView({
   const isCompleted = tasks.length > 0 && progress === 100;
 
   // Filter files with blobs for the viewer (exclude links)
-  const viewableFiles = attachedFiles?.filter(f => f.blob) || [];
+  const filesWithBlobs = (attachedFiles || []).filter(f => f.blob);
+
+  if (isLoadingMission) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
+          <p className="mt-2 text-muted-foreground">Loading mission...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedMission) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Mission not found</p>
+          <Button onClick={onBack} className="mt-4">
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-3">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Button
               variant="ghost"
@@ -189,48 +213,41 @@ export default function MissionDetailFullScreenView({
             </Button>
             {isEditingTitle ? (
               <Input
-                placeholder="Mission title..."
                 value={missionTitle}
                 onChange={(e) => setMissionTitle(e.target.value)}
-                disabled={!isActorReady}
-                className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-2 flex-1"
-                autoFocus
                 onBlur={() => setIsEditingTitle(false)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    e.preventDefault();
-                    setIsEditingTitle(false);
-                  }
-                  if (e.key === 'Escape') {
-                    setMissionTitle(selectedMission?.title || '');
                     setIsEditingTitle(false);
                   }
                 }}
+                disabled={!isActorReady}
+                className="text-xl font-bold flex-1"
+                autoFocus
               />
             ) : (
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <h1 className="text-xl font-bold truncate">{missionTitle || 'Untitled Mission'}</h1>
+                <h1 className={`text-2xl font-bold truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                  {missionTitle || 'Untitled Mission'}
+                </h1>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsEditingTitle(true)}
                   disabled={!isActorReady}
                   className="h-8 w-8 shrink-0"
-                  title="Edit title"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isSaving && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
-                <span className="hidden sm:inline">Saving...</span>
-              </div>
-            )}
-          </div>
+          {isSaving && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2 shrink-0">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
+              Saving...
+            </div>
+          )}
         </div>
       </div>
 
@@ -241,28 +258,27 @@ export default function MissionDetailFullScreenView({
             {/* Progress Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium">{Math.round(progress)}%</span>
+                <span className="font-medium">Progress</span>
+                <span className="text-muted-foreground">
+                  {tasks.filter(t => t.completed).length} of {tasks.length} tasks completed
+                </span>
               </div>
               <Progress value={progress} className="h-3" />
-              {isCompleted && (
-                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                  <Check className="h-4 w-4" />
-                  <span>Mission completed!</span>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground text-right">
+                {Math.round(progress)}% complete
+              </p>
             </div>
 
             {/* Tasks Section */}
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Tasks</h2>
-              {tasks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                  <p className="text-sm">No tasks yet. Add your first task below!</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {tasks.map((task, index) => (
+              <h2 className="font-semibold text-lg">Tasks</h2>
+              <div className="space-y-2">
+                {tasks.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground border rounded-lg">
+                    <p className="text-sm">No tasks yet. Add tasks below to get started!</p>
+                  </div>
+                ) : (
+                  tasks.map((task, index) => (
                     <div
                       key={task.taskId.toString()}
                       className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
@@ -291,12 +307,12 @@ export default function MissionDetailFullScreenView({
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
 
               {/* Add Task Input */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2">
                 <Input
                   placeholder="Add a new task..."
                   value={newTaskText}
@@ -320,57 +336,61 @@ export default function MissionDetailFullScreenView({
             </div>
 
             {/* Attachments Section */}
-            {attachedFiles && attachedFiles.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold">Attachments ({attachedFiles.length})</h2>
-                <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
+              <h2 className="font-semibold text-lg">Attachments</h2>
+              {isLoadingFiles ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
+                  <p className="mt-2 text-sm">Loading attachments...</p>
+                </div>
+              ) : !attachedFiles || attachedFiles.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground border rounded-lg">
+                  <p className="text-sm">No attachments yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {attachedFiles.map((file, index) => {
-                    // Calculate blob index for viewer (only count files with blobs)
-                    const blobIndex = attachedFiles
-                      .slice(0, index)
-                      .filter(f => f.blob).length;
-
-                    const Icon = getFileIcon(file.mimeType);
-                    const isLink = !!file.link;
-
+                    const Icon = file.link ? ExternalLink : getFileIcon(file.mimeType);
+                    const blobIndex = filesWithBlobs.findIndex(f => f.id === file.id);
+                    
                     return (
                       <div
                         key={file.id}
                         onClick={() => handleAttachmentClick(file, blobIndex)}
-                        className="relative p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer group"
+                        className="relative aspect-square rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer overflow-hidden group"
                       >
-                        <div className="flex flex-col items-center gap-2 text-center">
-                          <div className="relative">
-                            <Icon className="h-8 w-8 text-muted-foreground" />
-                            {isLink && (
-                              <ExternalLink className="h-3 w-3 absolute -top-1 -right-1 text-blue-500" />
-                            )}
-                          </div>
-                          <p className="text-xs font-medium truncate w-full" title={file.name}>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+                          <Icon className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-xs text-center line-clamp-2 text-muted-foreground">
                             {file.name}
                           </p>
                         </div>
+                        {file.link && (
+                          <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1">
+                            <ExternalLink className="h-3 w-3" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </ScrollArea>
       </div>
 
       {/* Full Screen Viewer for files with blobs */}
-      {viewableFiles.length > 0 && (
+      {filesWithBlobs.length > 0 && (
         <FullScreenViewer
-          files={viewableFiles}
+          files={filesWithBlobs}
           initialIndex={selectedFileIndex}
           open={viewerOpen}
           onOpenChange={setViewerOpen}
         />
       )}
 
-      {/* Link Fallback Dialog */}
+      {/* Link Open Fallback Dialog */}
       <LinkOpenFallbackDialog
         open={linkFallbackOpen}
         onOpenChange={setLinkFallbackOpen}

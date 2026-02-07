@@ -81,6 +81,11 @@ export const SortDirection = IDL.Variant({
   'asc' : IDL.Null,
   'desc' : IDL.Null,
 });
+export const TaskView = IDL.Record({
+  'task' : IDL.Text,
+  'completed' : IDL.Bool,
+  'taskId' : IDL.Nat,
+});
 export const TaskStatusUpdate = IDL.Record({
   'completed' : IDL.Bool,
   'taskId' : IDL.Nat,
@@ -156,6 +161,7 @@ export const idlService = IDL.Service({
       [PaginatedFiles],
       ['query'],
     ),
+  'getTasks' : IDL.Func([IDL.Nat], [IDL.Vec(TaskView)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -169,11 +175,7 @@ export const idlService = IDL.Service({
   'removeFromFolder' : IDL.Func([IDL.Int], [], []),
   'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'toggleTaskCompletionStatus' : IDL.Func(
-      [IDL.Nat, TaskStatusUpdate],
-      [Mission],
-      [],
-    ),
+  'toggleTaskCompletionStatus' : IDL.Func([IDL.Nat, TaskStatusUpdate], [], []),
   'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
   'uploadFile' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(IDL.Nat)],
@@ -255,6 +257,11 @@ export const idlFactory = ({ IDL }) => {
     'owner' : IDL.Principal,
   });
   const SortDirection = IDL.Variant({ 'asc' : IDL.Null, 'desc' : IDL.Null });
+  const TaskView = IDL.Record({
+    'task' : IDL.Text,
+    'completed' : IDL.Bool,
+    'taskId' : IDL.Nat,
+  });
   const TaskStatusUpdate = IDL.Record({
     'completed' : IDL.Bool,
     'taskId' : IDL.Nat,
@@ -330,6 +337,7 @@ export const idlFactory = ({ IDL }) => {
         [PaginatedFiles],
         ['query'],
       ),
+    'getTasks' : IDL.Func([IDL.Nat], [IDL.Vec(TaskView)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -345,7 +353,7 @@ export const idlFactory = ({ IDL }) => {
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'toggleTaskCompletionStatus' : IDL.Func(
         [IDL.Nat, TaskStatusUpdate],
-        [Mission],
+        [],
         [],
       ),
     'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),

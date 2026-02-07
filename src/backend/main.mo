@@ -12,7 +12,9 @@ import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -56,6 +58,12 @@ actor {
   };
 
   public type Task = {
+    taskId : Nat;
+    task : Text;
+    completed : Bool;
+  };
+
+  public type TaskView = {
     taskId : Nat;
     task : Text;
     completed : Bool;
@@ -139,7 +147,7 @@ actor {
   public query ({ caller }) func getDiagnostics() : async DiagnosticResult {
     let time = Time.now();
     {
-      build = "1.3.9";
+      build = "1.4.0";
       cycles = Cycles.balance();
       time;
       uploadTime;
@@ -194,13 +202,14 @@ actor {
       case (?missions) { missions };
     };
 
-    userMissions.data.add(nextMissionId, mission);
     let currentMissionId = nextMissionId;
     nextMissionId += 1;
     persistentMissions := {
       persistentMissions with
       nextMissionId
     };
+    userMissions.data.add(currentMissionId, mission);
+
     currentMissionId;
   };
 
@@ -240,7 +249,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func toggleTaskCompletionStatus(missionId : Nat, taskStatusUpdate : TaskStatusUpdate) : async Mission {
+  public shared ({ caller }) func toggleTaskCompletionStatus(missionId : Nat, taskStatusUpdate : TaskStatusUpdate) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update task completion");
     };
@@ -268,8 +277,33 @@ actor {
             };
 
             userMissions.data.add(missionId, updatedMission);
+          };
+        };
+      };
+    };
+  };
 
-            updatedMission;
+  // Returns a snapshot for frontend with identical structure (convert persistent Map to array)
+  public query ({ caller }) func getTasks(missionId : Nat) : async [TaskView] {
+    switch (persistentMissions.map.get(caller)) {
+      case (null) {
+        [];
+      };
+      case (?userMissions) {
+        switch (userMissions.data.get(missionId)) {
+          case (null) {
+            [];
+          };
+          case (?mission) {
+            mission.tasks.map(
+              func(task) {
+                {
+                  taskId = task.taskId;
+                  task = task.task;
+                  completed = task.completed;
+                };
+              }
+            );
           };
         };
       };

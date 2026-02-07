@@ -68,6 +68,11 @@ export interface DiagnosticResult {
     moveFilesToFolderTime: bigint;
     uploadTime: bigint;
 }
+export interface TaskView {
+    task: string;
+    completed: boolean;
+    taskId: bigint;
+}
 export interface Folder {
     id: bigint;
     owner: Principal;
@@ -109,6 +114,7 @@ export interface backendInterface {
     getLinksForUser(user: Principal): Promise<Array<FileMetadata>>;
     getMission(missionId: bigint): Promise<Mission | null>;
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
+    getTasks(missionId: bigint): Promise<Array<TaskView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;
@@ -118,7 +124,7 @@ export interface backendInterface {
     removeFromFolder(fileId: bigint): Promise<void>;
     renameFolder(folderId: bigint, newName: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    toggleTaskCompletionStatus(missionId: bigint, taskStatusUpdate: TaskStatusUpdate): Promise<Mission>;
+    toggleTaskCompletionStatus(missionId: bigint, taskStatusUpdate: TaskStatusUpdate): Promise<void>;
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;
     uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob, missionId: bigint | null): Promise<UploadResponse>;
 }
