@@ -104,6 +104,9 @@ export interface UserProfile {
     name: string;
 }
 export type Time = bigint;
+export interface UploadResponse {
+    id: string;
+}
 export interface FileMetadata {
     id: string;
     fileLocation?: string;
@@ -116,9 +119,6 @@ export interface FileMetadata {
     mimeType: string;
     missionId?: bigint;
     folderId?: bigint;
-}
-export interface UploadResponse {
-    id: string;
 }
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
@@ -136,6 +136,10 @@ export interface HealthResult {
     time: bigint;
     cycles: bigint;
     build: string;
+}
+export interface TaskStatusUpdate {
+    completed: boolean;
+    taskId: bigint;
 }
 export interface DiagnosticResult {
     time: bigint;
@@ -207,6 +211,7 @@ export interface backendInterface {
     removeFromFolder(fileId: bigint): Promise<void>;
     renameFolder(folderId: bigint, newName: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    toggleTaskCompletionStatus(missionId: bigint, taskStatusUpdate: TaskStatusUpdate): Promise<Mission>;
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;
     uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob, missionId: bigint | null): Promise<UploadResponse>;
 }
@@ -742,6 +747,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
+    async toggleTaskCompletionStatus(arg0: bigint, arg1: TaskStatusUpdate): Promise<Mission> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.toggleTaskCompletionStatus(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.toggleTaskCompletionStatus(arg0, arg1);
             return result;
         }
     }

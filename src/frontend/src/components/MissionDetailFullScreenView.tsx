@@ -1,21 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, Check, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Check, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useGetMission, useDeleteMission } from '@/hooks/useMissionsQueries';
+import { useGetMission, useToggleTaskCompletion } from '@/hooks/useMissionsQueries';
 import { useGetFilesForMission } from '@/hooks/useQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useMissionAutosave } from '@/hooks/useMissionAutosave';
@@ -37,7 +27,6 @@ export default function MissionDetailFullScreenView({
   const [missionTitle, setMissionTitle] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
@@ -48,12 +37,12 @@ export default function MissionDetailFullScreenView({
   const { status } = useBackendActor();
   const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
   const { data: attachedFiles, isLoading: isLoadingFiles } = useGetFilesForMission(missionId);
-  const deleteMissionMutation = useDeleteMission();
+  const toggleTaskMutation = useToggleTaskCompletion();
 
   const isActorReady = status === 'ready';
 
   // Auto-save hook - only enabled after mission data is hydrated
-  const { isSaving, markAsHydrated } = useMissionAutosave({
+  const { isSaving, markAsHydrated, flushPendingSave } = useMissionAutosave({
     missionId,
     title: missionTitle,
     tasks,
@@ -104,35 +93,34 @@ export default function MissionDetailFullScreenView({
   };
 
   const handleToggleTask = (taskId: bigint) => {
-    setTasks(tasks.map(t => 
+    // Optimistically update UI immediately
+    const updatedTasks = tasks.map(t => 
       t.taskId.toString() === taskId.toString() ? { ...t, completed: !t.completed } : t
-    ));
+    );
+    setTasks(updatedTasks);
+    
+    // Find the task to get its new completion state
+    const toggledTask = updatedTasks.find(t => t.taskId.toString() === taskId.toString());
+    if (!toggledTask) return;
+
+    // Fire background save without awaiting - this ensures immediate persistence
+    // without blocking the UI or navigation
+    // Error handling is done in the mutation's onError callback
+    toggleTaskMutation.mutate({
+      missionId,
+      taskId,
+      completed: toggledTask.completed,
+    });
   };
 
   const handleRemoveTask = (taskId: bigint) => {
     setTasks(tasks.filter(t => t.taskId.toString() !== taskId.toString()));
   };
 
-  const handleDeleteMission = async () => {
-    if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
-      return;
-    }
-
-    try {
-      await deleteMissionMutation.mutateAsync(missionId);
-      toast.success('Mission deleted successfully');
-      // Navigate back to list on success
-      onBack();
-    } catch (error) {
-      // Error is already logged by the mutation hook with diagnostics
-      // The optimistic update will be rolled back automatically
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete mission';
-      console.error('Failed to delete mission:', error);
-      toast.error(errorMessage);
-      // Close the dialog but stay in detail view so user can see the mission is still there
-      setDeleteConfirmOpen(false);
-    }
+  const handleBack = async () => {
+    // Flush any pending saves before navigating away
+    await flushPendingSave(missionTitle, tasks);
+    onBack();
   };
 
   const getFileIcon = (mimeType: string) => {
@@ -194,7 +182,7 @@ export default function MissionDetailFullScreenView({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={handleBack}
               className="hover:bg-missions-bg shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -242,15 +230,6 @@ export default function MissionDetailFullScreenView({
                 <span className="hidden sm:inline">Saving...</span>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setDeleteConfirmOpen(true)}
-              disabled={!isActorReady || deleteMissionMutation.isPending}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </div>
@@ -399,27 +378,6 @@ export default function MissionDetailFullScreenView({
         onRetryOpen={handleRetryOpenLink}
         onCopyLink={handleCopyLink}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this mission and all its tasks. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteMission}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

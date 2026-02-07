@@ -3,7 +3,7 @@ import { useBackendActor } from '@/contexts/ActorContext';
 import { useInternetIdentity } from './useInternetIdentity';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
 import { diagnoseMissionCache, logDeleteMutationLifecycle, formatActorError } from '@/utils/reactQueryDiagnostics';
-import type { Mission, Task } from '@/backend';
+import type { Mission, Task, TaskStatusUpdate } from '@/backend';
 
 export function useListMissions() {
   const { actor, status } = useBackendActor();
@@ -59,25 +59,62 @@ export function useCreateMission() {
       return missionId;
     },
     onSuccess: async (missionId, variables) => {
-      // Synchronously update the cache with the new mission
-      const newMission: Mission = {
-        id: missionId,
-        title: variables.title,
-        tasks: variables.tasks,
-        created: BigInt(Date.now()) * BigInt(1000000), // Approximate timestamp in nanoseconds
-        owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
-      };
+      // Fetch the actual persisted mission from the backend to ensure
+      // the UI reflects the exact completion state stored in the backend
+      if (!actor) {
+        throw new Error('Actor not available after mission creation');
+      }
 
-      // Update missions list cache
-      queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
-        if (!old) return [newMission];
-        return [newMission, ...old];
-      });
+      try {
+        const persistedMission = await actor.getMission(missionId);
+        
+        if (persistedMission) {
+          // Update missions list cache with the persisted mission
+          queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
+            if (!old) return [persistedMission];
+            return [persistedMission, ...old];
+          });
 
-      // Set the mission detail cache
-      queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
+          // Set the mission detail cache with the persisted data
+          queryClient.setQueryData(['missions', 'detail', missionId.toString()], persistedMission);
+        } else {
+          // Fallback to optimistic data if fetch fails
+          const newMission: Mission = {
+            id: missionId,
+            title: variables.title,
+            tasks: variables.tasks,
+            created: BigInt(Date.now()) * BigInt(1000000),
+            owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
+          };
 
-      // Also invalidate to ensure consistency with backend
+          queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
+            if (!old) return [newMission];
+            return [newMission, ...old];
+          });
+
+          queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
+        }
+      } catch (error) {
+        console.error('[useCreateMission] Failed to fetch persisted mission, using optimistic data:', error);
+        
+        // Fallback to optimistic data
+        const newMission: Mission = {
+          id: missionId,
+          title: variables.title,
+          tasks: variables.tasks,
+          created: BigInt(Date.now()) * BigInt(1000000),
+          owner: identity?.getPrincipal() ?? (() => { throw new Error('Identity not available'); })(),
+        };
+
+        queryClient.setQueryData<Mission[]>(['missions', 'list'], (old) => {
+          if (!old) return [newMission];
+          return [newMission, ...old];
+        });
+
+        queryClient.setQueryData(['missions', 'detail', missionId.toString()], newMission);
+      }
+
+      // Invalidate to ensure consistency with backend
       await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
       
       return missionId;
@@ -139,6 +176,52 @@ export function useUpdateMission() {
       const errorMessage = getActorErrorMessage(err);
       console.error('Update mission failed:', errorMessage);
       throw new Error(`Failed to update mission: ${errorMessage}`);
+    },
+  });
+}
+
+export function useToggleTaskCompletion() {
+  const { actor, status } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ missionId, taskId, completed }: { missionId: bigint; taskId: bigint; completed: boolean }) => {
+      if (!actor || status !== 'ready') {
+        throw createActorNotReadyError();
+      }
+      const taskStatusUpdate: TaskStatusUpdate = {
+        taskId,
+        completed,
+      };
+      const updatedMission = await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
+      return updatedMission;
+    },
+    onSuccess: (updatedMission) => {
+      const missionIdStr = updatedMission.id.toString();
+
+      // Synchronously update the mission detail cache with the backend response
+      queryClient.setQueryData<Mission | null>(
+        ['missions', 'detail', missionIdStr],
+        updatedMission
+      );
+
+      // Synchronously update the missions list cache
+      queryClient.setQueryData<Mission[]>(
+        ['missions', 'list'],
+        (old) => {
+          if (!old) return old;
+          return old.map((mission) =>
+            mission.id.toString() === missionIdStr
+              ? updatedMission
+              : mission
+          );
+        }
+      );
+    },
+    onError: (err) => {
+      const errorMessage = getActorErrorMessage(err);
+      console.error('[useToggleTaskCompletion] Toggle task failed:', errorMessage);
+      // Don't throw - allow silent background failure
     },
   });
 }

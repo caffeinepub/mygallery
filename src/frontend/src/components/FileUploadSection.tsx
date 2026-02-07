@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Upload, Link as LinkIcon } from 'lucide-react';
+import { Upload, Link as LinkIcon, Plus } from 'lucide-react';
 import { useUploadFiles, useCreateLink } from '@/hooks/useQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
@@ -143,29 +143,18 @@ export default function FileUploadSection() {
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 flex justify-center">
       {!showLinkForm ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDisabled}>
-            <div
-              className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg transition-all ${
-                isDisabled
-                  ? 'border-muted bg-muted/20 cursor-not-allowed opacity-50'
-                  : 'border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 cursor-pointer'
+            <button
+              aria-label="Upload"
+              disabled={isDisabled}
+              className={`p-0 bg-transparent border-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-400 rounded-full ${
+                isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
               }`}
             >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className={`w-12 h-12 mb-3 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
-                <p className={`mb-2 text-sm ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
-                  <span className="font-semibold">
-                    {isDisabled ? 'Loading...' : 'Click to upload'}
-                  </span>
-                  {!isDisabled && ' or paste link'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {isDisabled ? 'Please wait' : 'Images, videos, documents, and more'}
-                </p>
-              </div>
+              <Plus className="w-10 h-10 text-sky-400" strokeWidth={2.5} />
               <input
                 id="file-upload"
                 type="file"
@@ -174,7 +163,7 @@ export default function FileUploadSection() {
                 onChange={handleFileChange}
                 disabled={isDisabled}
               />
-            </div>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-48">
             <DropdownMenuItem onClick={triggerFileInput}>
@@ -188,7 +177,7 @@ export default function FileUploadSection() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <form onSubmit={handleLinkSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5">
+        <form onSubmit={handleLinkSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5 w-full">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />

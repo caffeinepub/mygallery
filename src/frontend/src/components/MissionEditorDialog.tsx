@@ -67,9 +67,16 @@ export default function MissionEditorDialog({
     }
 
     try {
+      // Create a defensive deep copy of tasks to avoid reference issues
+      const tasksCopy: Task[] = tasks.map(t => ({
+        taskId: t.taskId,
+        task: t.task,
+        completed: t.completed,
+      }));
+
       await createMissionMutation.mutateAsync({
         title: missionTitle.trim(),
-        tasks: tasks,
+        tasks: tasksCopy,
       });
       
       toast.success('Mission created successfully');

@@ -3,47 +3,32 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [
-    "For the mission/task fix, do not change any other application functionality beyond ensuring tasks auto-save and display correctly within missions."
+    "When fixing the bug, do not change any other app functionality or behavior (minimal, targeted fix only)."
   ],
   "known_issues": [
-    "Mission feature bug: tasks added to a mission are not being automatically saved and/or do not reliably appear inside the mission, especially when reopening an existing mission and adding tasks."
+    "Bug: App freezes and shows a blank screen when marking all tasks in a mission."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-mission-detail-task-auto-save-flow-so-that-when-a-user-adds-toggles-removes-a-task-inside-an-existing-mission-the-change-is-reliably-persisted-to-the-backend-automatically-no-manual-save-required-including-after-reopening-an-already-created-mission",
-      "title": "Fix the Mission detail task auto-save flow so that when a user adds/toggles/removes a task inside an existing mission, the change is reliably persisted to the backend automatically (no manual save required), including after reopening an already-created mission.",
+      "id": "feature-fix-the-bug-where-the-app-freezes-and-or-renders-a-blank-screen-when-the-user-marks-all-tasks-as-completed-inside-a-mission-including-rapid-toggling-the-fix-must-not-change-any-other-app-behavior-or-features",
+      "title": "Fix the bug where the app freezes and/or renders a blank screen when the user marks all tasks as completed inside a mission (including rapid toggling). The fix must not change any other app behavior or features.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-mission-detail-view-always-renders-all-tasks-that-were-added-to-that-mission-including-tasks-added-after-reopening-the-mission-by-keeping-the-frontend-mission-cache-state-in-sync-after-successful-auto-saves-so-the-ui-never-shows-an-older-task-list-after-an-update",
-      "title": "Ensure the Mission detail view always renders all tasks that were added to that mission, including tasks added after reopening the mission, by keeping the frontend mission cache/state in sync after successful auto-saves (so the UI never shows an older task list after an update).",
+      "id": "feature-update-mission-autosave-change-detection-logic-so-it-can-safely-compare-mission-tasks-that-include-bigint-identifiers-without-using-json-stringify-directly-on-bigint-containing-objects",
+      "title": "Update mission autosave change-detection logic so it can safely compare mission tasks that include BigInt identifiers without using JSON.stringify directly on BigInt-containing objects.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-adjust-the-mission-auto-save-trigger-logic-to-avoid-unintended-saves-that-can-overwrite-or-conflict-with-freshly-loaded-mission-data-while-still-saving-every-user-initiated-change-to-title-tasks-especially-when-entering-an-existing-mission-and-then-adding-a-task",
-      "title": "Adjust the mission auto-save trigger logic to avoid unintended saves that can overwrite or conflict with freshly loaded mission data, while still saving every user-initiated change to title/tasks (especially when entering an existing mission and then adding a task).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Fix mission tasks: when adding a task to a mission it should auto-save; adding tasks to an existing/opened mission should also auto-save; all added tasks must appear within the mission view (no other app behavior changes).",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Fix mission task auto-save and ensure tasks persist/appear when reopening missions",
+  "new_feature_requests": [],
+  "projectName": "Fix freeze/blank-screen bug when completing all tasks in a mission",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

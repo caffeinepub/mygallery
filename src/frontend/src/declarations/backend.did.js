@@ -81,6 +81,10 @@ export const SortDirection = IDL.Variant({
   'asc' : IDL.Null,
   'desc' : IDL.Null,
 });
+export const TaskStatusUpdate = IDL.Record({
+  'completed' : IDL.Bool,
+  'taskId' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -165,6 +169,11 @@ export const idlService = IDL.Service({
   'removeFromFolder' : IDL.Func([IDL.Int], [], []),
   'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'toggleTaskCompletionStatus' : IDL.Func(
+      [IDL.Nat, TaskStatusUpdate],
+      [Mission],
+      [],
+    ),
   'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
   'uploadFile' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(IDL.Nat)],
@@ -246,6 +255,10 @@ export const idlFactory = ({ IDL }) => {
     'owner' : IDL.Principal,
   });
   const SortDirection = IDL.Variant({ 'asc' : IDL.Null, 'desc' : IDL.Null });
+  const TaskStatusUpdate = IDL.Record({
+    'completed' : IDL.Bool,
+    'taskId' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -330,6 +343,11 @@ export const idlFactory = ({ IDL }) => {
     'removeFromFolder' : IDL.Func([IDL.Int], [], []),
     'renameFolder' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'toggleTaskCompletionStatus' : IDL.Func(
+        [IDL.Nat, TaskStatusUpdate],
+        [Mission],
+        [],
+      ),
     'updateMission' : IDL.Func([IDL.Nat, IDL.Text, IDL.Vec(Task)], [], []),
     'uploadFile' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(IDL.Nat)],

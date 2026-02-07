@@ -1,68 +1,43 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Mission detail autosave reliability and task list sync fixes",
+  "title": "Fix mission task-completion freeze caused by BigInt-unsafe autosave comparisons",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Make Mission detail task changes (add/toggle/remove) auto-save reliably for existing missions so changes persist after reopening.",
+      "summary": "Prevent mission detail view freeze/blank-screen when completing tasks (including the last task and rapid toggling) by eliminating runtime errors during autosave change detection.",
       "acceptanceCriteria": [
-        "Given an existing mission, when the user adds a new task in the mission detail view, the task is persisted without requiring any additional user action.",
-        "Given an existing mission, when the user toggles a task completion checkbox or removes a task in the mission detail view, the change is persisted automatically.",
-        "If the user navigates back to the missions list and reopens the same mission, all previously added/edited tasks are still present."
+        "From Mission detail view, toggling tasks to complete (including completing the last remaining incomplete task) does not freeze the UI and does not show a blank/empty screen.",
+        "No runtime exception occurs during task toggling and autosave checks (specifically ensure there is no error related to serializing BigInt values).",
+        "Task completion state still persists as before: after closing/reopening the mission, all toggled completion states remain correct.",
+        "No other UI/feature behavior changes outside this bug fix (missions list, mission editor, folders, files, uploads)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useMissionAutosave.ts",
           "operation": "modify",
-          "description": "Fix autosave timing so initial mission hydration (loading title/tasks into local state) does not trigger a save. Add guards to only autosave user-initiated edits after the mission has hydrated, reset internal refs/timers when missionId changes, and ensure pending debounced saves are cancelled on mission switch/unmount to prevent cross-mission overwrites."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Adjust mission hydration and autosave enablement: reset local state/flags when missionId changes, mark when mission data has fully hydrated into local state, and only enable autosave after hydration. Ensure add/toggle/remove handlers continue to update local state immediately while autosave persists changes in the background."
+          "description": "Replace the current JSON.stringify-based task change detection (which throws on BigInt) with a BigInt-safe comparison, and ensure the hydrated baseline snapshot is stored in a way that won’t be mutated unexpectedly; keep existing debouncing, flush behavior, and persistence flow unchanged."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Keep Mission detail UI and React Query mission cache in sync after autosaves so the latest tasks always render without duplicates or stale lists.",
+      "summary": "Update autosave change-detection so missions with BigInt task identifiers are compared safely without JSON.stringify.",
       "acceptanceCriteria": [
-        "After adding a task, the task appears immediately in the mission detail task list and remains visible after the autosave completes.",
-        "After an autosave completes, reopening the mission shows the latest saved task list (not a stale cached version).",
-        "No duplicate tasks are shown as a result of cache refreshes or state re-hydration."
+        "Autosave change detection and flush logic correctly determines whether tasks changed when taskId fields are BigInt.",
+        "The autosave hook does not throw when tasks are updated (toggle, add, remove) and remains debounced as before.",
+        "Marking tasks complete/incomplete continues to trigger background persistence without blocking the UI."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Update the update-mission mutation success handling to synchronously update React Query cache for the affected mission detail and missions list (setQueryData) in addition to (or instead of relying solely on) invalidation. Ensure cached mission detail reflects the latest title/tasks returned by the mutation variables to prevent reopening from showing stale data, and avoid introducing duplicate tasks during cache refresh."
+          "path": "frontend/src/utils/missionTaskCompare.ts",
+          "operation": "create",
+          "description": "Add a small, focused BigInt-safe equality helper for comparing Task arrays (e.g., compare length and per-item taskId/completed/task fields using BigInt-safe checks) to support autosave change detection without serialization."
         },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Ensure the detail view state re-hydration from cached/loaded mission data does not regress the task list after an autosave. When mission query data updates, only apply it to local state when appropriate (e.g., initial hydration or when it matches the most recently saved state), preventing UI from showing an older task list after an update."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Refine mission autosave triggers to prevent unintended saves on load and prevent mission-to-mission overwrite conflicts while still saving every user change after debounce.",
-      "acceptanceCriteria": [
-        "Opening an existing mission and waiting (without making changes) does not trigger an autosave call.",
-        "Editing the title or modifying tasks after the mission data has loaded triggers an autosave call after the debounce interval.",
-        "Switching between missions does not cause the previously viewed mission to be overwritten by another mission’s tasks/title due to autosave timing."
-      ],
-      "file_operations": [
         {
           "path": "frontend/src/hooks/useMissionAutosave.ts",
           "operation": "modify",
-          "description": "Implement explicit 'ready to autosave' / 'dirty' logic and missionId-scoped debouncing to prevent autosave calls caused by incoming data loads. Ensure autosave only runs when title/tasks differ from the last hydrated/saved snapshot due to user actions, and ensure switching missions clears any queued saves for the prior mission."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Wire autosave enable/disable state based on mission load lifecycle: do not mark the view as autosave-ready until selectedMission has been applied to local state, and reset that state when navigating between missions to prevent unintended saves immediately after opening."
+          "description": "Use the new BigInt-safe Task array comparison helper for both the debounced autosave effect and flushPendingSave change checks; remove any direct JSON.stringify usage on BigInt-containing structures while preserving existing debounce timing and save queue semantics."
         }
       ]
     }

@@ -96,7 +96,8 @@ export function useCreateFolder() {
       
       return timeOperation('createFolder', async () => {
         const folderId = await actor.createFolder(name);
-        if (!folderId) {
+        // Check for null or empty string, not falsy (to allow "0" as valid ID)
+        if (folderId === null || folderId === undefined || folderId === '') {
           throw new Error('Failed to create folder - no folder ID returned');
         }
         return { folderId, name };
@@ -464,11 +465,12 @@ export function useDeleteFile() {
         }
       }
       
-      return { previousMainFiles, previousFolderFiles, previousMissionFiles, fileId };
+      return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, _, context) => {
+    onError: (err, fileId, context) => {
       const errorMessage = getActorErrorMessage(err);
-      console.error('Delete file failed:', errorMessage);
+      console.error('File deletion failed:', errorMessage);
+      
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
       }
@@ -484,10 +486,14 @@ export function useDeleteFile() {
           queryClient.setQueryData(queryKey, files);
         });
       }
+      
       throw new Error(`Failed to delete file: ${errorMessage}`);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
+      // Targeted invalidations
+      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['files', 'folder'] });
+      await queryClient.invalidateQueries({ queryKey: ['files', 'mission'] });
     },
   });
 }
@@ -501,15 +507,9 @@ export function useDeleteFiles() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      
-      const CHUNK_SIZE = 50;
-      for (let i = 0; i < fileIds.length; i += CHUNK_SIZE) {
-        const chunk = fileIds.slice(i, i + CHUNK_SIZE);
-        // Convert string IDs to bigint for backend
-        const bigintChunk = chunk.map(id => BigInt(id));
-        await actor.deleteFiles(bigintChunk);
-      }
-      
+      // Convert string IDs to bigint for backend
+      const bigintIds = fileIds.map(id => BigInt(id));
+      await actor.deleteFiles(bigintIds);
       return fileIds;
     },
     onMutate: async (fileIds) => {
@@ -543,11 +543,12 @@ export function useDeleteFiles() {
         }
       }
       
-      return { previousMainFiles, previousFolderFiles, previousMissionFiles, fileIds };
+      return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, _, context) => {
+    onError: (err, fileIds, context) => {
       const errorMessage = getActorErrorMessage(err);
-      console.error('Delete files failed:', errorMessage);
+      console.error('Bulk file deletion failed:', errorMessage);
+      
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
       }
@@ -563,10 +564,82 @@ export function useDeleteFiles() {
           queryClient.setQueryData(queryKey, files);
         });
       }
+      
       throw new Error(`Failed to delete files: ${errorMessage}`);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files'] });
+      // Targeted invalidations
+      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['files', 'folder'] });
+      await queryClient.invalidateQueries({ queryKey: ['files', 'mission'] });
+    },
+  });
+}
+
+export function useUploadFile() {
+  const { actor, status } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      name, 
+      mimeType, 
+      size, 
+      blob, 
+      missionId,
+      onProgress 
+    }: { 
+      name: string; 
+      mimeType: string; 
+      size: number; 
+      blob: Uint8Array; 
+      missionId?: bigint;
+      onProgress?: (percentage: number) => void;
+    }) => {
+      if (!actor || status !== 'ready') {
+        throw createActorNotReadyError();
+      }
+
+      // Use concurrency limiter
+      return uploadLimiter.run(async () => {
+        return timeOperation('uploadFile', async () => {
+          // Create a new Uint8Array with proper ArrayBuffer type
+          const properBlob = new Uint8Array(blob);
+          
+          const externalBlob = onProgress 
+            ? ExternalBlob.fromBytes(properBlob).withUploadProgress(onProgress)
+            : ExternalBlob.fromBytes(properBlob);
+          
+          const result = await actor.uploadFile(
+            name,
+            mimeType,
+            BigInt(size),
+            externalBlob,
+            missionId ?? null
+          );
+          
+          return result;
+        }, { fileName: name, fileSize: size, missionId: missionId?.toString() });
+      });
+    },
+    onSuccess: async (_, variables) => {
+      // Targeted invalidations based on where file was uploaded
+      if (variables.missionId) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'mission', variables.missionId.toString()], 
+          exact: true 
+        });
+      } else {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'not-in-folder'], 
+          exact: true 
+        });
+      }
+    },
+    onError: (error) => {
+      const errorMessage = getActorErrorMessage(error);
+      console.error('File upload failed:', errorMessage);
+      throw new Error(`Failed to upload file: ${errorMessage}`);
     },
   });
 }
@@ -576,61 +649,52 @@ export function useUploadFiles() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      files,
-      onProgress,
-    }: {
-      files: File[];
-      onProgress?: (fileName: string, progress: number) => void;
+    mutationFn: async ({ 
+      files, 
+      onProgress 
+    }: { 
+      files: File[]; 
+      onProgress?: (fileName: string, percentage: number) => void;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      return timeOperation('uploadFiles', async () => {
-        const uploadPromises = files.map((file) =>
-          uploadLimiter.run(async () => {
-            const arrayBuffer = await file.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            let blob = ExternalBlob.fromBytes(uint8Array);
-
-            if (onProgress) {
-              blob = blob.withUploadProgress((percentage) => {
-                // Throttle progress updates using requestAnimationFrame
-                requestAnimationFrame(() => {
-                  onProgress(file.name, percentage);
-                });
-              });
-            }
-
-            const response = await actor.uploadFile(
+      const uploadPromises = files.map(async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        const blob = new Uint8Array(arrayBuffer);
+        
+        return uploadLimiter.run(async () => {
+          return timeOperation('uploadFile', async () => {
+            const externalBlob = onProgress 
+              ? ExternalBlob.fromBytes(blob).withUploadProgress((pct) => onProgress(file.name, pct))
+              : ExternalBlob.fromBytes(blob);
+            
+            const result = await actor.uploadFile(
               file.name,
               file.type || 'application/octet-stream',
               BigInt(file.size),
-              blob,
+              externalBlob,
               null
             );
+            
+            return result;
+          }, { fileName: file.name, fileSize: file.size });
+        });
+      });
 
-            return response;
-          })
-        );
-
-        const results = await Promise.all(uploadPromises);
-        return results;
-      }, { fileCount: files.length });
+      return Promise.all(uploadPromises);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
-      await queryClient.refetchQueries({
-        queryKey: ['files', 'not-in-folder'],
-        type: 'all',
+      await queryClient.invalidateQueries({ 
+        queryKey: ['files', 'not-in-folder'], 
+        exact: true 
       });
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
-      console.error('Upload failed:', errorMessage);
-      throw new Error(`Upload failed: ${errorMessage}`);
+      console.error('File upload failed:', errorMessage);
+      throw new Error(`Failed to upload files: ${errorMessage}`);
     },
   });
 }
@@ -640,24 +704,98 @@ export function useCreateLink() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, url }: { name: string; url: string }) => {
+    mutationFn: async ({ 
+      name, 
+      url, 
+      folderId, 
+      missionId 
+    }: { 
+      name: string; 
+      url: string; 
+      folderId?: bigint; 
+      missionId?: bigint;
+    }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      const response = await actor.createLink(name, url, null, null);
-      return response;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
-      await queryClient.refetchQueries({
-        queryKey: ['files', 'not-in-folder'],
-        type: 'all',
+
+      // Use concurrency limiter for links too
+      return uploadLimiter.run(async () => {
+        return timeOperation('createLink', async () => {
+          const result = await actor.createLink(
+            name,
+            url,
+            folderId ?? null,
+            missionId ?? null
+          );
+          return result;
+        }, { linkName: name, folderId: folderId?.toString(), missionId: missionId?.toString() });
       });
+    },
+    onSuccess: async (_, variables) => {
+      // Targeted invalidations based on where link was created
+      if (variables.missionId) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'mission', variables.missionId.toString()], 
+          exact: true 
+        });
+      } else if (variables.folderId) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'folder', variables.folderId.toString()], 
+          exact: true 
+        });
+      } else {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'not-in-folder'], 
+          exact: true 
+        });
+      }
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
-      console.error('Create link failed:', errorMessage);
+      console.error('Link creation failed:', errorMessage);
       throw new Error(`Failed to create link: ${errorMessage}`);
+    },
+  });
+}
+
+export function useGetCallerUserProfile() {
+  const { actor, status } = useBackendActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery({
+    queryKey: ['currentUserProfile'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getCallerUserProfile();
+    },
+    enabled: !!actor && status === 'ready' && !!identity,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
+export function useSaveCallerUserProfile() {
+  const { actor, status } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profile: { name: string }) => {
+      if (!actor || status !== 'ready') {
+        throw createActorNotReadyError();
+      }
+      await actor.saveCallerUserProfile(profile);
+      return profile;
+    },
+    onSuccess: async (profile) => {
+      queryClient.setQueryData(['currentUserProfile'], profile);
+      await queryClient.invalidateQueries({ queryKey: ['currentUserProfile'], exact: true });
+    },
+    onError: (error) => {
+      const errorMessage = getActorErrorMessage(error);
+      console.error('Profile save failed:', errorMessage);
+      throw new Error(`Failed to save profile: ${errorMessage}`);
     },
   });
 }

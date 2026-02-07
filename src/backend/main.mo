@@ -12,9 +12,7 @@ import MixinStorage "blob-storage/Mixin";
 import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
 
-(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -60,6 +58,11 @@ actor {
   public type Task = {
     taskId : Nat;
     task : Text;
+    completed : Bool;
+  };
+
+  public type TaskStatusUpdate = {
+    taskId : Nat;
     completed : Bool;
   };
 
@@ -231,6 +234,42 @@ actor {
               tasks = newTasks;
             };
             userMissions.data.add(missionId, updatedMission);
+          };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func toggleTaskCompletionStatus(missionId : Nat, taskStatusUpdate : TaskStatusUpdate) : async Mission {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update task completion");
+    };
+
+    switch (persistentMissions.map.get(caller)) {
+      case (null) { Runtime.trap("Mission not found") };
+      case (?userMissions) {
+        switch (userMissions.data.get(missionId)) {
+          case (null) { Runtime.trap("Mission not found") };
+          case (?mission) {
+            let updatedTasks = mission.tasks.map(
+              func(task) {
+                if (task.taskId == taskStatusUpdate.taskId) {
+                  { task with completed = taskStatusUpdate.completed };
+                } else {
+                  task;
+                };
+              }
+            );
+
+            // Update persistentState with new mission
+            let updatedMission = {
+              mission with
+              tasks = updatedTasks;
+            };
+
+            userMissions.data.add(missionId, updatedMission);
+
+            updatedMission;
           };
         };
       };

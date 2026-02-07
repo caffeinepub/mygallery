@@ -62,6 +62,7 @@ export interface Task {
   'completed' : boolean,
   'taskId' : bigint,
 }
+export interface TaskStatusUpdate { 'completed' : boolean, 'taskId' : bigint }
 export type Time = bigint;
 export interface UploadResponse { 'id' : string }
 export interface UserProfile { 'name' : string }
@@ -136,6 +137,10 @@ export interface _SERVICE {
   'removeFromFolder' : ActorMethod<[bigint], undefined>,
   'renameFolder' : ActorMethod<[bigint, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'toggleTaskCompletionStatus' : ActorMethod<
+    [bigint, TaskStatusUpdate],
+    Mission
+  >,
   'updateMission' : ActorMethod<[bigint, string, Array<Task>], undefined>,
   'uploadFile' : ActorMethod<
     [string, string, bigint, ExternalBlob, [] | [bigint]],

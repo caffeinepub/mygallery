@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useUpdateMission } from './useMissionsQueries';
+import { areTaskArraysEqual } from '@/utils/missionTaskCompare';
 import type { Task } from '@/backend';
 
 interface AutosaveOptions {
@@ -7,7 +8,7 @@ interface AutosaveOptions {
   title: string;
   tasks: Task[];
   debounceMs?: number;
-  enabled?: boolean; // New: allow parent to control when autosave is active
+  enabled?: boolean;
 }
 
 export function useMissionAutosave({ 
@@ -23,6 +24,7 @@ export function useMissionAutosave({
   const isSavingRef = useRef(false);
   
   // Track the last hydrated state to detect actual user changes
+  // Store a deep copy to prevent mutation issues
   const lastHydratedStateRef = useRef<{ title: string; tasks: Task[]; missionId: string } | null>(null);
   
   // Track current mission ID to detect mission switches
@@ -52,7 +54,6 @@ export function useMissionAutosave({
     }
 
     isSavingRef.current = true;
-    pendingUpdateRef.current = null;
 
     try {
       await updateMutation.mutateAsync({
@@ -61,46 +62,45 @@ export function useMissionAutosave({
         tasks: saveTasks,
       });
 
-      // Update the last hydrated state to reflect what was just saved
+      // Update the hydrated state after successful save with a deep copy
       lastHydratedStateRef.current = {
         title: saveTitle,
-        tasks: saveTasks,
+        tasks: saveTasks.map(t => ({ ...t })),
         missionId: missionId.toString(),
       };
 
-      // If there's a pending update, perform it now
+      // If there's a pending update, process it
       if (pendingUpdateRef.current) {
-        const { title: nextTitle, tasks: nextTasks } = pendingUpdateRef.current;
+        const pending = pendingUpdateRef.current;
         pendingUpdateRef.current = null;
         isSavingRef.current = false;
-        await performSave(nextTitle, nextTasks);
+        await performSave(pending.title, pending.tasks);
       } else {
         isSavingRef.current = false;
       }
     } catch (error) {
+      console.error('[useMissionAutosave] Save failed:', error);
       isSavingRef.current = false;
-      // Error is already handled by the mutation hook
-      throw error;
+      pendingUpdateRef.current = null;
     }
   }, [missionId, updateMutation]);
 
-  const triggerSave = useCallback(() => {
-    // Don't save if autosave is disabled
-    if (!enabled) {
-      return;
-    }
+  // Debounced autosave effect
+  useEffect(() => {
+    if (!enabled) return;
 
-    // Don't save if we haven't hydrated yet (no baseline to compare against)
+    // Check if this is the initial hydration (no changes yet)
     if (!lastHydratedStateRef.current) {
       return;
     }
 
-    // Don't save if nothing has changed from the last hydrated state
-    const hasChanges = 
+    // Check if data has actually changed from the hydrated state
+    // Use BigInt-safe comparison instead of JSON.stringify
+    const hasChanged = 
       lastHydratedStateRef.current.title !== title ||
-      JSON.stringify(lastHydratedStateRef.current.tasks) !== JSON.stringify(tasks);
+      !areTaskArraysEqual(lastHydratedStateRef.current.tasks, tasks);
 
-    if (!hasChanges) {
+    if (!hasChanged) {
       return;
     }
 
@@ -109,44 +109,58 @@ export function useMissionAutosave({
       clearTimeout(timeoutRef.current);
     }
 
-    // Set a new debounced save
+    // Set new timeout for debounced save
     timeoutRef.current = setTimeout(() => {
       performSave(title, tasks);
     }, debounceMs);
-  }, [title, tasks, debounceMs, performSave, enabled]);
-
-  // Trigger save when title or tasks change
-  useEffect(() => {
-    triggerSave();
 
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [triggerSave]);
+  }, [title, tasks, enabled, debounceMs, performSave]);
 
-  // Cleanup on unmount - cancel any pending saves
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Public method to mark state as hydrated (called by parent after loading mission data)
-  const markAsHydrated = useCallback((hydratedTitle: string, hydratedTasks: Task[]) => {
+  // Method to mark the mission as hydrated with initial data
+  const markAsHydrated = useCallback((initialTitle: string, initialTasks: Task[]) => {
+    // Store a deep copy to prevent mutation issues
     lastHydratedStateRef.current = {
-      title: hydratedTitle,
-      tasks: hydratedTasks,
+      title: initialTitle,
+      tasks: initialTasks.map(t => ({ ...t })),
       missionId: missionId.toString(),
     };
   }, [missionId]);
 
+  // Method to immediately flush any pending save
+  const flushPendingSave = useCallback(async (currentTitle: string, currentTasks: Task[]) => {
+    // Cancel any pending debounced save
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    // If not enabled or not hydrated, skip
+    if (!enabled || !lastHydratedStateRef.current) {
+      return;
+    }
+
+    // Check if data has actually changed from the hydrated state
+    // Use BigInt-safe comparison instead of JSON.stringify
+    const hasChanged = 
+      lastHydratedStateRef.current.title !== currentTitle ||
+      !areTaskArraysEqual(lastHydratedStateRef.current.tasks, currentTasks);
+
+    if (!hasChanged) {
+      return;
+    }
+
+    // Perform immediate save
+    await performSave(currentTitle, currentTasks);
+  }, [enabled, performSave]);
+
   return {
-    isSaving: updateMutation.isPending || isSavingRef.current,
-    error: updateMutation.error,
+    isSaving: isSavingRef.current || updateMutation.isPending,
     markAsHydrated,
+    flushPendingSave,
   };
 }

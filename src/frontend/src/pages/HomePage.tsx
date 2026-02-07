@@ -23,6 +23,7 @@ export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+  const [folderOpenedFromFoldersView, setFolderOpenedFromFoldersView] = useState(false);
   const [isBulkSelectionActive, setIsBulkSelectionActive] = useState(false);
   const { identity, isInitializing } = useInternetIdentity();
   const { status, error, retry, signOut, actor } = useBackendActor();
@@ -72,10 +73,19 @@ export default function HomePage() {
 
   const handleFolderSelect = (folder: Folder) => {
     setSelectedFolder(folder);
+    setFolderOpenedFromFoldersView(true);
   };
 
   const handleBackToMain = () => {
-    setSelectedFolder(null);
+    if (folderOpenedFromFoldersView) {
+      // If folder was opened from folders view, return to folders view
+      setSelectedFolder(null);
+      setFolderOpenedFromFoldersView(false);
+      setIsFoldersOpen(true);
+    } else {
+      // Otherwise just clear the selected folder (return to main collection)
+      setSelectedFolder(null);
+    }
   };
 
   const handleBulkSelectionChange = (isActive: boolean) => {
@@ -175,7 +185,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, folderOpenedFromFoldersView]);
 
   return mainContent;
 }
