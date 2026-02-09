@@ -1,42 +1,74 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Mission feature enhancements: archive 100% completed missions, default view shows incomplete missions with swipe navigation to completed missions, allow swipe-delete on completed missions, and move missions back to incomplete when a task is marked incomplete in a completed mission (no other app changes).",
   "architectural_notes": [
-    "Do not change any other app behavior/features while fixing the mission task toggle bug (minimal, targeted fix only)."
+    "Scope constraint: do not change anything outside the Mission feature; focus only on Mission behavior/UI."
   ],
-  "known_issues": [
-    "Bug in mission flow: after returning to a mission and adding a new task, toggling task completion (complete/uncomplete) does not update immediately and may affect other tasks; mission should update instantly without impacting other tasks."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-mission-task-completion-toggle-bug-that-occurs-after-a-user-re-enters-an-existing-mission-and-then-adds-a-new-task-checking-unchecking-any-task-must-update-immediately-in-the-ui-must-only-affect-the-intended-task-and-must-immediately-update-mission-progress-without-requiring-navigation-or-refresh",
-      "title": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
+      "id": "feature-in-the-missions-full-screen-view-automatically-classify-missions-as-completed-archived-when-they-are-100-complete-all-tasks-completed-and-task-count-0-and-as-incomplete-otherwise-default-the-missions-view-to-show-only-the-incomplete-list-when-the-user-opens-missions",
+      "title": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-react-query-mission-caches-remain-consistent-after-add-task-and-toggle-task-mutations-including-the-mission-detail-cache-missions-detail-missionid-and-the-mission-list-cache-missions-list-so-the-mission-view-reflects-the-latest-task-states-immediately-and-reliably",
-      "title": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "id": "feature-add-horizontal-swipe-navigation-in-the-missions-full-screen-view-swiping-right-switches-from-the-incomplete-list-to-the-completed-archived-list-swiping-left-switches-from-the-completed-list-back-to-the-incomplete-list-also-provide-a-visible-tappable-option-to-switch-between-incomplete-and-completed-lists-english-labels",
+      "title": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-prevent-mission-autosave-usemissionautosave-from-overwriting-or-reverting-task-completion-state-during-after-add-task-and-toggle-task-flows-especially-around-the-transition-from-an-optimistic-newly-added-task-to-the-real-backend-task-so-no-task-states-are-lost-or-applied-to-the-wrong-task",
-      "title": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "id": "feature-ensure-missions-in-the-completed-archived-list-can-be-deleted-via-swipe-actions-same-behavior-as-the-current-swipe-delete-in-missions-list-and-that-deleting-a-completed-mission-updates-the-ui-immediately-and-correctly",
+      "title": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-when-a-mission-is-in-the-completed-archived-state-and-the-user-marks-any-task-as-incomplete-within-the-mission-detail-view-the-mission-must-automatically-move-back-to-the-incomplete-missions-list-i-e-it-should-no-longer-appear-in-completed-once-progress-drops-below-100",
+      "title": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix Mission task toggle bug after re-entering a mission and adding a new task",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Archive missions that are 100% completed; default missions view shows only incomplete missions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add swipe navigation in Missions: swipe right shows completed missions, swipe left shows incomplete missions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Allow deleting completed (archived) missions via swipe action",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "If a task is marked incomplete inside a completed mission, move that mission back to the incomplete missions list",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Archive 100%-completed missions and add swipe navigation between incomplete and completed lists",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

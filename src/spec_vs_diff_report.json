@@ -1,75 +1,53 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T10:24:31.232Z",
-  "summary": "The diff does not show an implemented fix for the specific mission add-task/toggle-task bug, React Query cache consistency for those mutations, or autosave protection. Instead, it changes general React Query behavior (sorting, stale times, refetch-on-mount) and create-mission cache handling, plus updates project metadata/docs.",
+  "generatedAt": "2026-02-09T16:24:09.941Z",
+  "summary": "The diff clearly adds mission completion classification utilities and begins implementing Missions full-screen list splitting and touch-swipe handling, but key requested behaviors (UI toggle control, completed-list delete behavior, and moving missions back to incomplete after task uncheck) are not fully evidenced in the provided truncated diff. There are also repository/meta files added/modified that were not requested as part of the Missions feature.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Fix the Mission task completion toggle bug after re-entering a mission and adding a new task (immediate UI update, only intended task affected, progress updates immediately, persists on reopen).",
-      "reason": "The diff summary only shows changes in query configuration and createMission cache updates; no evidence of changes to task toggle logic, task ID mapping, UI state updates, or progress calculation updates in the mission detail flow.",
-      "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
-      ]
-    },
-    {
       "id": "REQ-2",
-      "requirement": "Keep React Query mission caches consistent after add-task and toggle-task mutations for both ['missions','detail', missionId] and ['missions','list'].",
-      "reason": "No add-task or toggle-task mutations/callbacks are shown, and no explicit cache update logic for task add/toggle is present in the provided diff excerpt (only createMission and list/detail query configs are visible).",
+      "requirement": "Add horizontal swipe navigation in the Missions full-screen view, plus a visible tappable control to switch between Incomplete and Completed; ensure list-level swipe doesn’t break per-row swipe actions; close any open swipe rows when switching lists.",
+      "reason": "The MissionsFullScreenView.tsx diff shows the start of touch handlers and checks to avoid swiping when inside a row, but the implementation is truncated before the actual view switching, the on-screen control (tabs/segmented), and the explicit logic to close any open swipe rows on list switch can be confirmed.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+        "frontend/src/components/MissionsFullScreenView.tsx (truncated)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Prevent Mission autosave (useMissionAutosave) from overwriting/reverting task completion state during/after add-task and toggle-task (especially optimistic-to-real task ID transition).",
-      "reason": "No changes to useMissionAutosave (or any autosave coordination) are shown; the diff does not include any logic to avoid persisting optimistic IDs or to reconcile toggles during mutation settlement.",
+      "requirement": "Ensure missions in the Completed list can be deleted via swipe actions and UI updates immediately/clears selection if needed.",
+      "reason": "SwipeActionsRow supports delete, but the diff does not show how MissionsFullScreenView renders rows for the Completed list and wires delete behavior/optimistic UI updates/selection clearing for that list. The relevant portion of MissionsFullScreenView is truncated before row rendering and delete logic can be verified for completed missions.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+        "frontend/src/components/MissionsFullScreenView.tsx (truncated)",
+        "frontend/src/components/SwipeActionsRow.tsx"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "If a mission is completed and the user marks any task incomplete in mission detail view, the mission must move back to the Incomplete list (derived from tasks/progress, no backend schema changes).",
+      "reason": "No changes are shown for the mission detail view component where task completion is toggled. Only list-level completion classification utilities and list view code are included, so the task-toggle path that should cause reclassification/refetch/invalidation is not evidenced.",
+      "evidence": [
+        "frontend/src/components/MissionDetailFullScreenView (no diff shown)",
+        "frontend/src/components/MissionsFullScreenView.tsx (truncated)",
+        "frontend/src/utils/missionCompletion.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changed mission list sorting behavior to BigInt-safe direct comparison (commented as such).",
-      "reason": "Not requested by the BuildRequest and constitutes behavior change outside the mission add/toggle/update bug scope.",
+      "description": "Repository meta/state tracking files updated/added (project_state.json, frontend-file-summaries.txt) unrelated to implementing the Missions UI requirements.",
+      "reason": "These files are not part of the requested Missions feature behavior/UI flows and are not mentioned in the BuildRequest requirements or constraints.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
-      ]
-    },
-    {
-      "description": "Adjusted React Query caching/refetch behavior for missions list/detail (staleTime changes, gcTime, refetchOnMount false/true, “Always refetch when re-entering mission detail”).",
-      "reason": "BuildRequest emphasized fixing immediate in-place correctness without requiring navigation/refetch; changing refetch-on-mount and stale times is an unrequested behavioral change and may mask the underlying bug rather than fixing add/toggle cache updates.",
-      "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
-      ]
-    },
-    {
-      "description": "Added createMission onSuccess behavior to fetch persisted mission and set both list and detail caches, plus invalidate ['missions','list'].",
-      "reason": "Not part of the requested bug (which is about re-entering an existing mission, add-task, and toggle-task), and it changes cache behavior beyond the specified add/toggle/update flow.",
-      "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
-      ]
-    },
-    {
-      "description": "Introduced/used additional diagnostic utilities imports (diagnoseMissionCache, logDeleteMutationLifecycle, formatActorError).",
-      "reason": "Diagnostics/logging utilities were not requested; adds new behavior/complexity outside the mission add/toggle/update fix.",
-      "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
-      ]
-    },
-    {
-      "description": "Updated project metadata tracking in project_state.json (new_feature_requests/status entries).",
-      "reason": "Not requested as part of the functional bug fix; this is process/metadata change rather than implementing the required behavior.",
-      "evidence": [
-        "project_state.json"
+        "project_state.json",
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.78,
+  "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/components/SwipeActionsRow.tsx",
+    "frontend/src/utils/missionCompletion.ts",
     "project_state.json"
   ]
 }

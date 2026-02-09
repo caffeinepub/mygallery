@@ -118,18 +118,13 @@ export default function MissionDetailFullScreenView({
     });
   };
 
-  const handleToggleTask = (taskId: bigint) => {
-    // Find the task to get its current completion state
-    const currentTask = tasks.find(t => t.taskId.toString() === taskId.toString());
-    if (!currentTask) return;
-
-    const newCompletedState = !currentTask.completed;
-
-    // Fire mutation - React Query handles optimistic updates and rollback
+  const handleToggleTask = (taskId: bigint, newCheckedState: boolean) => {
+    // Use the checked state directly from the Checkbox component
+    // This ensures we always toggle to the exact state the user clicked
     toggleTaskMutation.mutate({
       missionId,
       taskId,
-      completed: newCompletedState,
+      completed: newCheckedState,
     }, {
       onError: (error) => {
         console.error('Failed to toggle task:', error);
@@ -298,7 +293,11 @@ export default function MissionDetailFullScreenView({
                   >
                     <Checkbox
                       checked={task.completed}
-                      onCheckedChange={() => handleToggleTask(task.taskId)}
+                      onCheckedChange={(checked) => {
+                        // Handle the checked state from Radix - it can be boolean or 'indeterminate'
+                        const newState = checked === true;
+                        handleToggleTask(task.taskId, newState);
+                      }}
                       className="shrink-0"
                     />
                     <span

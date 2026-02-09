@@ -1,76 +1,104 @@
 {
   "kind": "build_request",
-  "title": "Fix Mission task toggle bug after re-entering a mission and adding a new task",
+  "title": "Archive 100%-completed missions and add swipe navigation between incomplete and completed lists",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
+      "text": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user-1"
         ],
         "quotes": [
-          "Διόρθωσε το bug στην λειτουργία mission όταν ο χρήστης μετά από επιστροφή σε mission προσθέτει νέα task. Το τικ για ολοκληρωμένο task ή το τικ σε ολοκληρωμένο task για να γίνει μη ολοκληρωμένο να λειτουργεί άμεσα χωρίς να επηρεάζει αλλά task του mission και με άμεση ενημέρωση του mission ."
+          "Στην λειτουργία mission , τα ολοκληρωμένα 100% completed mission να αρχειοθετούνται. Ο χρήστης όταν ανοίγει την λειτουργία mission να βλέπει τα μη ολοκληρωμένα mission"
         ]
       },
       "acceptanceCriteria": [
-        "Given an existing mission with multiple tasks, when the user opens the mission detail screen, adds a new task, and immediately toggles completion on any task (old or newly added), the checkbox state and styling update instantly.",
-        "Toggling one task does not change completion state or styling of any other task.",
-        "The progress percentage and progress bar update immediately after each toggle.",
-        "The updated completion state persists after leaving the mission screen and re-opening the same mission (no delayed correction needed)."
+        "A mission with at least 1 task and 100% progress is not shown in the default list when the Missions screen opens.",
+        "A mission with 0 tasks is treated as Incomplete and remains visible in the default list.",
+        "The existing mission progress calculation logic remains consistent with current UI behavior (no changes to task completion semantics)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "text": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user-1"
         ],
         "quotes": [
-          "...με άμεση ενημέρωση του mission ."
+          "να υπάρχει επιλογή να δει τα ολοκληρωμένα mission με swipe προς τα δεξιά . Όταν κάνει swipe προς τα δεξιά να βλέπει τα ολοκληρωμένα mission και κάνοντας swipe προς τα αριστερά να βλέπει τα μη ολοκληρωμένα mission."
         ]
       },
       "acceptanceCriteria": [
-        "After add-task completes, the mission detail cache contains the new backend task ID and does not regress any task completion states.",
-        "After toggle-task completes, both mission detail and mission list caches reflect the toggled state for the specific task without altering other tasks.",
-        "The UI does not require a refetch triggered by navigation to reflect the latest task state (the view stays correct in-place)."
+        "On touch devices, a right-swipe gesture on the Missions list view shows the Completed list; a left-swipe shows the Incomplete list.",
+        "A user can switch lists without swiping via an on-screen control (e.g., segmented control/tabs) with English text (e.g., \"Incomplete\" / \"Completed\").",
+        "Swipe navigation does not break existing per-row left-swipe actions (edit/delete); list navigation gestures must not trigger when the user is clearly swiping a row to reveal actions.",
+        "When switching lists, any open swipe row actions are closed to prevent stuck/open states."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "text": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user-1"
         ],
         "quotes": [
-          "...να λειτουργεί άμεσα χωρίς να επηρεάζει αλλά task του mission... Μην αλλαξεις τίποτα άλλο..."
+          "Τα ολοκληρωμένα mission να μπορεί και αυτά ο χρήστης να τα διαγράψει με swipe ."
         ]
       },
       "acceptanceCriteria": [
-        "If a user adds a task and toggles that new task (or any other task) before/around mutation settlement, the final persisted mission state matches the user’s latest toggles after all mutations settle.",
-        "Autosave does not persist temporary optimistic task IDs to the backend, and does not introduce duplicated tasks.",
-        "No additional behavior changes occur outside the Mission task add/toggle/update flows."
+        "In the Completed list on touch devices, swiping a mission row reveals actions and allows delete.",
+        "Deleting a mission from the Completed list removes it from the UI and does not reappear after refetch unless the delete failed.",
+        "If the deleted mission was currently selected/open (edge case), the selection is cleared (consistent with current behavior)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-user-1"
+        ],
+        "quotes": [
+          "Αν ο χρήστης σε ολοκλήρωμενο mission επιλέξει task ως μη ολοκληρωμένο να επιστρέφει το mission στην λίστα με τα mission μη ολοκληρωμένα"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If a mission is currently 100% complete and the user unchecks any task in mission detail, the mission is no longer classified as Completed after the update settles.",
+        "Returning to the Missions list shows the mission in the Incomplete list (and not in the Completed list).",
+        "No new backend fields or schema changes are introduced for archiving; the archive/completed state is derived from tasks/progress."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other application features or behaviors outside the Mission task add/toggle/update flow.",
-    "Do not edit files under frontend/immutablePaths (e.g., frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, frontend/src/components/ui/*).",
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend migration only if a state schema change is strictly required (avoid if possible)."
+    "Do not change anything else in the application outside the Missions feature and its related UI flows.",
+    "Keep all backend logic in the single existing actor (backend/main.mo); do not introduce additional backend services.",
+    "Do not edit any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Adding new mission features (sorting/grouping changes, new task fields, bulk actions, analytics, etc.).",
-    "Changing UI copy/text, layout, styling, or interactions beyond what is required to fix the described Mission bug.",
-    "Introducing new authentication mechanisms or external services."
+    "Adding a persistent \"archived\" flag or separate archive storage on the backend (the archive state should be derived from task completion as requested).",
+    "Changing mission creation, autosave behavior, attachments, folders, files, notes, authentication, or any other non-mission features.",
+    "Adding real-time syncing or cross-device live updates beyond existing React Query refetch behavior."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

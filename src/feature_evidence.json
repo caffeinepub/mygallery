@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-mission-task-completion-toggle-bug-that-occurs-after-a-user-re-enters-an-existing-mission-and-then-adds-a-new-task-checking-unchecking-any-task-must-update-immediately-in-the-ui-must-only-affect-the-intended-task-and-must-immediately-update-mission-progress-without-requiring-navigation-or-refresh",
-      "featureTitle": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
+      "featureId": "feature-in-the-missions-full-screen-view-automatically-classify-missions-as-completed-archived-when-they-are-100-complete-all-tasks-completed-and-task-count-0-and-as-incomplete-otherwise-default-the-missions-view-to-show-only-the-incomplete-list-when-the-user-opens-missions",
+      "featureTitle": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
       "files": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/utils/missionCompletion.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,10 +23,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-react-query-mission-caches-remain-consistent-after-add-task-and-toggle-task-mutations-including-the-mission-detail-cache-missions-detail-missionid-and-the-mission-list-cache-missions-list-so-the-mission-view-reflects-the-latest-task-states-immediately-and-reliably",
-      "featureTitle": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "featureId": "feature-add-horizontal-swipe-navigation-in-the-missions-full-screen-view-swiping-right-switches-from-the-incomplete-list-to-the-completed-archived-list-swiping-left-switches-from-the-completed-list-back-to-the-incomplete-list-also-provide-a-visible-tappable-option-to-switch-between-incomplete-and-completed-lists-english-labels",
+      "featureTitle": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
       "files": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/components/SwipeActionsRow.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -42,10 +44,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-prevent-mission-autosave-usemissionautosave-from-overwriting-or-reverting-task-completion-state-during-after-add-task-and-toggle-task-flows-especially-around-the-transition-from-an-optimistic-newly-added-task-to-the-real-backend-task-so-no-task-states-are-lost-or-applied-to-the-wrong-task",
-      "featureTitle": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "featureId": "feature-ensure-missions-in-the-completed-archived-list-can-be-deleted-via-swipe-actions-same-behavior-as-the-current-swipe-delete-in-missions-list-and-that-deleting-a-completed-mission-updates-the-ui-immediately-and-correctly",
+      "featureTitle": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
       "files": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionsFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -58,6 +60,26 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-a-mission-is-in-the-completed-archived-state-and-the-user-marks-any-task-as-incomplete-within-the-mission-detail-view-the-mission-must-automatically-move-back-to-the-incomplete-missions-list-i-e-it-should-no-longer-appear-in-completed-once-progress-drops-below-100",
+      "featureTitle": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "files": [
+        "frontend/src/components/MissionsFullScreenView.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

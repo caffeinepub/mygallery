@@ -1,58 +1,75 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T10:24:31.235Z",
+  "generatedAt": "2026-02-09T16:24:09.945Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
+        "summary": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/utils/missionCompletion.ts",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/utils/missionCompletion.ts",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+        "summary": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/components/SwipeActionsRow.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/components/SwipeActionsRow.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+        "summary": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useMissionAutosave.ts",
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts"
+          "frontend/src/components/MissionsFullScreenView.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/components/SwipeActionsRow.tsx",
+    "frontend/src/utils/missionCompletion.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

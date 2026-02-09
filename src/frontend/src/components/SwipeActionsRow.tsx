@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect, ReactNode } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SwipeActionsRowProps {
-  children: ReactNode;
+  children: React.ReactNode;
   onEdit: () => void;
   onDelete: () => void;
   isOpen: boolean;
@@ -21,187 +21,124 @@ export default function SwipeActionsRow({
 }: SwipeActionsRowProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
   const [translateX, setTranslateX] = useState(0);
-  const activePointerIdRef = useRef<number | null>(null);
 
-  const SWIPE_THRESHOLD = 60; // Minimum swipe distance to reveal actions
-  const MAX_SWIPE = 140; // Maximum swipe distance (width of action buttons)
+  const SWIPE_THRESHOLD = 80;
+  const ACTION_WIDTH = 160;
 
   useEffect(() => {
-    // Reset position when isOpen changes externally
-    if (!isOpen) {
-      setTranslateX(0);
-      setCurrentX(0);
+    if (isOpen) {
+      setTranslateX(-ACTION_WIDTH);
     } else {
-      setTranslateX(-MAX_SWIPE);
+      setTranslateX(0);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    // Close on outside click
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onOpenChange(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [isOpen, onOpenChange]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (disabled) return;
     
-    // Check if pointer started on action buttons - if so, don't start swipe gesture
-    if (actionsRef.current && actionsRef.current.contains(e.target as Node)) {
-      return;
-    }
-    
-    // Capture the pointer to receive all subsequent events
-    if (contentRef.current) {
-      contentRef.current.setPointerCapture(e.pointerId);
-    }
-    
-    activePointerIdRef.current = e.pointerId;
     setIsDragging(true);
     setStartX(e.clientX);
-    setCurrentX(translateX);
+    setCurrentX(e.clientX);
+    
+    if (contentRef.current) {
+      contentRef.current.style.transition = 'none';
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || disabled || activePointerIdRef.current !== e.pointerId) return;
-
-    const diff = e.clientX - startX;
-    const newTranslate = currentX + diff;
-
-    // Only allow swiping left (negative values)
-    if (newTranslate <= 0 && newTranslate >= -MAX_SWIPE) {
-      setTranslateX(newTranslate);
+    if (!isDragging) return;
+    
+    setCurrentX(e.clientX);
+    const deltaX = e.clientX - startX;
+    const newTranslateX = isOpen ? -ACTION_WIDTH + deltaX : deltaX;
+    
+    if (newTranslateX <= 0) {
+      setTranslateX(Math.max(newTranslateX, -ACTION_WIDTH));
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!isDragging || disabled || activePointerIdRef.current !== e.pointerId) return;
+  const handlePointerUp = () => {
+    if (!isDragging) return;
     
-    // Release pointer capture
+    setIsDragging(false);
+    
     if (contentRef.current) {
-      contentRef.current.releasePointerCapture(e.pointerId);
+      contentRef.current.style.transition = 'transform 0.3s ease-out';
     }
     
-    activePointerIdRef.current = null;
-    setIsDragging(false);
-
-    // Determine if we should open or close based on swipe distance
-    if (translateX < -SWIPE_THRESHOLD) {
-      // Open actions
-      setTranslateX(-MAX_SWIPE);
-      onOpenChange(true);
+    const deltaX = currentX - startX;
+    
+    if (isOpen) {
+      if (deltaX > SWIPE_THRESHOLD / 2) {
+        onOpenChange(false);
+      } else {
+        setTranslateX(-ACTION_WIDTH);
+      }
     } else {
-      // Close actions
-      setTranslateX(0);
-      onOpenChange(false);
+      if (deltaX < -SWIPE_THRESHOLD) {
+        onOpenChange(true);
+      } else {
+        setTranslateX(0);
+      }
     }
   };
 
-  const handlePointerCancel = (e: React.PointerEvent) => {
-    if (activePointerIdRef.current !== e.pointerId) return;
-    
-    // Release pointer capture
-    if (contentRef.current) {
-      contentRef.current.releasePointerCapture(e.pointerId);
-    }
-    
-    activePointerIdRef.current = null;
-    setIsDragging(false);
-    
-    // Reset to closed state on cancel
-    setTranslateX(0);
+  const handleEdit = () => {
     onOpenChange(false);
+    setTimeout(() => onEdit(), 100);
   };
 
-  const handleEditClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Close the row before action
-    setTranslateX(0);
+  const handleDelete = () => {
+    // Proactively close the swipe row state before delegating delete
     onOpenChange(false);
-    onEdit();
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Close the row before action to prevent stuck state
-    setTranslateX(0);
-    onOpenChange(false);
-    onDelete();
+    // Small delay to allow the close animation to start
+    setTimeout(() => onDelete(), 50);
   };
 
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden touch-pan-y"
-      style={{ touchAction: 'pan-y' }}
+      className="relative overflow-hidden"
+      data-swipe-row="true"
     >
-      {/* Action buttons (hidden by default, revealed on left swipe) */}
-      <div 
-        ref={actionsRef}
-        className="absolute right-0 top-0 bottom-0 flex items-stretch z-10"
-        style={{
-          pointerEvents: isOpen ? 'auto' : 'none',
-          opacity: isOpen ? 1 : 0,
-          transition: isDragging ? 'none' : 'opacity 0.3s ease-out',
-        }}
-      >
+      {/* Actions (revealed on swipe) */}
+      <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
         <Button
           variant="ghost"
-          size="sm"
-          onClick={handleEditClick}
-          onTouchEnd={handleEditClick}
-          className="h-full rounded-none px-4 bg-muted hover:bg-muted/80 border-l touch-manipulation"
-          tabIndex={isOpen ? 0 : -1}
+          size="icon"
+          className="h-full w-20 rounded-none bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={handleEdit}
           disabled={disabled}
         >
-          <Pencil className="h-4 w-4" />
+          <Edit2 className="h-5 w-5" />
         </Button>
         <Button
           variant="ghost"
-          size="sm"
-          onClick={handleDeleteClick}
-          onTouchEnd={handleDeleteClick}
-          className="h-full rounded-none px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground touch-manipulation"
-          tabIndex={isOpen ? 0 : -1}
+          size="icon"
+          className="h-full w-20 rounded-none bg-destructive hover:bg-destructive/90 text-white"
+          onClick={handleDelete}
           disabled={disabled}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-5 w-5" />
         </Button>
       </div>
 
-      {/* Swipeable content */}
+      {/* Content */}
       <div
         ref={contentRef}
-        className="relative bg-background z-20"
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-          touchAction: 'pan-y',
-          pointerEvents: disabled ? 'none' : 'auto',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
+        onPointerCancel={handlePointerUp}
+        className="relative bg-background touch-pan-y"
       >
         {children}
       </div>

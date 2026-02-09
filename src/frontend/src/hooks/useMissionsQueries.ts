@@ -304,9 +304,7 @@ export function useToggleTaskCompletion() {
       }
       
       // Check if this is an optimistic task (temporary ID) - if so, skip backend call
-      const missionIdStr = missionId.toString();
       const taskIdStr = taskId.toString();
-      const currentMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
       
       // Optimistic tasks have very large IDs (timestamp-based)
       // Real backend tasks have sequential small IDs
@@ -338,7 +336,7 @@ export function useToggleTaskCompletion() {
       const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
       const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
 
-      // Optimistically update mission detail cache - only toggle the specific task
+      // Optimistically update mission detail cache - only toggle the specific task by exact taskId match
       queryClient.setQueryData<Mission | null>(
         ['missions', 'detail', missionIdStr],
         (old) => {
@@ -354,7 +352,7 @@ export function useToggleTaskCompletion() {
         }
       );
 
-      // Optimistically update missions list cache - only toggle the specific task
+      // Optimistically update missions list cache - only toggle the specific task by exact taskId match
       queryClient.setQueryData<Mission[]>(
         ['missions', 'list'],
         (old) => {
@@ -374,7 +372,7 @@ export function useToggleTaskCompletion() {
         }
       );
 
-      // Return context with snapshots and the intended state for rollback validation
+      // Return context with snapshots for rollback
       return { previousMission, previousMissions, taskIdStr, intendedCompleted: completed };
     },
     onError: (err, variables, context) => {

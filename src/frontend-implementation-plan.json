@@ -1,64 +1,85 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Mission task toggle consistency after re-enter + add task (React Query + autosave)",
+  "title": "Missions: derived Completed archive + swipe navigation between Incomplete/Completed",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure task toggles (existing and newly added) update instantly, affect only the intended task, and immediately update mission progress without navigation/refresh.",
+      "summary": "Derive mission Completed vs Incomplete from tasks/progress and default Missions view to Incomplete only.",
       "acceptanceCriteria": [
-        "Given an existing mission with multiple tasks, when the user opens the mission detail screen, adds a new task, and immediately toggles completion on any task (old or newly added), the checkbox state and styling update instantly.",
-        "Toggling one task does not change completion state or styling of any other task.",
-        "The progress percentage and progress bar update immediately after each toggle.",
-        "The updated completion state persists after leaving the mission screen and re-opening the same mission (no delayed correction needed)."
+        "A mission with at least 1 task and 100% progress is not shown in the default list when the Missions screen opens.",
+        "A mission with 0 tasks is treated as Incomplete and remains visible in the default list.",
+        "The existing mission progress calculation logic remains consistent with current UI behavior (no changes to task completion semantics)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Prevent backend toggle mutations from firing for newly-added optimistic tasks (e.g., temporary IDs), and instead update the React Query mission caches immediately for that specific task so checkbox + styling + progress update in-place and only for the intended task."
+          "path": "frontend/src/utils/missionCompletion.ts",
+          "operation": "create",
+          "description": "Add a Missions-scoped helper to (1) compute progress using the same semantics as current UI and (2) classify a mission as Completed only when taskCount>0 and progress===100; otherwise Incomplete."
         },
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Adjust add-task optimistic ID strategy and settlement behavior so the optimistic task can be safely toggled immediately, then correctly reconciled to the real backend task ID while preserving the user’s latest completion state for that task."
+          "description": "Update the Missions list rendering to use the derived classification helper and filter into two lists (Incomplete/Completed), with initial/default viewMode set to Incomplete whenever Missions opens."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Keep React Query mission detail and list caches consistent after add-task and toggle-task mutations so the mission UI reflects the latest task states reliably without navigation-triggered refetch.",
+      "summary": "Add horizontal swipe navigation and an on-screen Incomplete/Completed toggle without breaking per-row swipe actions.",
       "acceptanceCriteria": [
-        "After add-task completes, the mission detail cache contains the new backend task ID and does not regress any task completion states.",
-        "After toggle-task completes, both mission detail and mission list caches reflect the toggled state for the specific task without altering other tasks.",
-        "The UI does not require a refetch triggered by navigation to reflect the latest task state (the view stays correct in-place)."
+        "On touch devices, a right-swipe gesture on the Missions list view shows the Completed list; a left-swipe shows the Incomplete list.",
+        "A user can switch lists without swiping via an on-screen control (e.g., segmented control/tabs) with English text (e.g., \"Incomplete\" / \"Completed\").",
+        "Swipe navigation does not break existing per-row left-swipe actions (edit/delete); list navigation gestures must not trigger when the user is clearly swiping a row to reveal actions.",
+        "When switching lists, any open swipe row actions are closed to prevent stuck/open states."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/src/components/SwipeActionsRow.tsx",
           "operation": "modify",
-          "description": "Harden cache updates for ['missions','detail', missionId] and ['missions','list'] during add-task reconciliation and toggle-task optimistic updates so only the targeted task changes, no other tasks regress, and the new backend taskId replaces the optimistic one consistently in both caches."
+          "description": "Add lightweight DOM markers/attributes on the swipe-row container/content to allow the Missions list-level swipe handler to detect when a gesture started inside a row and avoid interpreting row-reveal swipes as list-navigation swipes."
+        },
+        {
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Implement list-level horizontal swipe detection (right-swipe => Completed, left-swipe => Incomplete) on the Missions list area, with guardrails to ignore gestures originating inside swipeable rows and to require a clear horizontal intent; add a visible, tappable toggle control labeled \"Incomplete\" and \"Completed\"; ensure switching lists clears openSwipeRowId to close any open row actions."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Prevent mission autosave from overwriting/reverting task completion during/after add-task and toggle-task flows, especially when optimistic tasks are reconciled to real backend tasks.",
+      "summary": "Support swipe-delete for missions in the Completed list with immediate, correct UI updates.",
       "acceptanceCriteria": [
-        "If a user adds a task and toggles that new task (or any other task) before/around mutation settlement, the final persisted mission state matches the user’s latest toggles after all mutations settle.",
-        "Autosave does not persist temporary optimistic task IDs to the backend, and does not introduce duplicated tasks.",
-        "No additional behavior changes occur outside the Mission task add/toggle/update flows."
+        "In the Completed list on touch devices, swiping a mission row reveals actions and allows delete.",
+        "Deleting a mission from the Completed list removes it from the UI and does not reappear after refetch unless the delete failed.",
+        "If the deleted mission was currently selected/open (edge case), the selection is cleared (consistent with current behavior)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionAutosave.ts",
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Ensure autosave never persists temporary optimistic tasks/IDs (e.g., filter them out from saves) and does not race with add/toggle reconciliation; keep baseline syncing aligned to the post-reconciliation cache state so completion flags are not reverted after mutations settle."
+          "description": "Render Completed missions using the same SwipeActionsRow behavior as Incomplete (including delete wiring to the existing delete mutation), and ensure optimistic removal + selectedMissionId clearing continues to apply when deleting from either list."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "When a Completed mission drops below 100% (task unchecked), re-derive state and ensure it appears in Incomplete after returning to the Missions list.",
+      "acceptanceCriteria": [
+        "If a mission is currently 100% complete and the user unchecks any task in mission detail, the mission is no longer classified as Completed after the update settles.",
+        "Returning to the Missions list shows the mission in the Incomplete list (and not in the Completed list).",
+        "No new backend fields or schema changes are introduced for archiving; the archive/completed state is derived from tasks/progress."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Ensure derived classification reacts to task toggle cache updates (no persisted archive flag) and reset the list viewMode to Incomplete when navigating back from MissionDetailFullScreenView so a mission that became incomplete is visible immediately; also close any open swipe row actions on back."
         },
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "During add-task reconciliation, preserve the latest user-intended completion state from the optimistic task when swapping to the real backend taskId, and ensure any needed persistence happens after reconciliation so autosave does not reapply stale task arrays."
+          "description": "Keep task toggle semantics unchanged while ensuring the existing toggle mutation updates the React Query caches used by the list; add any minimal UI-flow handling needed so back navigation returns to a list state where derived classification is re-evaluated (no new backend fields)."
         }
       ]
     }

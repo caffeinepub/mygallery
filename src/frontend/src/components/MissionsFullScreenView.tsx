@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Plus, Target, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,21 +16,30 @@ import {
 import { useListMissions, useDeleteMission } from '@/hooks/useMissionsQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { toast } from 'sonner';
-import type { Task } from '@/backend';
+import type { Task, Mission } from '@/backend';
 import MissionEditorDialog from './MissionEditorDialog';
 import MissionDetailFullScreenView from './MissionDetailFullScreenView';
 import { useIsCoarsePointer } from '@/hooks/useIsCoarsePointer';
 import SwipeActionsRow from './SwipeActionsRow';
+import { splitMissionsByCompletion, calculateMissionProgress } from '@/utils/missionCompletion';
 
 interface MissionsFullScreenViewProps {
   onClose: () => void;
 }
+
+type ViewMode = 'incomplete' | 'completed';
 
 export default function MissionsFullScreenView({ onClose }: MissionsFullScreenViewProps) {
   const [selectedMissionId, setSelectedMissionId] = useState<bigint | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmMissionId, setDeleteConfirmMissionId] = useState<bigint | null>(null);
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('incomplete');
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const isSwiping = useRef<boolean>(false);
 
   const { status } = useBackendActor();
   const { data: missionsList = [], isLoading: isLoadingList } = useListMissions();
@@ -39,11 +48,98 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
 
   const isActorReady = status === 'ready';
 
-  const calculateProgress = (missionTasks: Task[]) => {
-    if (missionTasks.length === 0) return 0;
-    const completed = missionTasks.filter(t => t.completed).length;
-    return (completed / missionTasks.length) * 100;
-  };
+  // Split missions into incomplete and completed
+  const { incomplete: incompleteMissions, completed: completedMissions } = splitMissionsByCompletion(missionsList);
+
+  // Get current list based on view mode
+  const currentMissions = viewMode === 'incomplete' ? incompleteMissions : completedMissions;
+
+  // Handle horizontal swipe navigation
+  useEffect(() => {
+    const listElement = listRef.current;
+    if (!listElement || !isCoarsePointer) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Check if touch started inside a swipeable row
+      const target = e.target as HTMLElement;
+      const swipeRow = target.closest('[data-swipe-row]');
+      if (swipeRow) {
+        // Don't handle list-level swipe if starting inside a row
+        return;
+      }
+
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      isSwiping.current = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchStartX.current) return;
+
+      const target = e.target as HTMLElement;
+      const swipeRow = target.closest('[data-swipe-row]');
+      if (swipeRow) {
+        // Don't handle list-level swipe if inside a row
+        return;
+      }
+
+      const deltaX = e.touches[0].clientX - touchStartX.current;
+      const deltaY = e.touches[0].clientY - touchStartY.current;
+
+      // Determine if this is a horizontal swipe
+      if (!isSwiping.current && Math.abs(deltaX) > 10) {
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          isSwiping.current = true;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isSwiping.current || !touchStartX.current) {
+        touchStartX.current = 0;
+        touchStartY.current = 0;
+        isSwiping.current = false;
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      const swipeRow = target.closest('[data-swipe-row]');
+      if (swipeRow) {
+        // Don't handle list-level swipe if inside a row
+        touchStartX.current = 0;
+        touchStartY.current = 0;
+        isSwiping.current = false;
+        return;
+      }
+
+      const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+
+      // Swipe right -> show completed
+      if (deltaX > 50 && viewMode === 'incomplete') {
+        setViewMode('completed');
+        setOpenSwipeRowId(null);
+      }
+      // Swipe left -> show incomplete
+      else if (deltaX < -50 && viewMode === 'completed') {
+        setViewMode('incomplete');
+        setOpenSwipeRowId(null);
+      }
+
+      touchStartX.current = 0;
+      touchStartY.current = 0;
+      isSwiping.current = false;
+    };
+
+    listElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    listElement.addEventListener('touchmove', handleTouchMove, { passive: true });
+    listElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      listElement.removeEventListener('touchstart', handleTouchStart);
+      listElement.removeEventListener('touchmove', handleTouchMove);
+      listElement.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isCoarsePointer, viewMode]);
 
   const handleOpenDeleteConfirm = (missionId: bigint) => {
     // Close any open swipe row
@@ -120,7 +216,11 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
   };
 
   const handleBackFromDetail = () => {
+    // Reset to incomplete view when returning from detail
+    setViewMode('incomplete');
     setSelectedMissionId(null);
+    // Close any open swipe rows
+    setOpenSwipeRowId(null);
   };
 
   // Show mission detail view if a mission is selected
@@ -133,9 +233,9 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
     );
   }
 
-  const renderMissionRow = (mission: { id: bigint; title: string; tasks: Task[] }) => {
+  const renderMissionRow = (mission: Mission) => {
     const missionId = mission.id.toString();
-    const missionProgress = calculateProgress(mission.tasks);
+    const missionProgress = calculateMissionProgress(mission.tasks);
     const missionCompleted = mission.tasks.length > 0 && missionProgress === 100;
 
     const missionContent = (
@@ -230,12 +330,40 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
         </div>
       </div>
 
+      {/* View Mode Toggle */}
+      <div className="border-b bg-background">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-center gap-2">
+          <Button
+            variant={viewMode === 'incomplete' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setViewMode('incomplete');
+              setOpenSwipeRowId(null);
+            }}
+            className={viewMode === 'incomplete' ? 'bg-missions-accent hover:bg-missions-accent-hover text-white' : ''}
+          >
+            Incomplete ({incompleteMissions.length})
+          </Button>
+          <Button
+            variant={viewMode === 'completed' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setViewMode('completed');
+              setOpenSwipeRowId(null);
+            }}
+            className={viewMode === 'completed' ? 'bg-missions-accent hover:bg-missions-accent-hover text-white' : ''}
+          >
+            Completed ({completedMissions.length})
+          </Button>
+        </div>
+      </div>
+
       {/* Main Content - Missions List */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" ref={listRef}>
         <div className="h-full flex flex-col">
           <div className="p-4 border-b">
             <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-              Your Missions ({missionsList.length})
+              {viewMode === 'incomplete' ? 'Incomplete Missions' : 'Completed Missions'} ({currentMissions.length})
             </h2>
           </div>
           <ScrollArea className="flex-1">
@@ -245,14 +373,20 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
                   <p className="mt-2">Loading missions...</p>
                 </div>
-              ) : missionsList.length === 0 ? (
+              ) : currentMissions.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <Target className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">No missions yet</p>
-                  <p className="text-sm">Create your first mission to get started!</p>
+                  <p className="text-lg font-medium mb-2">
+                    {viewMode === 'incomplete' ? 'No incomplete missions' : 'No completed missions'}
+                  </p>
+                  <p className="text-sm">
+                    {viewMode === 'incomplete' 
+                      ? 'Create your first mission to get started!' 
+                      : 'Complete missions will appear here.'}
+                  </p>
                 </div>
               ) : (
-                missionsList.map((mission) => renderMissionRow(mission))
+                currentMissions.map((mission) => renderMissionRow(mission))
               )}
             </div>
           </ScrollArea>
