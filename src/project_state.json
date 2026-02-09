@@ -3,29 +3,40 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [
-    "Scope constraint: modify only the Mission creation form layout (move task section under title); do not change other app features/behavior."
+    "Do not change any other app behavior/features while fixing the mission task toggle bug (minimal, targeted fix only)."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Bug in mission flow: after returning to a mission and adding a new task, toggling task completion (complete/uncomplete) does not update immediately and may affect other tasks; mission should update instantly without impacting other tasks."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-in-the-new-mission-creation-dialog-frontend-src-components-missioneditordialog-tsx-move-the-task-entry-ui-the-add-a-new-task-input-and-its-add-button-to-appear-directly-under-the-mission-title-input-and-render-the-tasks-list-immediately-below-that-so-the-user-can-continuously-see-the-tasks-they-add-while-creating-the-mission",
-      "title": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
+      "id": "feature-fix-the-mission-task-completion-toggle-bug-that-occurs-after-a-user-re-enters-an-existing-mission-and-then-adds-a-new-task-checking-unchecking-any-task-must-update-immediately-in-the-ui-must-only-affect-the-intended-task-and-must-immediately-update-mission-progress-without-requiring-navigation-or-refresh",
+      "title": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    }
-  ],
-  "new_feature_requests": [
+    },
     {
-      "id": "AR-1",
-      "summary": "On the New Mission creation form, place the task entry/section directly under the mission title so users can easily see the tasks they add (do not change other app functionality).",
-      "reqIds": [],
-      "status": "pending"
+      "id": "feature-ensure-react-query-mission-caches-remain-consistent-after-add-task-and-toggle-task-mutations-including-the-mission-detail-cache-missions-detail-missionid-and-the-mission-list-cache-missions-list-so-the-mission-view-reflects-the-latest-task-states-immediately-and-reliably",
+      "title": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-prevent-mission-autosave-usemissionautosave-from-overwriting-or-reverting-task-completion-state-during-after-add-task-and-toggle-task-flows-especially-around-the-transition-from-an-optimistic-newly-added-task-to-the-real-backend-task-so-no-task-states-are-lost-or-applied-to-the-wrong-task",
+      "title": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
     }
   ],
-  "projectName": "Reorder New Mission form so task entry is directly under the title",
+  "new_feature_requests": [],
+  "projectName": "Fix Mission task toggle bug after re-entering a mission and adding a new task",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

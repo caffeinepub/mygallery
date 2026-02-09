@@ -1,24 +1,48 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T08:35:30.238Z",
+  "generatedAt": "2026-02-09T10:24:31.235Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
+        "summary": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/MissionEditorDialog.tsx"
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/MissionEditorDialog.tsx"
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useMissionAutosave.ts",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useMissionsQueries.ts"
         ]
       }
     ]
@@ -28,7 +52,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/MissionEditorDialog.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

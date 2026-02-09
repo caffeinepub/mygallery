@@ -5,7 +5,6 @@ import IntroScreen from './components/IntroScreen';
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { UploadProvider } from './contexts/UploadContext';
 import { ActorProvider } from './contexts/ActorContext';
-import { useBackendActor } from './contexts/ActorContext';
 
 function AppContent() {
   const { identity, isInitializing } = useInternetIdentity();
@@ -35,12 +34,15 @@ function AppContent() {
     }
   }, [identity]);
 
-  // Show intro screen after authentication
-  if (showIntro) {
-    return <IntroScreen onComplete={handleIntroComplete} />;
-  }
-
-  return <HomePage />;
+  return (
+    <>
+      {/* Always render HomePage immediately when authenticated */}
+      <HomePage />
+      
+      {/* Show intro as non-blocking overlay */}
+      {showIntro && <IntroScreen onComplete={handleIntroComplete} />}
+    </>
+  );
 }
 
 export default function App() {

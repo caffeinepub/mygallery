@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Make task entry more visible during New Mission creation by moving it directly beneath the mission title input.
+**Goal:** Fix the Mission task completion toggle bug that occurs after re-entering a mission and adding a new task, ensuring task toggles and mission progress update immediately and correctly.
 
 **Planned changes:**
-- Reorder the New Mission dialog layout in `frontend/src/components/MissionEditorDialog.tsx` so the “Add a new task…” input row (and add button) appears immediately under the mission title input.
-- Render the tasks list immediately below the task input row so newly added tasks are visible without scrolling.
-- Keep Create Mission and Cancel actions unchanged in placement/behavior (including disabled/loading states).
+- Fix Mission detail UI state so toggling completion on any task (existing or newly added) updates instantly and only affects the intended task.
+- Keep React Query caches consistent after add-task and toggle-task mutations for both mission detail (`['missions','detail', missionId]`) and mission list (`['missions','list']`), preventing regressions or incorrect task state propagation.
+- Adjust Mission autosave (`useMissionAutosave`) behavior to avoid overwriting/reverting task completion state during optimistic-to-backend task ID transitions, and prevent persisting temporary optimistic IDs or duplicating tasks.
 
-**User-visible outcome:** When creating a new mission, users can add tasks directly under the title and immediately see the growing task list beneath, without needing to scroll to find either section.
+**User-visible outcome:** After re-opening a mission and adding a new task, the user can immediately check/uncheck any task and see correct, instant task state + progress updates that persist when leaving and returning to the mission—without needing navigation or refresh.

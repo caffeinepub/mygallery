@@ -1,52 +1,76 @@
 {
   "kind": "build_request",
-  "title": "Reorder New Mission form so task entry is directly under the title",
+  "title": "Fix Mission task toggle bug after re-entering a mission and adding a new task",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
+      "text": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "When the user creates a new mission, the form should have task entry under the title so the user can see the tasks they add more easily. Do not change anything else in the app or its functionality."
+          "Διόρθωσε το bug στην λειτουργία mission όταν ο χρήστης μετά από επιστροφή σε mission προσθέτει νέα task. Το τικ για ολοκληρωμένο task ή το τικ σε ολοκληρωμένο task για να γίνει μη ολοκληρωμένο να λειτουργεί άμεσα χωρίς να επηρεάζει αλλά task του mission και με άμεση ενημέρωση του mission ."
         ]
       },
       "acceptanceCriteria": [
-        "When creating a new mission, the task input row is visually placed directly beneath the mission title input (above the scrollable task list).",
-        "After adding tasks, the newly added tasks are visible in the task list directly below the task input, without requiring the user to scroll to the bottom area where the task input previously lived.",
-        "The Create Mission and Cancel actions remain available and keep their current behavior (including disabled/loading states).",
-        "No backend (Motoko) changes are made.",
-        "No other screens, mission detail behavior, mission list behavior, or non-mission features are changed."
+        "Given an existing mission with multiple tasks, when the user opens the mission detail screen, adds a new task, and immediately toggles completion on any task (old or newly added), the checkbox state and styling update instantly.",
+        "Toggling one task does not change completion state or styling of any other task.",
+        "The progress percentage and progress bar update immediately after each toggle.",
+        "The updated completion state persists after leaving the mission screen and re-opening the same mission (no delayed correction needed)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "...με άμεση ενημέρωση του mission ."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After add-task completes, the mission detail cache contains the new backend task ID and does not regress any task completion states.",
+        "After toggle-task completes, both mission detail and mission list caches reflect the toggled state for the specific task without altering other tasks.",
+        "The UI does not require a refetch triggered by navigation to reflect the latest task state (the view stays correct in-place)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "...να λειτουργεί άμεσα χωρίς να επηρεάζει αλλά task του mission... Μην αλλαξεις τίποτα άλλο..."
+        ]
+      },
+      "acceptanceCriteria": [
+        "If a user adds a task and toggles that new task (or any other task) before/around mutation settlement, the final persisted mission state matches the user’s latest toggles after all mutations settle.",
+        "Autosave does not persist temporary optimistic task IDs to the backend, and does not introduce duplicated tasks.",
+        "No additional behavior changes occur outside the Mission task add/toggle/update flows."
       ]
     }
   ],
   "constraints": [
-    "Limit changes strictly to the New Mission creation form layout in frontend/src/components/MissionEditorDialog.tsx.",
-    "Do not change backend behavior, data models, or canister APIs.",
-    "Do not modify any files under frontend/src/components/ui or any other immutable frontend paths.",
-    "Do not change any other application UI/UX beyond what is necessary to reposition the task entry section under the title in the New Mission dialog."
+    "Do not change any other application features or behaviors outside the Mission task add/toggle/update flow.",
+    "Do not edit files under frontend/immutablePaths (e.g., frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, frontend/src/components/ui/*).",
+    "Backend must remain a single Motoko actor in backend/main.mo; add backend migration only if a state schema change is strictly required (avoid if possible)."
   ],
   "nonGoals": [
-    "Redesigning Missions UI theme or styling outside the New Mission dialog",
-    "Changing task creation logic, validation rules, task IDs, or persistence behavior",
-    "Adding new mission features (e.g., due dates, priorities, task descriptions, reordering)"
+    "Adding new mission features (sorting/grouping changes, new task fields, bulk actions, analytics, etc.).",
+    "Changing UI copy/text, layout, styling, or interactions beyond what is required to fix the described Mission bug.",
+    "Introducing new authentication mechanisms or external services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

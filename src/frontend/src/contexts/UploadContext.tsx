@@ -17,6 +17,7 @@ interface UploadContextType {
   itemCount: number;
   startUpload: (files: File[]) => string;
   startLinkUpload: (linkName: string) => string;
+  startNoteUpload: (noteTitle: string) => string;
   updateProgress: (uploadId: string, itemName: string, progress: number) => void;
   completeUpload: (uploadId: string) => void;
 }
@@ -43,6 +44,16 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const newBatch: UploadBatch = {
       id: uploadId,
       items: [{ displayName: linkName, progress: 0 }],
+    };
+    setUploadBatches(prev => [...prev, newBatch]);
+    return uploadId;
+  }, []);
+
+  const startNoteUpload = useCallback((noteTitle: string): string => {
+    const uploadId = `note-upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newBatch: UploadBatch = {
+      id: uploadId,
+      items: [{ displayName: noteTitle, progress: 0 }],
     };
     setUploadBatches(prev => [...prev, newBatch]);
     return uploadId;
@@ -113,6 +124,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         itemCount,
         startUpload,
         startLinkUpload,
+        startNoteUpload,
         updateProgress,
         completeUpload,
       }}

@@ -22,7 +22,7 @@ export default function FileUploadSection() {
   const createLinkMutation = useCreateLink();
   const createNoteMutation = useCreateNote();
   const { status } = useBackendActor();
-  const { startUpload, startLinkUpload, updateProgress, completeUpload } = useUpload();
+  const { startUpload, startLinkUpload, startNoteUpload, updateProgress, completeUpload } = useUpload();
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -154,23 +154,51 @@ export default function FileUploadSection() {
         return;
       }
 
+      const displayTitle = noteTitle.trim();
+      
+      // Start tracked note upload
+      const uploadId = startNoteUpload(displayTitle);
+      let currentProgress = 0;
+      let progressInterval: NodeJS.Timeout | null = null;
+
       try {
+        // Simulate progress during the backend call
+        progressInterval = setInterval(() => {
+          currentProgress = Math.min(currentProgress + 15, 90);
+          updateProgress(uploadId, displayTitle, currentProgress);
+        }, 200);
+
         await createNoteMutation.mutateAsync({
-          title: noteTitle.trim(),
+          title: displayTitle,
           body: noteBody.trim(),
         });
+
+        clearInterval(progressInterval);
+        progressInterval = null;
+        
+        // Complete to 100% before clearing
+        updateProgress(uploadId, displayTitle, 100);
+        
+        // Small delay to show 100% before clearing
+        setTimeout(() => {
+          completeUpload(uploadId);
+        }, 300);
 
         toast.success('Note added successfully');
         setNoteTitle('');
         setNoteBody('');
         setShowNoteForm(false);
       } catch (error) {
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+        completeUpload(uploadId);
         console.error('Create note error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to add note. Please try again.';
         toast.error(errorMessage);
       }
     },
-    [noteTitle, noteBody, status, createNoteMutation]
+    [noteTitle, noteBody, status, createNoteMutation, startNoteUpload, updateProgress, completeUpload]
   );
 
   const isDisabled = status !== 'ready';

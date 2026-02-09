@@ -27,11 +27,11 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background transition-opacity duration-300 ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background transition-opacity duration-300 pointer-events-none ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      {/* Icon-only splash screen */}
+      {/* Icon-only splash screen - non-blocking overlay */}
       <div className="text-center">
         {/* Animation Stage */}
         <div className="flex items-center justify-center animate-intro-pulse">

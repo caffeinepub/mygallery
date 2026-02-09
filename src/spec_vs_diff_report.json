@@ -1,37 +1,75 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T08:35:30.234Z",
-  "summary": "MissionEditorDialog.tsx shows the task input section being placed immediately after the title/header, aligning with the requested layout change. However, the diff also includes non-layout logic changes in MissionEditorDialog.tsx and modifies additional files outside the allowed scope.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-09T10:24:31.232Z",
+  "summary": "The diff does not show an implemented fix for the specific mission add-task/toggle-task bug, React Query cache consistency for those mutations, or autosave protection. Instead, it changes general React Query behavior (sorting, stale times, refetch-on-mount) and create-mission cache handling, plus updates project metadata/docs.",
+  "missing_requirements": [
     {
-      "description": "Modified files outside the strictly allowed scope (changes are not limited to frontend/src/components/MissionEditorDialog.tsx).",
-      "reason": "BuildRequest constraints require limiting changes strictly to the New Mission creation form layout in MissionEditorDialog.tsx and not changing other files.",
+      "id": "REQ-1",
+      "requirement": "Fix the Mission task completion toggle bug after re-entering a mission and adding a new task (immediate UI update, only intended task affected, progress updates immediately, persists on reopen).",
+      "reason": "The diff summary only shows changes in query configuration and createMission cache updates; no evidence of changes to task toggle logic, task ID mapping, UI state updates, or progress calculation updates in the mission detail flow.",
       "evidence": [
-        "frontend-file-summaries.txt",
-        "project_state.json"
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
       ]
     },
     {
-      "description": "Changed task ID assignment logic when adding a task (compute max taskId and increment) rather than keeping existing task creation behavior unchanged.",
-      "reason": "Non-goal explicitly disallows changing task creation logic, task IDs, or persistence behavior; this appears to alter how taskIds are determined.",
+      "id": "REQ-2",
+      "requirement": "Keep React Query mission caches consistent after add-task and toggle-task mutations for both ['missions','detail', missionId] and ['missions','list'].",
+      "reason": "No add-task or toggle-task mutations/callbacks are shown, and no explicit cache update logic for task add/toggle is present in the provided diff excerpt (only createMission and list/detail query configs are visible).",
       "evidence": [
-        "frontend/src/components/MissionEditorDialog.tsx"
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
       ]
     },
     {
-      "description": "Added a defensive deep copy of tasks before mutation submission.",
-      "reason": "Not requested; goes beyond the stated requirement to only reposition the task entry section in the dialog layout.",
+      "id": "REQ-3",
+      "requirement": "Prevent Mission autosave (useMissionAutosave) from overwriting/reverting task completion state during/after add-task and toggle-task (especially optimistic-to-real task ID transition).",
+      "reason": "No changes to useMissionAutosave (or any autosave coordination) are shown; the diff does not include any logic to avoid persisting optimistic IDs or to reconcile toggles during mutation settlement.",
       "evidence": [
-        "frontend/src/components/MissionEditorDialog.tsx"
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
       ]
     }
   ],
-  "confidence": 0.71,
+  "hallucinated_features": [
+    {
+      "description": "Changed mission list sorting behavior to BigInt-safe direct comparison (commented as such).",
+      "reason": "Not requested by the BuildRequest and constitutes behavior change outside the mission add/toggle/update bug scope.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Adjusted React Query caching/refetch behavior for missions list/detail (staleTime changes, gcTime, refetchOnMount false/true, “Always refetch when re-entering mission detail”).",
+      "reason": "BuildRequest emphasized fixing immediate in-place correctness without requiring navigation/refetch; changing refetch-on-mount and stale times is an unrequested behavioral change and may mask the underlying bug rather than fixing add/toggle cache updates.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Added createMission onSuccess behavior to fetch persisted mission and set both list and detail caches, plus invalidate ['missions','list'].",
+      "reason": "Not part of the requested bug (which is about re-entering an existing mission, add-task, and toggle-task), and it changes cache behavior beyond the specified add/toggle/update flow.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Introduced/used additional diagnostic utilities imports (diagnoseMissionCache, logDeleteMutationLifecycle, formatActorError).",
+      "reason": "Diagnostics/logging utilities were not requested; adds new behavior/complexity outside the mission add/toggle/update fix.",
+      "evidence": [
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
+      ]
+    },
+    {
+      "description": "Updated project metadata tracking in project_state.json (new_feature_requests/status entries).",
+      "reason": "Not requested as part of the functional bug fix; this is process/metadata change rather than implementing the required behavior.",
+      "evidence": [
+        "project_state.json"
+      ]
+    }
+  ],
+  "confidence": 0.78,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/MissionEditorDialog.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json"
   ]
 }

@@ -1,23 +1,64 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Reorder task entry section in New Mission dialog",
+  "title": "Fix Mission task toggle consistency after re-enter + add task (React Query + autosave)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Move the task entry row to directly under the mission title input in the New Mission creation dialog and show the tasks list immediately beneath it (while preserving all existing behaviors).",
+      "summary": "Ensure task toggles (existing and newly added) update instantly, affect only the intended task, and immediately update mission progress without navigation/refresh.",
       "acceptanceCriteria": [
-        "When creating a new mission, the task input row is visually placed directly beneath the mission title input (above the scrollable task list).",
-        "After adding tasks, the newly added tasks are visible in the task list directly below the task input, without requiring the user to scroll to the bottom area where the task input previously lived.",
-        "The Create Mission and Cancel actions remain available and keep their current behavior (including disabled/loading states).",
-        "No backend (Motoko) changes are made.",
-        "No other screens, mission detail behavior, mission list behavior, or non-mission features are changed."
+        "Given an existing mission with multiple tasks, when the user opens the mission detail screen, adds a new task, and immediately toggles completion on any task (old or newly added), the checkbox state and styling update instantly.",
+        "Toggling one task does not change completion state or styling of any other task.",
+        "The progress percentage and progress bar update immediately after each toggle.",
+        "The updated completion state persists after leaving the mission screen and re-opening the same mission (no delayed correction needed)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionEditorDialog.tsx",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Reorder the JSX layout in the New Mission creation dialog so the task entry UI (\"Add a new task...\" input + add button) appears immediately under the mission title input, and the tasks list renders directly below that. Keep the existing task add/toggle/remove logic, ScrollArea usage, and Create Mission/Cancel button behaviors (including disabled/loading states) unchanged. Limit changes strictly to layout/structure within this file."
+          "description": "Prevent backend toggle mutations from firing for newly-added optimistic tasks (e.g., temporary IDs), and instead update the React Query mission caches immediately for that specific task so checkbox + styling + progress update in-place and only for the intended task."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Adjust add-task optimistic ID strategy and settlement behavior so the optimistic task can be safely toggled immediately, then correctly reconciled to the real backend task ID while preserving the user’s latest completion state for that task."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Keep React Query mission detail and list caches consistent after add-task and toggle-task mutations so the mission UI reflects the latest task states reliably without navigation-triggered refetch.",
+      "acceptanceCriteria": [
+        "After add-task completes, the mission detail cache contains the new backend task ID and does not regress any task completion states.",
+        "After toggle-task completes, both mission detail and mission list caches reflect the toggled state for the specific task without altering other tasks.",
+        "The UI does not require a refetch triggered by navigation to reflect the latest task state (the view stays correct in-place)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Harden cache updates for ['missions','detail', missionId] and ['missions','list'] during add-task reconciliation and toggle-task optimistic updates so only the targeted task changes, no other tasks regress, and the new backend taskId replaces the optimistic one consistently in both caches."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Prevent mission autosave from overwriting/reverting task completion during/after add-task and toggle-task flows, especially when optimistic tasks are reconciled to real backend tasks.",
+      "acceptanceCriteria": [
+        "If a user adds a task and toggles that new task (or any other task) before/around mutation settlement, the final persisted mission state matches the user’s latest toggles after all mutations settle.",
+        "Autosave does not persist temporary optimistic task IDs to the backend, and does not introduce duplicated tasks.",
+        "No additional behavior changes occur outside the Mission task add/toggle/update flows."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useMissionAutosave.ts",
+          "operation": "modify",
+          "description": "Ensure autosave never persists temporary optimistic tasks/IDs (e.g., filter them out from saves) and does not race with add/toggle reconciliation; keep baseline syncing aligned to the post-reconciliation cache state so completion flags are not reverted after mutations settle."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "During add-task reconciliation, preserve the latest user-intended completion state from the optimistic task when swapping to the real backend taskId, and ensure any needed persistence happens after reconciliation so autosave does not reapply stale task arrays."
         }
       ]
     }

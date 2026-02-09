@@ -49,13 +49,14 @@ export default function MissionDetailFullScreenView({
   // Derive tasks directly from React Query cache - single source of truth
   const tasks = selectedMission?.tasks ?? [];
 
-  // Auto-save hook - only enabled after mission data is hydrated
-  const { isSaving, markAsHydrated, flushPendingSave } = useMissionAutosave({
+  // Auto-save hook - disabled while mutations are in flight
+  const autosaveEnabled = isHydrated && isActorReady && !addTaskMutation.isPending && !toggleTaskMutation.isPending;
+  const { isSaving, markAsHydrated, syncBaseline, flushPendingSave } = useMissionAutosave({
     missionId,
     title: missionTitle,
     tasks,
     debounceMs: 800,
-    enabled: isHydrated && isActorReady,
+    enabled: autosaveEnabled,
   });
 
   // Load selected mission data when mission changes or loads
@@ -74,6 +75,20 @@ export default function MissionDetailFullScreenView({
   useEffect(() => {
     setIsHydrated(false);
   }, [missionId]);
+
+  // Sync autosave baseline after add-task mutation settles
+  useEffect(() => {
+    if (addTaskMutation.isSuccess && selectedMission && isHydrated) {
+      syncBaseline(selectedMission.title, selectedMission.tasks);
+    }
+  }, [addTaskMutation.isSuccess, selectedMission, isHydrated, syncBaseline]);
+
+  // Sync autosave baseline after toggle-task mutation settles
+  useEffect(() => {
+    if (toggleTaskMutation.isSuccess && selectedMission && isHydrated) {
+      syncBaseline(selectedMission.title, selectedMission.tasks);
+    }
+  }, [toggleTaskMutation.isSuccess, selectedMission, isHydrated, syncBaseline]);
 
   const calculateProgress = (missionTasks: Task[]) => {
     if (missionTasks.length === 0) return 0;
@@ -285,7 +300,6 @@ export default function MissionDetailFullScreenView({
                       checked={task.completed}
                       onCheckedChange={() => handleToggleTask(task.taskId)}
                       className="shrink-0"
-                      disabled={toggleTaskMutation.isPending}
                     />
                     <span
                       className={`flex-1 text-sm ${

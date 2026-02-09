@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-new-mission-creation-dialog-frontend-src-components-missioneditordialog-tsx-move-the-task-entry-ui-the-add-a-new-task-input-and-its-add-button-to-appear-directly-under-the-mission-title-input-and-render-the-tasks-list-immediately-below-that-so-the-user-can-continuously-see-the-tasks-they-add-while-creating-the-mission",
-      "featureTitle": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
+      "featureId": "feature-fix-the-mission-task-completion-toggle-bug-that-occurs-after-a-user-re-enters-an-existing-mission-and-then-adds-a-new-task-checking-unchecking-any-task-must-update-immediately-in-the-ui-must-only-affect-the-intended-task-and-must-immediately-update-mission-progress-without-requiring-navigation-or-refresh",
+      "featureTitle": "Fix the Mission task completion toggle bug that occurs after a user re-enters an existing mission and then adds a new task: checking/unchecking any task must update immediately in the UI, must only affect the intended task, and must immediately update mission progress, without requiring navigation or refresh.",
       "files": [
-        "frontend/src/components/MissionEditorDialog.tsx"
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,6 +18,46 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-react-query-mission-caches-remain-consistent-after-add-task-and-toggle-task-mutations-including-the-mission-detail-cache-missions-detail-missionid-and-the-mission-list-cache-missions-list-so-the-mission-view-reflects-the-latest-task-states-immediately-and-reliably",
+      "featureTitle": "Ensure React Query mission caches remain consistent after add-task and toggle-task mutations, including the mission detail cache (['missions','detail', missionId]) and the mission list cache (['missions','list']), so the mission view reflects the latest task states immediately and reliably.",
+      "files": [
+        "frontend/src/hooks/useMissionsQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-prevent-mission-autosave-usemissionautosave-from-overwriting-or-reverting-task-completion-state-during-after-add-task-and-toggle-task-flows-especially-around-the-transition-from-an-optimistic-newly-added-task-to-the-real-backend-task-so-no-task-states-are-lost-or-applied-to-the-wrong-task",
+      "featureTitle": "Prevent Mission autosave (useMissionAutosave) from overwriting or reverting task completion state during/after add-task and toggle-task flows, especially around the transition from an optimistic newly-added task to the real backend task, so no task states are lost or applied to the wrong task.",
+      "files": [
+        "frontend/src/hooks/useMissionsQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

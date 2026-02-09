@@ -13,6 +13,7 @@ import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
 import { useListMissions } from '@/hooks/useMissionsQueries';
+import { useHomePrefetch } from '@/hooks/useHomePrefetch';
 import type { Folder } from '@/backend';
 
 // Lazy-load full-screen views for better startup performance
@@ -28,7 +29,10 @@ export default function HomePage() {
   const { identity, isInitializing } = useInternetIdentity();
   const { status, error, retry, signOut, actor } = useBackendActor();
 
-  // Only fetch data when authenticated and actor is ready
+  // Prefetch core Home data as soon as actor is ready
+  useHomePrefetch();
+
+  // Fetch data when authenticated and actor is ready
   useGetFolders();
   useGetFilesNotInFolder();
   useListMissions();

@@ -46,6 +46,14 @@ export function useMissionAutosave({
     }
   }, [missionId]);
 
+  // Cancel pending saves when autosave becomes disabled
+  useEffect(() => {
+    if (!enabled && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, [enabled]);
+
   const performSave = useCallback(async (saveTitle: string, saveTasks: Task[]) => {
     if (isSavingRef.current) {
       // If already saving, queue the update
@@ -131,6 +139,16 @@ export function useMissionAutosave({
     };
   }, [missionId]);
 
+  // Method to sync the baseline after external mutations (add/toggle task)
+  const syncBaseline = useCallback((newTitle: string, newTasks: Task[]) => {
+    // Update the baseline to reflect the latest cache state after mutations
+    lastHydratedStateRef.current = {
+      title: newTitle,
+      tasks: newTasks.map(t => ({ ...t })),
+      missionId: missionId.toString(),
+    };
+  }, [missionId]);
+
   // Method to immediately flush any pending save
   const flushPendingSave = useCallback(async (currentTitle: string, currentTasks: Task[]) => {
     // Cancel any pending debounced save
@@ -161,6 +179,7 @@ export function useMissionAutosave({
   return {
     isSaving: isSavingRef.current || updateMutation.isPending,
     markAsHydrated,
+    syncBaseline,
     flushPendingSave,
   };
 }

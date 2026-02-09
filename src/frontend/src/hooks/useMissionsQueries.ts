@@ -174,9 +174,9 @@ export function useAddTaskToMission() {
       const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
       const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
 
-      // Create optimistic task with temporary ID
+      // Create optimistic task with collision-resistant temporary ID
       const optimisticTask: Task = {
-        taskId: BigInt(Date.now()), // Temporary ID
+        taskId: BigInt(`${Date.now()}${Math.random().toString().slice(2, 8)}`),
         task: taskText,
         completed: false,
       };
@@ -216,31 +216,36 @@ export function useAddTaskToMission() {
       const missionIdStr = data.missionId.toString();
       const { newTask } = data;
 
-      // Replace optimistic task with real task from backend, ensuring no duplicates
+      // Replace optimistic task with real task from backend, preserving any user-toggled completion state
       queryClient.setQueryData<Mission | null>(
         ['missions', 'detail', missionIdStr],
         (old) => {
           if (!old) return null;
           
-          // Remove optimistic task by ID
+          // Find the optimistic task to check if user toggled it
+          const optimisticTaskInCache = old.tasks.find(
+            t => t.taskId.toString() === context?.optimisticTask.taskId.toString()
+          );
+          
+          // Remove the exact optimistic task by its temporary ID
           const tasksWithoutOptimistic = old.tasks.filter(
             t => t.taskId.toString() !== context?.optimisticTask.taskId.toString()
           );
           
-          // Check if the real task already exists (by taskId) to prevent duplicates
-          const realTaskExists = tasksWithoutOptimistic.some(
-            t => t.taskId.toString() === newTask.taskId.toString()
-          );
+          // Add the real task from backend, preserving user's completion state if they toggled it
+          const finalTask: Task = {
+            ...newTask,
+            completed: optimisticTaskInCache ? optimisticTaskInCache.completed : newTask.completed,
+          };
           
-          // Only add the real task if it doesn't already exist
           return {
             ...old,
-            tasks: realTaskExists ? tasksWithoutOptimistic : [...tasksWithoutOptimistic, newTask],
+            tasks: [...tasksWithoutOptimistic, finalTask],
           };
         }
       );
 
-      // Update missions list cache with real task, ensuring no duplicates
+      // Update missions list cache with real task, preserving completion state
       queryClient.setQueryData<Mission[]>(
         ['missions', 'list'],
         (old) => {
@@ -248,20 +253,25 @@ export function useAddTaskToMission() {
           return old.map((mission) => {
             if (mission.id.toString() !== missionIdStr) return mission;
             
-            // Remove optimistic task by ID
+            // Find the optimistic task to check if user toggled it
+            const optimisticTaskInCache = mission.tasks.find(
+              t => t.taskId.toString() === context?.optimisticTask.taskId.toString()
+            );
+            
+            // Remove the exact optimistic task by its temporary ID
             const tasksWithoutOptimistic = mission.tasks.filter(
               t => t.taskId.toString() !== context?.optimisticTask.taskId.toString()
             );
             
-            // Check if the real task already exists (by taskId) to prevent duplicates
-            const realTaskExists = tasksWithoutOptimistic.some(
-              t => t.taskId.toString() === newTask.taskId.toString()
-            );
+            // Add the real task from backend, preserving user's completion state if they toggled it
+            const finalTask: Task = {
+              ...newTask,
+              completed: optimisticTaskInCache ? optimisticTaskInCache.completed : newTask.completed,
+            };
             
-            // Only add the real task if it doesn't already exist
             return {
               ...mission,
-              tasks: realTaskExists ? tasksWithoutOptimistic : [...tasksWithoutOptimistic, newTask],
+              tasks: [...tasksWithoutOptimistic, finalTask],
             };
           });
         }
@@ -292,12 +302,29 @@ export function useToggleTaskCompletion() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+      
+      // Check if this is an optimistic task (temporary ID) - if so, skip backend call
+      const missionIdStr = missionId.toString();
+      const taskIdStr = taskId.toString();
+      const currentMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
+      
+      // Optimistic tasks have very large IDs (timestamp-based)
+      // Real backend tasks have sequential small IDs
+      const isOptimisticTask = taskId > BigInt(1000000000000);
+      
+      if (isOptimisticTask) {
+        // For optimistic tasks, just update the cache without calling backend
+        // The backend call will happen when the add-task mutation settles
+        return { missionId, taskId, completed, wasOptimistic: true };
+      }
+      
+      // For real tasks, call the backend
       const taskStatusUpdate: TaskStatusUpdate = {
         taskId,
         completed,
       };
       await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
-      return { missionId, taskId, completed };
+      return { missionId, taskId, completed, wasOptimistic: false };
     },
     onMutate: async ({ missionId, taskId, completed }) => {
       const missionIdStr = missionId.toString();
@@ -347,8 +374,8 @@ export function useToggleTaskCompletion() {
         }
       );
 
-      // Return context with snapshots for rollback
-      return { previousMission, previousMissions };
+      // Return context with snapshots and the intended state for rollback validation
+      return { previousMission, previousMissions, taskIdStr, intendedCompleted: completed };
     },
     onError: (err, variables, context) => {
       const missionIdStr = variables.missionId.toString();
