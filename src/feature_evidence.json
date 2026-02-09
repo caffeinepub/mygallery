@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-missions-full-screen-view-automatically-classify-missions-as-completed-archived-when-they-are-100-complete-all-tasks-completed-and-task-count-0-and-as-incomplete-otherwise-default-the-missions-view-to-show-only-the-incomplete-list-when-the-user-opens-missions",
-      "featureTitle": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
+      "featureId": "feature-ensure-the-pwa-manifest-is-valid-and-meets-installability-requirements-keep-a-correct-frontend-public-manifest-json-containing-at-minimum-name-short-name-start-url-within-scope-display-set-to-standalone-and-an-icons-array-that-includes-working-192x192-and-512x512-png-entries",
+      "featureTitle": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
       "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/utils/missionCompletion.ts"
+        "frontend/public/manifest.json"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -23,11 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-horizontal-swipe-navigation-in-the-missions-full-screen-view-swiping-right-switches-from-the-incomplete-list-to-the-completed-archived-list-swiping-left-switches-from-the-completed-list-back-to-the-incomplete-list-also-provide-a-visible-tappable-option-to-switch-between-incomplete-and-completed-lists-english-labels",
-      "featureTitle": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
+      "featureId": "feature-ensure-the-manifest-is-linked-correctly-so-it-is-discoverable-on-the-app-entry-html-and-therefore-all-client-side-routes-keep-add-link-rel-manifest-href-manifest-json-in-frontend-index-html-and-ensure-it-is-not-conditionally-omitted",
+      "featureTitle": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
       "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/components/SwipeActionsRow.tsx"
+        "frontend/index.html"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -44,10 +42,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-missions-in-the-completed-archived-list-can-be-deleted-via-swipe-actions-same-behavior-as-the-current-swipe-delete-in-missions-list-and-that-deleting-a-completed-mission-updates-the-ui-immediately-and-correctly",
-      "featureTitle": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
+      "featureId": "feature-register-the-service-worker-correctly-without-modifying-application-ui-flows-add-minimal-service-worker-registration-for-sw-js-from-frontend-index-html-not-from-immutable-react-entry-files-ensuring-it-runs-only-in-secure-contexts-and-does-not-introduce-unrelated-app-logic",
+      "featureTitle": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
       "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx"
+        "frontend/index.html"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -64,10 +62,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-when-a-mission-is-in-the-completed-archived-state-and-the-user-marks-any-task-as-incomplete-within-the-mission-detail-view-the-mission-must-automatically-move-back-to-the-incomplete-missions-list-i-e-it-should-no-longer-appear-in-completed-once-progress-drops-below-100",
-      "featureTitle": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "featureId": "feature-make-frontend-public-sw-js-satisfy-browser-installability-expectations-while-remaining-minimal-keep-a-fetch-handler-avoid-intercepting-cross-origin-requests-and-canister-api-calls-and-ensure-navigation-requests-have-a-working-fallback-without-introducing-new-user-facing-behavior",
+      "featureTitle": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
       "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx"
+        "frontend/public/sw.js"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -80,6 +78,28 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-verify-and-fix-any-remaining-installability-criteria-issues-without-changing-app-ui-behavior-ensure-the-app-is-served-over-a-secure-context-the-start-url-is-reachable-and-there-are-no-manifest-service-worker-console-errors-that-would-prevent-the-install-app-prompt-across-major-browsers-chrome-edge-firefox-and-safari-ios-where-applicable",
+      "featureTitle": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
+      "files": [
+        "frontend/index.html",
+        "frontend/public/manifest.json",
+        "frontend/public/sw.js"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

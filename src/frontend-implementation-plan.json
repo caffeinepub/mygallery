@@ -1,85 +1,104 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Missions: derived Completed archive + swipe navigation between Incomplete/Completed",
+  "title": "PWA installability compliance (manifest, service worker, registration) with no UI/flow changes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Derive mission Completed vs Incomplete from tasks/progress and default Missions view to Incomplete only.",
+      "summary": "Validate and complete the PWA manifest with required fields and working 192x192/512x512 PNG icons.",
       "acceptanceCriteria": [
-        "A mission with at least 1 task and 100% progress is not shown in the default list when the Missions screen opens.",
-        "A mission with 0 tasks is treated as Incomplete and remains visible in the default list.",
-        "The existing mission progress calculation logic remains consistent with current UI behavior (no changes to task completion semantics)."
+        "`/manifest.json` is fetchable from the deployed app and parses as valid JSON.",
+        "Manifest contains `name`, `short_name`, `start_url`, `display: \"standalone\"`, and `scope` that includes `start_url`.",
+        "Manifest `icons` includes at least one `sizes: \"192x192\"` PNG and one `sizes: \"512x512\"` PNG, and both URLs resolve with HTTP 200 when requested from the app origin."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/missionCompletion.ts",
-          "operation": "create",
-          "description": "Add a Missions-scoped helper to (1) compute progress using the same semantics as current UI and (2) classify a mission as Completed only when taskCount>0 and progress===100; otherwise Incomplete."
+          "path": "frontend/public/manifest.json",
+          "operation": "modify",
+          "description": "Ensure required installability fields remain present and correct (including `name`, `short_name`, `start_url`, `display: \"standalone\"`, and `scope` containing `start_url`), and confirm `icons` includes working PNG entries for sizes 192x192 and 512x512 that match the actual asset paths under frontend/public."
         },
         {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Update the Missions list rendering to use the derived classification helper and filter into two lists (Incomplete/Completed), with initial/default viewMode set to Incomplete whenever Missions opens."
+          "path": "frontend/public/assets/generated/mygallery-mission-icon-192.dim_192x192.png",
+          "operation": "create",
+          "description": "Add the required 192x192 PNG icon asset to the public assets directory so the manifest icon URL resolves (source file available in workspace assets list)."
+        },
+        {
+          "path": "frontend/public/assets/generated/mygallery-mission-icon-512.dim_512x512.png",
+          "operation": "create",
+          "description": "Add the required 512x512 PNG icon asset to the public assets directory so the manifest icon URL resolves (source file available in workspace assets list)."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add horizontal swipe navigation and an on-screen Incomplete/Completed toggle without breaking per-row swipe actions.",
+      "summary": "Ensure the manifest link tag is present and discoverable from the app entry HTML for all client-side routes.",
       "acceptanceCriteria": [
-        "On touch devices, a right-swipe gesture on the Missions list view shows the Completed list; a left-swipe shows the Incomplete list.",
-        "A user can switch lists without swiping via an on-screen control (e.g., segmented control/tabs) with English text (e.g., \"Incomplete\" / \"Completed\").",
-        "Swipe navigation does not break existing per-row left-swipe actions (edit/delete); list navigation gestures must not trigger when the user is clearly swiping a row to reveal actions.",
-        "When switching lists, any open swipe row actions are closed to prevent stuck/open states."
+        "`frontend/index.html` contains a single, correct `<link rel=\"manifest\" href=\"/manifest.json\">`.",
+        "In Chrome/Edge DevTools (Application tab) the manifest is detected when loading the app root and when reloading on any client-side route."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/SwipeActionsRow.tsx",
+          "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Add lightweight DOM markers/attributes on the swipe-row container/content to allow the Missions list-level swipe handler to detect when a gesture started inside a row and avoid interpreting row-reveal swipes as list-navigation swipes."
-        },
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Implement list-level horizontal swipe detection (right-swipe => Completed, left-swipe => Incomplete) on the Missions list area, with guardrails to ignore gestures originating inside swipeable rows and to require a clear horizontal intent; add a visible, tappable toggle control labeled \"Incomplete\" and \"Completed\"; ensure switching lists clears openSwipeRowId to close any open row actions."
+          "description": "Verify the document head contains exactly one `<link rel=\"manifest\" href=\"/manifest.json\">` and that it is unconditional (not gated by runtime conditions) so the manifest remains discoverable across reloads and client-side routes."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Support swipe-delete for missions in the Completed list with immediate, correct UI updates.",
+      "summary": "Register the service worker from frontend/index.html with minimal, secure-context guarded logic and basic update handling only.",
       "acceptanceCriteria": [
-        "In the Completed list on touch devices, swiping a mission row reveals actions and allows delete.",
-        "Deleting a mission from the Completed list removes it from the UI and does not reappear after refetch unless the delete failed.",
-        "If the deleted mission was currently selected/open (edge case), the selection is cleared (consistent with current behavior)."
+        "On supported browsers, `navigator.serviceWorker.register('/sw.js')` successfully registers with an appropriate scope covering the app.",
+        "Registration code is limited to service worker registration and basic update handling; it does not modify UI, routing, authentication, or app business logic.",
+        "No service-worker registration attempt occurs when `navigator.serviceWorker` is unavailable (e.g., unsupported environments)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Render Completed missions using the same SwipeActionsRow behavior as Incomplete (including delete wiring to the existing delete mutation), and ensure optimistic removal + selectedMissionId clearing continues to apply when deleting from either list."
+          "description": "Add a minimal inline service worker registration snippet for `/sw.js` (placed in index.html), guarded to run only when `navigator.serviceWorker` exists and the context is secure (HTTPS or localhost). Include only basic update handling (e.g., listen for updates and optionally trigger `SKIP_WAITING` via postMessage) without any UI/business-logic changes."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "When a Completed mission drops below 100% (task unchecked), re-derive state and ensure it appears in Incomplete after returning to the Missions list.",
+      "summary": "Keep the service worker minimal while meeting installability checks: include fetch handler, avoid cross-origin/canister interception, and provide a navigation fallback.",
       "acceptanceCriteria": [
-        "If a mission is currently 100% complete and the user unchecks any task in mission detail, the mission is no longer classified as Completed after the update settles.",
-        "Returning to the Missions list shows the mission in the Incomplete list (and not in the Completed list).",
-        "No new backend fields or schema changes are introduced for archiving; the archive/completed state is derived from tasks/progress."
+        "`/sw.js` is served from the app origin, installs, activates, and controls the page (DevTools shows the page is controlled by a service worker).",
+        "`sw.js` includes a `fetch` event handler (required for installability in some browser checks).",
+        "Navigation requests have a reliable fallback path if the network is unavailable (no infinite errors/loops), and non-navigation requests do not break normal network behavior."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "path": "frontend/public/sw.js",
           "operation": "modify",
-          "description": "Ensure derived classification reacts to task toggle cache updates (no persisted archive flag) and reset the list viewMode to Incomplete when navigating back from MissionDetailFullScreenView so a mission that became incomplete is visible immediately; also close any open swipe row actions on back."
+          "description": "Adjust the existing minimal service worker to ensure installability expectations: keep the `fetch` handler, continue skipping cross-origin and canister/API calls, and ensure navigation requests reliably fall back offline by guaranteeing the fallback document (e.g., `/index.html`) is available in cache (add it to minimal precache and/or cache on first successful navigation)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Eliminate remaining installability blockers (manifest/SW errors) while keeping the app’s UI/behavior unchanged.",
+      "acceptanceCriteria": [
+        "Chrome/Edge DevTools Lighthouse (or Application > Manifest) reports the app as installable with no blocking manifest or service worker errors.",
+        "Install prompt (or browser install UI) becomes available in Chrome/Edge when criteria are met.",
+        "No new UI elements, screens, or styling changes are introduced as part of this work."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/manifest.json",
+          "operation": "modify",
+          "description": "Add any non-UI manifest fields needed to avoid installability warnings across major browsers (e.g., ensure `start_url` is reachable and within `scope`, and add a stable manifest `id` if needed by Chromium) while keeping existing app naming/branding and visuals unchanged."
         },
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "path": "frontend/public/sw.js",
           "operation": "modify",
-          "description": "Keep task toggle semantics unchanged while ensuring the existing toggle mutation updates the React Query caches used by the list; add any minimal UI-flow handling needed so back navigation returns to a list state where derived classification is re-evaluated (no new backend fields)."
+          "description": "Harden service worker behavior to avoid console errors that can block installability (e.g., ensure cache lookups used for navigation fallback cannot fail due to missing precached entries; keep behavior minimal and avoid introducing offline-first features beyond the required fallback)."
+        },
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Ensure service worker registration cannot throw in insecure/unsupported contexts (guard checks + error logging only) and keep PWA head metadata consistent so browser install UI is not blocked by manifest/service worker discovery issues."
         }
       ]
     }

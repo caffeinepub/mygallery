@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { Upload, Link as LinkIcon, Plus, FileText } from 'lucide-react';
+import { useCallback, useState, useEffect } from 'react';
+import { Upload, Link as LinkIcon, Plus, FileText, Mic, MicOff } from 'lucide-react';
 import { useUploadFiles, useCreateLink } from '@/hooks/useQueries';
 import { useCreateNote } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { perfDiag } from '@/utils/performanceDiagnostics';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
 
 export default function FileUploadSection() {
   const uploadFilesMutation = useUploadFiles();
@@ -29,6 +30,31 @@ export default function FileUploadSection() {
   const [linkName, setLinkName] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
+
+  const { isListening, isSupported, startListening, stopListening } = useSpeechToText({
+    onTranscript: (transcript, isFinal) => {
+      if (isFinal && transcript) {
+        // Append final transcript to existing text with proper spacing
+        setNoteBody((prev) => {
+          if (!prev.trim()) {
+            return transcript;
+          }
+          return `${prev} ${transcript}`;
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error(error);
+    },
+    // No lang parameter - use browser/OS default language
+  });
+
+  // Stop listening when note form is closed or submitted
+  useEffect(() => {
+    if (!showNoteForm && isListening) {
+      stopListening();
+    }
+  }, [showNoteForm, isListening, stopListening]);
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -144,6 +170,11 @@ export default function FileUploadSection() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
+      // Stop listening before submitting
+      if (isListening) {
+        stopListening();
+      }
+
       if (status !== 'ready') {
         toast.error('Please wait for the application to initialize');
         return;
@@ -198,8 +229,25 @@ export default function FileUploadSection() {
         toast.error(errorMessage);
       }
     },
-    [noteTitle, noteBody, status, createNoteMutation, startNoteUpload, updateProgress, completeUpload]
+    [noteTitle, noteBody, status, createNoteMutation, startNoteUpload, updateProgress, completeUpload, isListening, stopListening]
   );
+
+  const handleCancelNote = () => {
+    if (isListening) {
+      stopListening();
+    }
+    setShowNoteForm(false);
+    setNoteTitle('');
+    setNoteBody('');
+  };
+
+  const toggleDictation = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   const isDisabled = status !== 'ready';
 
@@ -311,11 +359,7 @@ export default function FileUploadSection() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setShowNoteForm(false);
-                setNoteTitle('');
-                setNoteBody('');
-              }}
+              onClick={handleCancelNote}
               disabled={isDisabled || createNoteMutation.isPending}
             >
               Cancel
@@ -334,10 +378,34 @@ export default function FileUploadSection() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="note-body">Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="note-body">Body</Label>
+              {isSupported && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleDictation}
+                  disabled={isDisabled || createNoteMutation.isPending}
+                  className="h-8 px-2"
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="h-4 w-4 mr-1" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-4 w-4 mr-1" />
+                      Dictate
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             <Textarea
               id="note-body"
-              placeholder="Write your notes here..."
+              placeholder="Note content"
               value={noteBody}
               onChange={(e) => setNoteBody(e.target.value)}
               disabled={isDisabled || createNoteMutation.isPending}
@@ -349,7 +417,7 @@ export default function FileUploadSection() {
             disabled={isDisabled || createNoteMutation.isPending}
             className="w-full"
           >
-            {createNoteMutation.isPending ? 'Saving...' : 'Save Note'}
+            {createNoteMutation.isPending ? 'Adding...' : 'Save Note'}
           </Button>
         </form>
       )}

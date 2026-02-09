@@ -1,91 +1,108 @@
 {
   "kind": "build_request",
-  "title": "Archive 100%-completed missions and add swipe navigation between incomplete and completed lists",
+  "title": "Make the app installable as a fully recognized PWA across major browsers (no UI/feature changes)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
+      "text": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "Στην λειτουργία mission , τα ολοκληρωμένα 100% completed mission να αρχειοθετούνται. Ο χρήστης όταν ανοίγει την λειτουργία mission να βλέπει τα μη ολοκληρωμένα mission"
+          "Make the app fully recognizable by all browsers as an installable PWA... Ensure that: there is a correct manifest.json with name, short_name, start_url, display=\"standalone\" • there are icons 192x192 and 512x512 • ... the app meets all installability criteria of browsers."
         ]
       },
       "acceptanceCriteria": [
-        "A mission with at least 1 task and 100% progress is not shown in the default list when the Missions screen opens.",
-        "A mission with 0 tasks is treated as Incomplete and remains visible in the default list.",
-        "The existing mission progress calculation logic remains consistent with current UI behavior (no changes to task completion semantics)."
+        "`/manifest.json` is fetchable from the deployed app and parses as valid JSON.",
+        "Manifest contains `name`, `short_name`, `start_url`, `display: \"standalone\"`, and `scope` that includes `start_url`.",
+        "Manifest `icons` includes at least one `sizes: \"192x192\"` PNG and one `sizes: \"512x512\"` PNG, and both URLs resolve with HTTP 200 when requested from the app origin."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
+      "text": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "να υπάρχει επιλογή να δει τα ολοκληρωμένα mission με swipe προς τα δεξιά . Όταν κάνει swipe προς τα δεξιά να βλέπει τα ολοκληρωμένα mission και κάνοντας swipe προς τα αριστερά να βλέπει τα μη ολοκληρωμένα mission."
+          "the manifest is correctly linked on all pages"
         ]
       },
       "acceptanceCriteria": [
-        "On touch devices, a right-swipe gesture on the Missions list view shows the Completed list; a left-swipe shows the Incomplete list.",
-        "A user can switch lists without swiping via an on-screen control (e.g., segmented control/tabs) with English text (e.g., \"Incomplete\" / \"Completed\").",
-        "Swipe navigation does not break existing per-row left-swipe actions (edit/delete); list navigation gestures must not trigger when the user is clearly swiping a row to reveal actions.",
-        "When switching lists, any open swipe row actions are closed to prevent stuck/open states."
+        "`frontend/index.html` contains a single, correct `<link rel=\"manifest\" href=\"/manifest.json\">`.",
+        "In Chrome/Edge DevTools (Application tab) the manifest is detected when loading the app root and when reloading on any client-side route."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
+      "text": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "Τα ολοκληρωμένα mission να μπορεί και αυτά ο χρήστης να τα διαγράψει με swipe ."
+          "the service worker registers correctly and does not rewrite unrelated code"
         ]
       },
       "acceptanceCriteria": [
-        "In the Completed list on touch devices, swiping a mission row reveals actions and allows delete.",
-        "Deleting a mission from the Completed list removes it from the UI and does not reappear after refetch unless the delete failed.",
-        "If the deleted mission was currently selected/open (edge case), the selection is cleared (consistent with current behavior)."
+        "On supported browsers, `navigator.serviceWorker.register('/sw.js')` successfully registers with an appropriate scope covering the app.",
+        "Registration code is limited to service worker registration and basic update handling; it does not modify UI, routing, authentication, or app business logic.",
+        "No service-worker registration attempt occurs when `navigator.serviceWorker` is unavailable (e.g., unsupported environments)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "text": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "Αν ο χρήστης σε ολοκλήρωμενο mission επιλέξει task ως μη ολοκληρωμένο να επιστρέφει το mission στην λίστα με τα mission μη ολοκληρωμένα"
+          "the app meets all installability criteria of browsers"
         ]
       },
       "acceptanceCriteria": [
-        "If a mission is currently 100% complete and the user unchecks any task in mission detail, the mission is no longer classified as Completed after the update settles.",
-        "Returning to the Missions list shows the mission in the Incomplete list (and not in the Completed list).",
-        "No new backend fields or schema changes are introduced for archiving; the archive/completed state is derived from tasks/progress."
+        "`/sw.js` is served from the app origin, installs, activates, and controls the page (DevTools shows the page is controlled by a service worker).",
+        "`sw.js` includes a `fetch` event handler (required for installability in some browser checks).",
+        "Navigation requests have a reliable fallback path if the network is unavailable (no infinite errors/loops), and non-navigation requests do not break normal network behavior."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "the app meets all installability criteria of browsers"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Chrome/Edge DevTools Lighthouse (or Application > Manifest) reports the app as installable with no blocking manifest or service worker errors.",
+        "Install prompt (or browser install UI) becomes available in Chrome/Edge when criteria are met.",
+        "No new UI elements, screens, or styling changes are introduced as part of this work."
       ]
     }
   ],
   "constraints": [
-    "Do not change anything else in the application outside the Missions feature and its related UI flows.",
-    "Keep all backend logic in the single existing actor (backend/main.mo); do not introduce additional backend services.",
-    "Do not edit any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT."
+    "Do not change any other application functionality or visual appearance.",
+    "Do not edit files marked immutable by the platform (including `frontend/src/main.tsx` and other immutable paths).",
+    "No backend changes unless strictly required for PWA installability (prefer frontend-only changes).",
+    "Do not add unrelated refactors or feature work; keep changes limited to PWA installability."
   ],
   "nonGoals": [
-    "Adding a persistent \"archived\" flag or separate archive storage on the backend (the archive state should be derived from task completion as requested).",
-    "Changing mission creation, autosave behavior, attachments, folders, files, notes, authentication, or any other non-mission features.",
-    "Adding real-time syncing or cross-device live updates beyond existing React Query refetch behavior."
+    "Adding new offline-first features or changing caching strategy beyond what is required for installability.",
+    "Changing app name/branding, theme, layout, or any user-facing copy unrelated to PWA metadata.",
+    "Introducing new routes/pages solely for PWA purposes."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,75 +1,86 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T16:24:09.945Z",
+  "generatedAt": "2026-02-09T18:22:21.401Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 5,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
+        "summary": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/missionCompletion.ts",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/public/manifest.json",
+          "frontend/public/assets/generated/mygallery-mission-icon-192.dim_192x192.png",
+          "frontend/public/assets/generated/mygallery-mission-icon-512.dim_512x512.png"
         ],
         "matchedFiles": [
-          "frontend/src/utils/missionCompletion.ts",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/public/manifest.json"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
+        "summary": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/SwipeActionsRow.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/index.html"
         ],
         "matchedFiles": [
-          "frontend/src/components/SwipeActionsRow.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/index.html"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
+        "summary": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/index.html"
         ],
         "matchedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/index.html"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+        "summary": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionDetailFullScreenView.tsx"
+          "frontend/public/sw.js"
         ],
         "matchedFiles": [
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/public/sw.js"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/public/manifest.json",
+          "frontend/public/sw.js",
+          "frontend/index.html"
+        ],
+        "matchedFiles": [
+          "frontend/public/manifest.json",
+          "frontend/public/sw.js",
+          "frontend/index.html"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/SwipeActionsRow.tsx",
-    "frontend/src/utils/missionCompletion.ts",
+    "frontend/index.html",
+    "frontend/public/manifest.json",
+    "frontend/public/sw.js",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

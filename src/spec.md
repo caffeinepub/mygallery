@@ -1,14 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Automatically treat 100%-complete missions as archived and let users switch between Incomplete and Completed mission lists via swipe or on-screen controls.
+**Goal:** Make the app consistently installable as a fully recognized PWA across major browsers without changing any UI or app features.
 
 **Planned changes:**
-- Derive mission status in the Missions full-screen view: missions with at least 1 task and 100% progress are classified as **Completed** (archived); all others are **Incomplete** (including missions with 0 tasks).
-- Default the Missions screen to show the **Incomplete** list when opened.
-- Add horizontal list-level navigation in Missions: swipe right to view **Completed**, swipe left to return to **Incomplete**, plus a visible tappable control (English labels: “Incomplete” / “Completed”) to switch without swiping.
-- Ensure swipe gestures for list switching do not conflict with existing per-row swipe actions (edit/delete) and close any open row swipe actions when switching lists.
-- Support deleting missions from the **Completed** list via the same swipe-delete behavior as the current Missions list, with immediate UI updates.
-- If a task is marked incomplete inside a completed mission’s detail view, reclassify it as **Incomplete** so it moves back to the Incomplete list automatically.
+- Ensure `frontend/public/manifest.json` is valid and meets installability requirements (name, short_name, start_url within scope, `display: "standalone"`, and working 192x192 + 512x512 PNG icon entries).
+- Ensure the manifest is discoverable by adding/keeping a single `<link rel="manifest" href="/manifest.json">` in `frontend/index.html` (not conditional).
+- Add minimal service worker registration for `/sw.js` from `frontend/index.html`, only in supported/secure contexts, without altering app flows.
+- Ensure `frontend/public/sw.js` is minimal but installability-friendly: includes a `fetch` handler, avoids interfering with cross-origin and API/canister calls, and provides a reliable navigation fallback.
+- Verify and fix any remaining installability blockers (secure context, reachable start URL, no manifest/SW console errors) so browser install UI/prompts are available.
 
-**User-visible outcome:** Opening Missions shows only incomplete missions by default; users can swipe or tap to view completed (archived) missions, delete missions from either list via swipe actions, and missions move between lists automatically as task completion changes.
+**User-visible outcome:** The app can be installed from supported browsers (e.g., Chrome/Edge, and where applicable others) as a standalone PWA, with no changes to the app’s UI or behavior.

@@ -1,18 +1,20 @@
-// Service Worker for MyGallery PWA - Optimized for fast startup
+// Service Worker for MyGallery PWA - Optimized for installability
 const CACHE_NAME = 'mygallery-v1';
 const RUNTIME_CACHE = 'mygallery-runtime';
 
-// Minimal assets to cache on install - prioritize fast startup
+// Minimal assets to cache on install - includes fallback document
 const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
   '/manifest.json',
 ];
 
-// Install event - minimal precaching to avoid blocking
+// Install event - precache essential assets including fallback
 self.addEventListener('install', (event) => {
   // Skip waiting immediately to activate faster
   self.skipWaiting();
   
-  // Cache minimal assets in background without blocking
+  // Cache essential assets including fallback document
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
@@ -22,7 +24,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches quickly
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -39,7 +41,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first for fast loading, cache as fallback
+// Fetch event - network first with reliable offline fallback
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -54,12 +56,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests, use network first for fast loading
+  // For navigation requests, use network first with fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache successful responses in background
+          // Cache successful responses
           if (response.ok) {
             const responseClone = response.clone();
             caches.open(RUNTIME_CACHE).then((cache) => {
@@ -69,20 +71,30 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback to cache only if network fails
+          // Fallback to cached response or index.html
           return caches.match(request).then((cachedResponse) => {
-            return cachedResponse || caches.match('/index.html');
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Guaranteed fallback to precached index.html
+            return caches.match('/index.html').then((indexResponse) => {
+              if (indexResponse) {
+                return indexResponse;
+              }
+              // Final fallback if precache failed
+              return caches.match('/');
+            });
           });
         })
     );
     return;
   }
 
-  // For other requests, try network first for fresh content
+  // For other requests, try network first
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful responses in background
+        // Cache successful GET responses
         if (response.ok && request.method === 'GET') {
           const responseClone = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => {
@@ -92,7 +104,7 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // Fallback to cache only if network fails
+        // Fallback to cache if network fails
         return caches.match(request);
       })
   );

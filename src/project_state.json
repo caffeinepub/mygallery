@@ -1,42 +1,50 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Mission feature enhancements: archive 100% completed missions, default view shows incomplete missions with swipe navigation to completed missions, allow swipe-delete on completed missions, and move missions back to incomplete when a task is marked incomplete in a completed mission (no other app changes).",
+  "summary": "Make the existing web app fully installable as a PWA across major browsers (meeting installability criteria) without changing any other functionality or UI.",
   "architectural_notes": [
-    "Scope constraint: do not change anything outside the Mission feature; focus only on Mission behavior/UI."
+    "Do not change any other app functionality or appearance; limit work strictly to PWA installability (manifest, icons, linking, service worker registration, installability criteria)."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-missions-full-screen-view-automatically-classify-missions-as-completed-archived-when-they-are-100-complete-all-tasks-completed-and-task-count-0-and-as-incomplete-otherwise-default-the-missions-view-to-show-only-the-incomplete-list-when-the-user-opens-missions",
-      "title": "In the Missions full-screen view, automatically classify missions as \"Completed\" (archived) when they are 100% complete (all tasks completed and task count > 0), and as \"Incomplete\" otherwise. Default the Missions view to show only the Incomplete list when the user opens Missions.",
+      "id": "feature-ensure-the-pwa-manifest-is-valid-and-meets-installability-requirements-keep-a-correct-frontend-public-manifest-json-containing-at-minimum-name-short-name-start-url-within-scope-display-set-to-standalone-and-an-icons-array-that-includes-working-192x192-and-512x512-png-entries",
+      "title": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-horizontal-swipe-navigation-in-the-missions-full-screen-view-swiping-right-switches-from-the-incomplete-list-to-the-completed-archived-list-swiping-left-switches-from-the-completed-list-back-to-the-incomplete-list-also-provide-a-visible-tappable-option-to-switch-between-incomplete-and-completed-lists-english-labels",
-      "title": "Add horizontal swipe navigation in the Missions full-screen view: swiping right switches from the Incomplete list to the Completed (archived) list; swiping left switches from the Completed list back to the Incomplete list. Also provide a visible, tappable option to switch between Incomplete and Completed lists (English labels).",
+      "id": "feature-ensure-the-manifest-is-linked-correctly-so-it-is-discoverable-on-the-app-entry-html-and-therefore-all-client-side-routes-keep-add-link-rel-manifest-href-manifest-json-in-frontend-index-html-and-ensure-it-is-not-conditionally-omitted",
+      "title": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-missions-in-the-completed-archived-list-can-be-deleted-via-swipe-actions-same-behavior-as-the-current-swipe-delete-in-missions-list-and-that-deleting-a-completed-mission-updates-the-ui-immediately-and-correctly",
-      "title": "Ensure missions in the Completed (archived) list can be deleted via swipe actions (same behavior as the current swipe-delete in Missions list), and that deleting a completed mission updates the UI immediately and correctly.",
+      "id": "feature-register-the-service-worker-correctly-without-modifying-application-ui-flows-add-minimal-service-worker-registration-for-sw-js-from-frontend-index-html-not-from-immutable-react-entry-files-ensuring-it-runs-only-in-secure-contexts-and-does-not-introduce-unrelated-app-logic",
+      "title": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-when-a-mission-is-in-the-completed-archived-state-and-the-user-marks-any-task-as-incomplete-within-the-mission-detail-view-the-mission-must-automatically-move-back-to-the-incomplete-missions-list-i-e-it-should-no-longer-appear-in-completed-once-progress-drops-below-100",
-      "title": "When a mission is in the Completed (archived) state and the user marks any task as incomplete within the mission detail view, the mission must automatically move back to the Incomplete missions list (i.e., it should no longer appear in Completed once progress drops below 100%).",
+      "id": "feature-make-frontend-public-sw-js-satisfy-browser-installability-expectations-while-remaining-minimal-keep-a-fetch-handler-avoid-intercepting-cross-origin-requests-and-canister-api-calls-and-ensure-navigation-requests-have-a-working-fallback-without-introducing-new-user-facing-behavior",
+      "title": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-verify-and-fix-any-remaining-installability-criteria-issues-without-changing-app-ui-behavior-ensure-the-app-is-served-over-a-secure-context-the-start-url-is-reachable-and-there-are-no-manifest-service-worker-console-errors-that-would-prevent-the-install-app-prompt-across-major-browsers-chrome-edge-firefox-and-safari-ios-where-applicable",
+      "title": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -44,31 +52,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Archive missions that are 100% completed; default missions view shows only incomplete missions",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Add swipe navigation in Missions: swipe right shows completed missions, swipe left shows incomplete missions",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Allow deleting completed (archived) missions via swipe action",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "If a task is marked incomplete inside a completed mission, move that mission back to the incomplete missions list",
+      "summary": "Ensure app is recognized as an installable PWA across browsers: add/validate manifest.json (name, short_name, start_url, display=standalone), include 192x192 and 512x512 icons, link manifest on all pages, correctly register service worker without adding unrelated code, and satisfy browser installability criteria.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "Archive 100%-completed missions and add swipe navigation between incomplete and completed lists",
+  "projectName": "Make the app installable as a fully recognized PWA across major browsers (no UI/feature changes)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

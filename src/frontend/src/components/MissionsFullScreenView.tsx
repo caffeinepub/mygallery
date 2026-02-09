@@ -377,7 +377,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
                 <div className="p-8 text-center text-muted-foreground">
                   <Target className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium mb-2">
-                    {viewMode === 'incomplete' ? 'No incomplete missions' : 'No completed missions'}
+                    {viewMode === 'incomplete' ? 'Missions incompleted' : 'Completed missions'}
                   </p>
                   <p className="text-sm">
                     {viewMode === 'incomplete' 
