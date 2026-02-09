@@ -1,11 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Make the “New Mission” creation dialog usable on mobile by showing the mission title, task add row, and primary actions immediately without requiring scroll.
+**Goal:** Make task entry more visible during New Mission creation by moving it directly beneath the mission title input.
 
 **Planned changes:**
-- Update `MissionEditorDialog` layout for small viewports so the mission title input, “Add a new task…” input + add button, and Cancel/Create Mission buttons are all visible on open.
-- Constrain scrolling to the tasks list area only when tasks exceed available space, keeping the task input row and action buttons pinned/accessible.
-- Preserve all existing mission creation behavior (validation, toasts, create action, and close behavior) with no changes outside the Mission creation UI and any directly-required wiring.
+- Reorder the New Mission dialog layout in `frontend/src/components/MissionEditorDialog.tsx` so the “Add a new task…” input row (and add button) appears immediately under the mission title input.
+- Render the tasks list immediately below the task input row so newly added tasks are visible without scrolling.
+- Keep Create Mission and Cancel actions unchanged in placement/behavior (including disabled/loading states).
 
-**User-visible outcome:** On mobile-sized screens, users can open “New Mission” and immediately enter a title, add tasks, and tap Cancel/Create without scrolling; only the growing tasks list scrolls if needed.
+**User-visible outcome:** When creating a new mission, users can add tasks directly under the title and immediately see the growing task list beneath, without needing to scroll to find either section.

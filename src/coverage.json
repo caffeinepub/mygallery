@@ -1,29 +1,18 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T08:08:39.440Z",
+  "generatedAt": "2026-02-09T08:35:30.238Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/MissionEditorDialog.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/MissionEditorDialog.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
+        "summary": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/MissionEditorDialog.tsx"

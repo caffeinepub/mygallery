@@ -1,26 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project focuses on the Mission feature, specifically improving the new mission creation form for better mobile usability while keeping all other app functionality unchanged and ensuring the app feels usable immediately after login.",
+  "summary": "New project",
   "architectural_notes": [
-    "Scope constraint: only modify Mission -> New Mission form; do not change other features/flows so the app remains usable immediately after login."
+    "Scope constraint: modify only the Mission creation form layout (move task section under title); do not change other app features/behavior."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-new-mission-creation-ui-missioneditordialog-so-that-on-mobile-sized-viewports-the-full-mission-creation-form-is-immediately-usable-without-scrolling-specifically-the-mission-title-input-the-add-task-input-add-button-and-the-primary-actions-cancel-create-mission-must-all-be-visible-at-once-when-the-dialog-opens",
-      "title": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
+      "id": "feature-in-the-new-mission-creation-dialog-frontend-src-components-missioneditordialog-tsx-move-the-task-entry-ui-the-add-a-new-task-input-and-its-add-button-to-appear-directly-under-the-mission-title-input-and-render-the-tasks-list-immediately-below-that-so-the-user-can-continuously-see-the-tasks-they-add-while-creating-the-mission",
+      "title": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-limit-changes-strictly-to-the-mission-creation-form-ui-implementation-missioneditordialog-and-any-directly-required-mission-ui-wiring-do-not-modify-other-app-areas-flows-or-startup-login-behavior",
-      "title": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
@@ -28,12 +20,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Improve 'New Mission' form UX on mobile: title + tasks entry should be fully visible without scrolling to add tasks",
+      "summary": "On the New Mission creation form, place the task entry/section directly under the mission title so users can easily see the tasks they add (do not change other app functionality).",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Make New Mission creation form fully usable on mobile without scrolling to add tasks",
+  "projectName": "Reorder New Mission form so task entry is directly under the title",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

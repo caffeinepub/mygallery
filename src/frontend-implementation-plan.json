@@ -1,37 +1,23 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Mobile-first layout fixes for New Mission creation dialog",
+  "title": "Reorder task entry section in New Mission dialog",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Adjust MissionEditorDialog layout so mobile view shows title, add-task row, and primary actions without scrolling; only the task list scrolls when needed.",
+      "summary": "Move the task entry row to directly under the mission title input in the New Mission creation dialog and show the tasks list immediately beneath it (while preserving all existing behaviors).",
       "acceptanceCriteria": [
-        "On a mobile viewport (e.g., <= 640px width), opening “New Mission” shows the mission title input, the task entry input (\"Add a new task...\") with its add button, and the Cancel/Create buttons without requiring any scroll.",
-        "Adding tasks remains possible immediately after opening the dialog (no forced scrolling to reach the task input).",
-        "If the task list grows beyond available space, only the task list area becomes scrollable; the task input row and action buttons remain accessible (no need to scroll to reach them).",
-        "All existing mission creation behaviors remain intact (validation, toasts, create mutation, closing behavior)."
+        "When creating a new mission, the task input row is visually placed directly beneath the mission title input (above the scrollable task list).",
+        "After adding tasks, the newly added tasks are visible in the task list directly below the task input, without requiring the user to scroll to the bottom area where the task input previously lived.",
+        "The Create Mission and Cancel actions remain available and keep their current behavior (including disabled/loading states).",
+        "No backend (Motoko) changes are made.",
+        "No other screens, mission detail behavior, mission list behavior, or non-mission features are changed."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/MissionEditorDialog.tsx",
           "operation": "modify",
-          "description": "Update the dialog container sizing and layout for small viewports: make the dialog full-screen (or near full-screen) on mobile using responsive Tailwind classes (e.g., w-screen / h-[100dvh] with sm+: existing centered sizing), keep header/footer as fixed (shrink-0) regions, and ensure the middle tasks area (ScrollArea) is the only scrollable region (min-h-0 + flex layout). Adjust mobile paddings/spacing as needed so the Mission title input, the add-task input + add button, and the Cancel/Create buttons are all visible simultaneously on initial open while preserving all existing creation behaviors."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Keep the change strictly scoped to MissionEditorDialog UI and directly-required Mission wiring only, without impacting other flows (including login/startup).",
-      "acceptanceCriteria": [
-        "No changes to non-Mission screens/components are required for this update.",
-        "User can still log in and use the app immediately after login as before (no new loading gates, no new initialization steps)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/MissionEditorDialog.tsx",
-          "operation": "modify",
-          "description": "Ensure all modifications remain purely presentational/layout-focused within MissionEditorDialog (no changes to auth, actor initialization, global providers, or non-Mission UI). Avoid editing any files under frontend/src/components/ui and keep existing validation/toast/mutation/close behaviors unchanged."
+          "description": "Reorder the JSX layout in the New Mission creation dialog so the task entry UI (\"Add a new task...\" input + add button) appears immediately under the mission title input, and the tasks list renders directly below that. Keep the existing task add/toggle/remove logic, ScrollArea usage, and Create Mission/Cancel button behaviors (including disabled/loading states) unchanged. Limit changes strictly to layout/structure within this file."
         }
       ]
     }

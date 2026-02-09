@@ -118,63 +118,20 @@ export default function MissionEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[95dvh] sm:h-[85dvh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-4 sm:px-6 pt-3 sm:pt-4 pb-2 sm:pb-3 border-b shrink-0">
+      <DialogContent className="max-w-[95vw] w-full h-[85dvh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-4 pb-3 border-b shrink-0">
           <DialogTitle className="sr-only">Create New Mission</DialogTitle>
           <Input
             placeholder="Mission title..."
             value={missionTitle}
             onChange={(e) => setMissionTitle(e.target.value)}
             disabled={!isActorReady}
-            className="text-lg sm:text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-0"
+            className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-0"
             autoFocus
           />
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden px-4 sm:px-6 min-h-0">
-          <ScrollArea className="h-full pr-2 sm:pr-4">
-            <div className="space-y-2 py-2 sm:py-3">
-              {tasks.length === 0 ? (
-                <div className="text-center py-4 sm:py-6 text-muted-foreground">
-                  <p className="text-xs sm:text-sm">No tasks yet. Add tasks below to get started!</p>
-                </div>
-              ) : (
-                tasks.map((task, index) => (
-                  <div
-                    key={task.taskId.toString()}
-                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
-                  >
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={() => handleToggleTask(task.taskId)}
-                      disabled={!isActorReady}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs sm:text-sm font-medium">
-                        {index + 1}.
-                      </span>
-                      <span className={`ml-2 text-xs sm:text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                        {task.task}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleRemoveTask(task.taskId)}
-                      disabled={!isActorReady}
-                    >
-                      <X className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-
-        <div className="px-4 sm:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 space-y-2 sm:space-y-3 border-t shrink-0 bg-background">
+        <div className="px-6 pt-3 pb-2 border-b shrink-0 bg-background">
           <div className="flex gap-2">
             <Input
               placeholder="Add a new task..."
@@ -187,30 +144,73 @@ export default function MissionEditorDialog({
                 }
               }}
               disabled={!isActorReady}
-              className="text-sm sm:text-base"
             />
             <Button
               onClick={handleAddTask}
               disabled={!isActorReady || !newTaskText.trim()}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0 h-9 sm:h-10 px-3 sm:px-4"
+              className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0"
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
+        </div>
 
+        <div className="flex-1 overflow-hidden px-6 min-h-0">
+          <ScrollArea className="h-full pr-4">
+            <div className="space-y-2 py-3">
+              {tasks.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="text-sm">No tasks yet. Add tasks above to get started!</p>
+                </div>
+              ) : (
+                tasks.map((task, index) => (
+                  <div
+                    key={task.taskId.toString()}
+                    className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                  >
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={() => handleToggleTask(task.taskId)}
+                      disabled={!isActorReady}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium">
+                        {index + 1}.
+                      </span>
+                      <span className={`ml-2 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                        {task.task}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveTask(task.taskId)}
+                      disabled={!isActorReady}
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <div className="px-6 pb-4 pt-3 border-t shrink-0 bg-background">
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={createMissionMutation.isPending}
-              className="h-9 sm:h-10 text-sm sm:text-base"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateMission}
               disabled={!isActorReady || !missionTitle.trim() || createMissionMutation.isPending}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white h-9 sm:h-10 text-sm sm:text-base"
+              className="bg-missions-accent hover:bg-missions-accent-hover text-white"
             >
               {createMissionMutation.isPending ? (
                 <>

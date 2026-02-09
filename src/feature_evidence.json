@@ -2,8 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-new-mission-creation-ui-missioneditordialog-so-that-on-mobile-sized-viewports-the-full-mission-creation-form-is-immediately-usable-without-scrolling-specifically-the-mission-title-input-the-add-task-input-add-button-and-the-primary-actions-cancel-create-mission-must-all-be-visible-at-once-when-the-dialog-opens",
-      "featureTitle": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
+      "featureId": "feature-in-the-new-mission-creation-dialog-frontend-src-components-missioneditordialog-tsx-move-the-task-entry-ui-the-add-a-new-task-input-and-its-add-button-to-appear-directly-under-the-mission-title-input-and-render-the-tasks-list-immediately-below-that-so-the-user-can-continuously-see-the-tasks-they-add-while-creating-the-mission",
+      "featureTitle": "In the New Mission creation dialog (frontend/src/components/MissionEditorDialog.tsx), move the task entry UI (the \"Add a new task...\" input and its add button) to appear directly under the mission title input, and render the tasks list immediately below that so the user can continuously see the tasks they add while creating the mission.",
       "files": [
         "frontend/src/components/MissionEditorDialog.tsx"
       ],
@@ -18,26 +18,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-limit-changes-strictly-to-the-mission-creation-form-ui-implementation-missioneditordialog-and-any-directly-required-mission-ui-wiring-do-not-modify-other-app-areas-flows-or-startup-login-behavior",
-      "featureTitle": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
-      "files": [
-        "frontend/src/components/MissionEditorDialog.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }
