@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Folder, Home } from 'lucide-react';
 import { useGetFolders, useMoveFilesToFolder, useBatchRemoveFromFolder } from '@/hooks/useQueries';
+import { useMoveNotesToFolder, useBatchRemoveNotesFromFolder } from '@/hooks/useNotesQueries';
 import { perfDiag } from '@/utils/performanceDiagnostics';
 
 interface SendToFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fileIds: string[];
+  noteIds?: bigint[];
   currentFolderId?: bigint;
   onMoveComplete?: () => void;
 }
@@ -22,19 +24,30 @@ export default function SendToFolderDialog({
   open,
   onOpenChange,
   fileIds,
+  noteIds = [],
   currentFolderId,
   onMoveComplete,
 }: SendToFolderDialogProps) {
   const { data: folders, isLoading } = useGetFolders();
-  const moveToFolder = useMoveFilesToFolder();
+  const moveFilesToFolder = useMoveFilesToFolder();
   const batchRemoveFromFolder = useBatchRemoveFromFolder();
+  const moveNotesToFolder = useMoveNotesToFolder();
+  const batchRemoveNotesFromFolder = useBatchRemoveNotesFromFolder();
 
   const handleMoveToFolder = async (folderId: bigint) => {
     const operationId = `move-to-folder-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Move to folder (UI)', { fileCount: fileIds.length });
+    perfDiag.startTiming(operationId, 'Move to folder (UI)', { 
+      fileCount: fileIds.length,
+      noteCount: noteIds.length 
+    });
 
     try {
-      await moveToFolder.mutateAsync({ fileIds, folderId });
+      if (fileIds.length > 0) {
+        await moveFilesToFolder.mutateAsync({ fileIds, folderId });
+      }
+      if (noteIds.length > 0) {
+        await moveNotesToFolder.mutateAsync({ noteIds, folderId });
+      }
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
       onMoveComplete?.();
@@ -46,13 +59,21 @@ export default function SendToFolderDialog({
 
   const handleReturnToMain = async () => {
     const operationId = `return-to-main-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Return to main collection (UI)', { fileCount: fileIds.length });
+    perfDiag.startTiming(operationId, 'Return to main collection (UI)', { 
+      fileCount: fileIds.length,
+      noteCount: noteIds.length 
+    });
 
     try {
-      await batchRemoveFromFolder.mutateAsync({ 
-        fileIds, 
-        sourceFolderId: currentFolderId 
-      });
+      if (fileIds.length > 0) {
+        await batchRemoveFromFolder.mutateAsync({ 
+          fileIds, 
+          sourceFolderId: currentFolderId 
+        });
+      }
+      if (noteIds.length > 0) {
+        await batchRemoveNotesFromFolder.mutateAsync({ noteIds });
+      }
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
       onMoveComplete?.();
@@ -62,7 +83,8 @@ export default function SendToFolderDialog({
     }
   };
 
-  const isProcessing = moveToFolder.isPending || batchRemoveFromFolder.isPending;
+  const isProcessing = moveFilesToFolder.isPending || batchRemoveFromFolder.isPending || 
+                       moveNotesToFolder.isPending || batchRemoveNotesFromFolder.isPending;
 
   return (
     <Dialog open={open} onOpenChange={isProcessing ? undefined : onOpenChange}>

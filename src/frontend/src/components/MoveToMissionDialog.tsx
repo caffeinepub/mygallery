@@ -9,12 +9,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Target } from 'lucide-react';
 import { useListMissions } from '@/hooks/useMissionsQueries';
 import { useMoveFilesToMission } from '@/hooks/useQueries';
+import { useMoveNotesToMission } from '@/hooks/useNotesQueries';
 import { toast } from 'sonner';
 
 interface MoveToMissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fileIds: string[];
+  noteIds?: bigint[];
   onMoveComplete?: () => void;
 }
 
@@ -22,32 +24,41 @@ export default function MoveToMissionDialog({
   open,
   onOpenChange,
   fileIds,
+  noteIds = [],
   onMoveComplete,
 }: MoveToMissionDialogProps) {
   const { data: missions, isLoading } = useListMissions();
-  const moveToMission = useMoveFilesToMission();
+  const moveFilesToMission = useMoveFilesToMission();
+  const moveNotesToMission = useMoveNotesToMission();
 
   const handleMoveToMission = async (missionId: bigint) => {
     try {
-      await moveToMission.mutateAsync({ fileIds, missionId });
+      if (fileIds.length > 0) {
+        await moveFilesToMission.mutateAsync({ fileIds, missionId });
+      }
+      if (noteIds.length > 0) {
+        await moveNotesToMission.mutateAsync({ noteIds, missionId });
+      }
       
       // Show success message
-      const fileCount = fileIds.length;
-      toast.success(`Moved ${fileCount} ${fileCount === 1 ? 'file' : 'files'} to mission`);
+      const totalCount = fileIds.length + noteIds.length;
+      toast.success(`Moved ${totalCount} ${totalCount === 1 ? 'item' : 'items'} to mission`);
       
       onOpenChange(false);
       onMoveComplete?.();
     } catch (error) {
       console.error('Move to mission error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to move files to mission';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to move items to mission';
       toast.error(errorMessage);
     }
   };
 
+  const isProcessing = moveFilesToMission.isPending || moveNotesToMission.isPending;
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       // Prevent closing while moving
-      if (!newOpen && moveToMission.isPending) {
+      if (!newOpen && isProcessing) {
         return;
       }
       onOpenChange(newOpen);
@@ -75,9 +86,9 @@ export default function MoveToMissionDialog({
               <Card
                 key={mission.id.toString()}
                 className={`cursor-pointer transition-all hover:shadow-md hover:border-missions-accent ${
-                  moveToMission.isPending ? 'opacity-50 pointer-events-none' : ''
+                  isProcessing ? 'opacity-50 pointer-events-none' : ''
                 }`}
-                onClick={() => !moveToMission.isPending && handleMoveToMission(mission.id)}
+                onClick={() => !isProcessing && handleMoveToMission(mission.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
@@ -97,11 +108,11 @@ export default function MoveToMissionDialog({
           )}
         </div>
 
-        {moveToMission.isPending && (
+        {isProcessing && (
           <div className="py-3 text-center">
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
-              Moving files...
+              Moving items...
             </div>
           </div>
         )}
@@ -111,7 +122,7 @@ export default function MoveToMissionDialog({
             variant="outline" 
             onClick={() => onOpenChange(false)} 
             className="w-full"
-            disabled={moveToMission.isPending}
+            disabled={isProcessing}
           >
             Cancel
           </Button>

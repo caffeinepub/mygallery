@@ -90,3 +90,75 @@ export async function downloadFile(url: string, filename: string): Promise<void>
     throw error;
   }
 }
+
+/**
+ * Downloads a note as a text file
+ */
+export function downloadNoteAsText(title: string, body: string): void {
+  const content = `${title}\n\n${body}`;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Shares a file using Web Share API
+ */
+export async function shareFile(url: string, filename: string): Promise<boolean> {
+  if (!navigator.share) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const file = new File([blob], filename, { type: blob.type });
+    
+    await navigator.share({
+      files: [file],
+      title: filename,
+    });
+    
+    return true;
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      // User cancelled, not an error
+      return true;
+    }
+    console.error('Share failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Shares a note using Web Share API
+ */
+export async function shareNote(title: string, body: string): Promise<boolean> {
+  if (!navigator.share) {
+    return false;
+  }
+
+  try {
+    await navigator.share({
+      title,
+      text: body,
+    });
+    
+    return true;
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      // User cancelled, not an error
+      return true;
+    }
+    console.error('Share failed:', error);
+    return false;
+  }
+}

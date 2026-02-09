@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Check, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink, Trash2, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useGetMission, useToggleTaskCompletion } from '@/hooks/useMissionsQueries';
+import { useGetMission, useToggleTaskCompletion, useAddTaskToMission } from '@/hooks/useMissionsQueries';
 import { useGetFilesForMission } from '@/hooks/useQueries';
+import { useGetNotesForMission } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useMissionAutosave } from '@/hooks/useMissionAutosave';
 import { toast } from 'sonner';
 import FullScreenViewer from './FullScreenViewer';
+import NoteViewerDialog from './NoteViewerDialog';
 import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
 import { openExternally } from '@/utils/externalOpen';
-import type { Task, FileMetadata } from '@/backend';
+import type { Task, FileMetadata, Note } from '@/backend';
 
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
@@ -25,11 +27,12 @@ export default function MissionDetailFullScreenView({
   onBack,
 }: MissionDetailFullScreenViewProps) {
   const [missionTitle, setMissionTitle] = useState('');
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [noteViewerOpen, setNoteViewerOpen] = useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
   const [currentLinkUrl, setCurrentLinkUrl] = useState('');
   const [isHydrated, setIsHydrated] = useState(false);
@@ -37,9 +40,14 @@ export default function MissionDetailFullScreenView({
   const { status } = useBackendActor();
   const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
   const { data: attachedFiles, isLoading: isLoadingFiles } = useGetFilesForMission(missionId);
+  const { data: attachedNotes, isLoading: isLoadingNotes } = useGetNotesForMission(missionId);
   const toggleTaskMutation = useToggleTaskCompletion();
+  const addTaskMutation = useAddTaskToMission();
 
   const isActorReady = status === 'ready';
+
+  // Derive tasks directly from React Query cache - single source of truth
+  const tasks = selectedMission?.tasks ?? [];
 
   // Auto-save hook - only enabled after mission data is hydrated
   const { isSaving, markAsHydrated, flushPendingSave } = useMissionAutosave({
@@ -54,7 +62,6 @@ export default function MissionDetailFullScreenView({
   useEffect(() => {
     if (selectedMission) {
       setMissionTitle(selectedMission.title);
-      setTasks(selectedMission.tasks);
       setIsEditingTitle(false);
       
       // Mark as hydrated and set the baseline for autosave
@@ -75,21 +82,25 @@ export default function MissionDetailFullScreenView({
   };
 
   const handleAddTask = () => {
-    if (!newTaskText.trim()) return;
+    if (!newTaskText.trim() || addTaskMutation.isPending) return;
     
-    // Find the highest taskId and increment
-    const maxTaskId = tasks.length > 0 
-      ? tasks.reduce((max, t) => t.taskId > max ? t.taskId : max, BigInt(0))
-      : BigInt(-1);
+    const taskTextToAdd = newTaskText.trim();
     
-    const newTask: Task = {
-      taskId: maxTaskId + BigInt(1),
-      task: newTaskText.trim(),
-      completed: false,
-    };
-    
-    setTasks([...tasks, newTask]);
+    // Clear input immediately for better UX
     setNewTaskText('');
+    
+    // Save to backend - React Query optimistic updates will drive UI changes
+    addTaskMutation.mutate({
+      missionId,
+      taskText: taskTextToAdd,
+    }, {
+      onError: (error) => {
+        console.error('Failed to add task:', error);
+        toast.error('Failed to add task');
+        // Restore the input text on error so user can retry
+        setNewTaskText(taskTextToAdd);
+      },
+    });
   };
 
   const handleToggleTask = (taskId: bigint) => {
@@ -99,22 +110,24 @@ export default function MissionDetailFullScreenView({
 
     const newCompletedState = !currentTask.completed;
 
-    // Optimistically update UI immediately
-    const updatedTasks = tasks.map(t => 
-      t.taskId.toString() === taskId.toString() ? { ...t, completed: newCompletedState } : t
-    );
-    setTasks(updatedTasks);
-
-    // Fire background save - mutation handles optimistic updates and rollback
+    // Fire mutation - React Query handles optimistic updates and rollback
     toggleTaskMutation.mutate({
       missionId,
       taskId,
       completed: newCompletedState,
+    }, {
+      onError: (error) => {
+        console.error('Failed to toggle task:', error);
+        toast.error('Failed to update task');
+      },
     });
   };
 
   const handleRemoveTask = (taskId: bigint) => {
-    setTasks(tasks.filter(t => t.taskId.toString() !== taskId.toString()));
+    // Remove task from local state for autosave to pick up
+    const updatedTasks = tasks.filter(t => t.taskId.toString() !== taskId.toString());
+    // Trigger autosave by updating title (no-op) which will save the filtered tasks
+    setMissionTitle(missionTitle);
   };
 
   const handleBack = async () => {
@@ -150,6 +163,11 @@ export default function MissionDetailFullScreenView({
     }
   };
 
+  const handleNoteClick = (note: Note) => {
+    setSelectedNoteId(note.id);
+    setNoteViewerOpen(true);
+  };
+
   const handleRetryOpenLink = () => {
     if (currentLinkUrl) {
       openExternally(currentLinkUrl);
@@ -168,220 +186,202 @@ export default function MissionDetailFullScreenView({
   };
 
   const progress = calculateProgress(tasks);
-  const isCompleted = tasks.length > 0 && progress === 100;
-
-  // Filter files with blobs for the viewer (exclude links)
-  const filesWithBlobs = (attachedFiles || []).filter(f => f.blob);
+  const filesWithBlobs = attachedFiles?.filter(f => f.blob) || [];
+  const selectedNote = attachedNotes?.find(n => n.id === selectedNoteId) ?? null;
 
   if (isLoadingMission) {
     return (
-      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
-          <p className="mt-2 text-muted-foreground">Loading mission...</p>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading mission...</div>
       </div>
     );
   }
 
   if (!selectedMission) {
     return (
-      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Mission not found</p>
-          <Button onClick={onBack} className="mt-4">
-            Go Back
-          </Button>
-        </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Mission not found</div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="hover:bg-missions-bg shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            {isEditingTitle ? (
-              <Input
-                value={missionTitle}
-                onChange={(e) => setMissionTitle(e.target.value)}
-                onBlur={() => setIsEditingTitle(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setIsEditingTitle(false);
-                  }
-                }}
-                disabled={!isActorReady}
-                className="text-xl font-bold flex-1"
-                autoFocus
-              />
-            ) : (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <h1 className={`text-2xl font-bold truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                  {missionTitle || 'Untitled Mission'}
-                </h1>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsEditingTitle(true)}
-                  disabled={!isActorReady}
-                  className="h-8 w-8 shrink-0"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-          {isSaving && (
-            <div className="text-xs text-muted-foreground flex items-center gap-2 shrink-0">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
-              Saving...
+    <>
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          
+          {isEditingTitle ? (
+            <Input
+              value={missionTitle}
+              onChange={(e) => setMissionTitle(e.target.value)}
+              onBlur={() => setIsEditingTitle(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              className="flex-1 text-lg font-semibold"
+            />
+          ) : (
+            <div className="flex flex-1 items-center gap-2">
+              <h1 className="flex-1 truncate text-lg font-semibold text-foreground">
+                {missionTitle}
+              </h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditingTitle(true)}
+                className="shrink-0"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="container mx-auto px-4 py-6 space-y-6">
-            {/* Progress Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Progress</span>
-                <span className="text-muted-foreground">
-                  {tasks.filter(t => t.completed).length} of {tasks.length} tasks completed
-                </span>
-              </div>
-              <Progress value={progress} className="h-3" />
-              <p className="text-xs text-muted-foreground text-right">
-                {Math.round(progress)}% complete
-              </p>
-            </div>
+        {/* Saving indicator */}
+        {isSaving && (
+          <div className="border-b border-border bg-muted/30 px-4 py-1 text-center text-xs text-muted-foreground">
+            Saving...
+          </div>
+        )}
 
+        {/* Progress bar */}
+        <div className="border-b border-border px-4 py-3">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="flex-1">
+          <div className="space-y-6 p-4">
             {/* Tasks Section */}
             <div className="space-y-3">
-              <h2 className="font-semibold text-lg">Tasks</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Tasks
+              </h2>
+              
+              {/* Task List */}
               <div className="space-y-2">
-                {tasks.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground border rounded-lg">
-                    <p className="text-sm">No tasks yet. Add tasks below to get started!</p>
-                  </div>
-                ) : (
-                  tasks.map((task, index) => (
-                    <div
-                      key={task.taskId.toString()}
-                      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                {tasks.map((task) => (
+                  <div
+                    key={task.taskId.toString()}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/50"
+                  >
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={() => handleToggleTask(task.taskId)}
+                      className="shrink-0"
+                      disabled={toggleTaskMutation.isPending}
+                    />
+                    <span
+                      className={`flex-1 text-sm ${
+                        task.completed
+                          ? 'text-muted-foreground line-through'
+                          : 'text-foreground'
+                      }`}
                     >
-                      <Checkbox
-                        checked={task.completed}
-                        onCheckedChange={() => handleToggleTask(task.taskId)}
-                        disabled={!isActorReady}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium">
-                          {index + 1}.
-                        </span>
-                        <span className={`ml-2 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {task.task}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleRemoveTask(task.taskId)}
-                        disabled={!isActorReady}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))
-                )}
+                      {task.task}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveTask(task.taskId)}
+                      className="shrink-0 h-8 w-8"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
               </div>
 
               {/* Add Task Input */}
               <div className="flex gap-2">
                 <Input
-                  placeholder="Add a new task..."
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
+                    if (e.key === 'Enter' && !addTaskMutation.isPending) {
                       handleAddTask();
                     }
                   }}
-                  disabled={!isActorReady}
+                  placeholder="Add a new task..."
+                  className="flex-1"
+                  disabled={addTaskMutation.isPending}
                 />
                 <Button
                   onClick={handleAddTask}
-                  disabled={!isActorReady || !newTaskText.trim()}
-                  className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0"
+                  disabled={!newTaskText.trim() || addTaskMutation.isPending}
+                  size="icon"
+                  className="shrink-0"
                 >
-                  <Plus className="h-4 w-4" />
+                  {addTaskMutation.isPending ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
             </div>
 
             {/* Attachments Section */}
-            <div className="space-y-3">
-              <h2 className="font-semibold text-lg">Attachments</h2>
-              {isLoadingFiles ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
-                  <p className="mt-2 text-sm">Loading attachments...</p>
-                </div>
-              ) : !attachedFiles || attachedFiles.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground border rounded-lg">
-                  <p className="text-sm">No attachments yet</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {attachedFiles.map((file, index) => {
+            {((attachedFiles && attachedFiles.length > 0) || (attachedNotes && attachedNotes.length > 0)) && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Attachments
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {attachedFiles?.map((file, index) => {
                     const Icon = file.link ? ExternalLink : getFileIcon(file.mimeType);
                     const blobIndex = filesWithBlobs.findIndex(f => f.id === file.id);
                     
                     return (
-                      <div
+                      <button
                         key={file.id}
                         onClick={() => handleAttachmentClick(file, blobIndex)}
-                        className="relative aspect-square rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer overflow-hidden group"
+                        className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50"
                       >
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
-                          <Icon className="h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-xs text-center line-clamp-2 text-muted-foreground">
-                            {file.name}
-                          </p>
-                        </div>
-                        {file.link && (
-                          <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1">
-                            <ExternalLink className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
+                        <Icon className="h-8 w-8 text-muted-foreground" />
+                        <span className="w-full truncate text-center text-xs text-foreground">
+                          {file.name}
+                        </span>
+                      </button>
                     );
                   })}
+                  {attachedNotes?.map((note) => (
+                    <button
+                      key={note.id}
+                      onClick={() => handleNoteClick(note)}
+                      className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50"
+                    >
+                      <StickyNote className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                      <span className="w-full truncate text-center text-xs text-foreground">
+                        {note.title}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
 
-      {/* Full Screen Viewer for files with blobs */}
-      {filesWithBlobs.length > 0 && (
+      {/* Full Screen Viewer */}
+      {viewerOpen && filesWithBlobs.length > 0 && (
         <FullScreenViewer
           files={filesWithBlobs}
           initialIndex={selectedFileIndex}
@@ -390,7 +390,16 @@ export default function MissionDetailFullScreenView({
         />
       )}
 
-      {/* Link Open Fallback Dialog */}
+      {/* Note Viewer Dialog */}
+      {noteViewerOpen && selectedNote && (
+        <NoteViewerDialog
+          note={selectedNote}
+          open={noteViewerOpen}
+          onOpenChange={setNoteViewerOpen}
+        />
+      )}
+
+      {/* Link Fallback Dialog */}
       <LinkOpenFallbackDialog
         open={linkFallbackOpen}
         onOpenChange={setLinkFallbackOpen}
@@ -398,6 +407,6 @@ export default function MissionDetailFullScreenView({
         onRetryOpen={handleRetryOpenLink}
         onCopyLink={handleCopyLink}
       />
-    </div>
+    </>
   );
 }

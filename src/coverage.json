@@ -1,56 +1,66 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-07T17:08:27.445Z",
+  "generatedAt": "2026-02-08T19:53:19.115Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
+        "summary": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useMissionsQueries.ts",
-          "frontend/src/components/MissionEditorDialog.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useMissionsQueries.ts",
-          "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ],
         "matchedFiles": [
           "frontend/src/hooks/useMissionsQueries.ts",
           "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/SwipeActionsRow.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/SwipeActionsRow.tsx",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
     "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/components/SwipeActionsRow.tsx",
     "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",

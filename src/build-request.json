@@ -1,60 +1,87 @@
 {
   "kind": "build_request",
-  "title": "Fix Mission creation list refresh and task completion/progress persistence",
-  "priority": "high",
+  "title": "Fix Mission task add/toggle responsiveness and swipe-to-delete immediacy",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
+      "text": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-12"
+          "User"
         ],
         "quotes": [
-          "When the user creates a new mission and presses the create mission button, the mission should appear in \"Your missions\" immediately without errors."
+          "Στην λειτουργία mission η πρόσθεση task σε mission να γίνεται πιο άμεσα ακόμα και αν ο χρήστης επιστρέψει σε mission για να προσθέσει task μετά από πλοήγηση στην εγαρμογη."
         ]
       },
       "acceptanceCriteria": [
-        "From Missions list, open the mission creation dialog, create a mission, and close the dialog: the new mission is visible immediately in \"Your Missions\".",
-        "No runtime error is thrown during or after creation (including inside React Query mutation callbacks).",
-        "The new mission row shows the correct title, task count, and progress based on its tasks.",
-        "The list order remains consistent with existing sorting behavior (newest missions first, based on created timestamp)."
+        "When a user adds a task in MissionDetailFullScreenView, the new task appears in the list immediately (optimistic UI) and remains after the backend call completes.",
+        "If the user leaves the mission detail view (navigate elsewhere) and later re-enters the same mission, the task list is refreshed from the latest backend/cached data (no missing or duplicated tasks).",
+        "After re-entering a mission, adding a task works without requiring a manual refresh and without UI glitches (e.g., input not re-populating unexpectedly, task list not reverting)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
-      "target": "both",
+      "text": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-12"
+          "User"
         ],
         "quotes": [
-          "When the user enters one of their missions and clicks a task, the tasks should remain clicked with immediate progress bar updates, and the clicked tasks should remain as-is with correct progress during all navigation in the app; when returning to missions they should see completed tasks and progress bar correctly on each mission."
+          "Επίσης σε mission το κλικ σε task ως ολοκληρωμένο ή το κλικ σε task για να βγει από ολοκληρωμένο να γίνεται ομαλά χωρίς σφάλματα στα υπολοιπα ολοκληρωμένα task ή μη ολοκληρωμένα  με άμεση ενημέρωση της προόδου του mission."
         ]
       },
       "acceptanceCriteria": [
-        "In Mission detail view, toggling a task updates the checkbox UI and the mission progress bar immediately.",
-        "After toggling tasks, navigating back to \"Your Missions\" shows the correct completed task counts and progress bar for that mission.",
-        "Re-opening the same mission shows the same tasks still completed (persisted), with the progress bar matching the persisted completion state.",
-        "Task completion state is sourced consistently (no UI regressions where the mission detail re-hydrates from stale cached data and visually \"undoes\" recent toggles).",
-        "If the backend update fails, the UI does not silently drift: the app either reverts the optimistic toggle to the previous state or clearly re-syncs from backend so that mission progress and task completion are consistent with persisted state."
+        "Toggling a task’s completion updates the task UI and the mission progress percentage/bar immediately.",
+        "Toggling one task does not change the completion state of any other task (no cross-task corruption).",
+        "If the backend toggle fails, the UI rolls back only the toggled task to its prior state without disturbing other tasks, and the progress recalculates correctly.",
+        "No React key/ordering issues or flicker occur during rapid repeated toggles."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "User"
+        ],
+        "quotes": [
+          "Τέλος η διαγραφή mission με swipe να λειτουργεί άμεσα με ενημέρωση των mission."
+        ]
+      },
+      "acceptanceCriteria": [
+        "On coarse-pointer devices, after triggering delete from SwipeActionsRow, the mission row is removed from the missions list immediately (optimistic update) without needing to wait for an artificial delay.",
+        "After deletion settles (success), the missions list stays consistent with the backend (no deleted mission reappearing).",
+        "If deletion fails, the mission reappears in the list (rollback) and the app shows an error toast, with the rest of the list unaffected.",
+        "The swipe row state is closed/reset appropriately so the UI does not get stuck with an open actions state for a removed row."
       ]
     }
   ],
   "constraints": [
-    "Do not change anything outside the Mission feature flow (mission list, mission creation, mission detail, task toggling, mission progress calculations).",
-    "Do not modify any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
-    "Keep the existing single-actor backend architecture; do not introduce additional canisters or external storage."
+    "Do not change any other application features outside Mission flows (mission list, mission detail, task add/toggle, and mission swipe-to-delete).",
+    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and anything under frontend/src/components/ui.",
+    "Use English for any user-facing text that must be added/changed."
   ],
   "nonGoals": [
-    "No redesign or feature expansion of Missions beyond fixing creation/list refresh and task completion/progress persistence.",
-    "No changes to authentication, folders, file management, uploads, links, or other non-mission features.",
-    "No new real-time syncing or websocket-based updates."
+    "Do not add new mission features (e.g., reordering tasks, task deletion API, recurring missions).",
+    "Do not redesign non-mission screens or change global navigation.",
+    "Do not change backend mission data structures unless strictly required to fix the specified Mission responsiveness issues."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

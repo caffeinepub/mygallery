@@ -106,18 +106,21 @@ export default function WelcomeIntroScreen() {
           </div>
           
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">
-              Turn inspiration into action.
-            </h1>
             <div className="text-lg text-muted-foreground space-y-4">
-              <p>
-                This self-improvement app lets you save anything that inspires you—recipes, workout plans, photos, videos, or documents—and organize them in a smart gallery with folders like Photos, Videos, and Files.
+              <p className="animate-text-reveal" style={{ animationDelay: '0.1s' }}>
+                You're scrolling online and you see a photo, a video, or a post that sparks an idea. Later, you notice something in a shop window. Another day, a thought comes to your mind—something you want to do, try, or build. Usually, these ideas fade away.
               </p>
-              <p>
-                Create missions for your goals, such as cooking a meal, following a weekly workout, or completing important personal or work tasks. Break each mission into tasks and attach the exact photos, videos, or files you need to complete them.
+              <p className="animate-text-reveal font-semibold text-foreground" style={{ animationDelay: '0.3s' }}>
+                This app is made to catch them.
               </p>
-              <p className="font-semibold text-foreground">
-                Stop collecting ideas. Start completing them
+              <p className="animate-text-reveal" style={{ animationDelay: '0.5s' }}>
+                You save those moments—online or in real life—and organize them in one place. Then, you turn each idea into a mission. You add photos, videos, files, or notes that help you shape the idea and move it forward.
+              </p>
+              <p className="animate-text-reveal" style={{ animationDelay: '0.7s' }}>
+                Step by step, ideas stop being random thoughts.
+              </p>
+              <p className="animate-text-reveal font-semibold text-foreground" style={{ animationDelay: '0.9s' }}>
+                They become clear missions—meant to be completed.
               </p>
             </div>
           </div>

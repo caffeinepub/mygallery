@@ -39,9 +39,9 @@ export function useGetMission(missionId: bigint | null) {
       return await actor.getMission(missionId);
     },
     enabled: !!actor && status === 'ready' && !!identity && missionId !== null,
-    staleTime: 2000,
+    staleTime: 1000, // Reduced to 1 second for fresher data on re-entry
     gcTime: 15 * 60 * 1000,
-    refetchOnMount: false,
+    refetchOnMount: true, // Always refetch when re-entering mission detail
   });
 }
 
@@ -151,24 +151,19 @@ export function useUpdateMission() {
   });
 }
 
-export function useToggleTaskCompletion() {
+export function useAddTaskToMission() {
   const { actor, status } = useBackendActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ missionId, taskId, completed }: { missionId: bigint; taskId: bigint; completed: boolean }) => {
+    mutationFn: async ({ missionId, taskText }: { missionId: bigint; taskText: string }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      const taskStatusUpdate: TaskStatusUpdate = {
-        taskId,
-        completed,
-      };
-      // Backend returns void, so we need to fetch the updated mission
-      await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
-      return { missionId, taskId, completed };
+      const newTask = await actor.addTaskToMission(missionId, taskText);
+      return { missionId, newTask };
     },
-    onMutate: async ({ missionId, taskId, completed }) => {
+    onMutate: async ({ missionId, taskText }) => {
       const missionIdStr = missionId.toString();
       
       // Cancel any outgoing refetches
@@ -179,6 +174,13 @@ export function useToggleTaskCompletion() {
       const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
       const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
 
+      // Create optimistic task with temporary ID
+      const optimisticTask: Task = {
+        taskId: BigInt(Date.now()), // Temporary ID
+        task: taskText,
+        completed: false,
+      };
+
       // Optimistically update mission detail cache
       queryClient.setQueryData<Mission | null>(
         ['missions', 'detail', missionIdStr],
@@ -186,11 +188,7 @@ export function useToggleTaskCompletion() {
           if (!old) return null;
           return {
             ...old,
-            tasks: old.tasks.map(t =>
-              t.taskId.toString() === taskId.toString()
-                ? { ...t, completed }
-                : t
-            ),
+            tasks: [...old.tasks, optimisticTask],
           };
         }
       );
@@ -204,8 +202,142 @@ export function useToggleTaskCompletion() {
             mission.id.toString() === missionIdStr
               ? {
                   ...mission,
+                  tasks: [...mission.tasks, optimisticTask],
+                }
+              : mission
+          );
+        }
+      );
+
+      // Return context with snapshots for rollback
+      return { previousMission, previousMissions, optimisticTask };
+    },
+    onSuccess: (data, variables, context) => {
+      const missionIdStr = data.missionId.toString();
+      const { newTask } = data;
+
+      // Replace optimistic task with real task from backend, ensuring no duplicates
+      queryClient.setQueryData<Mission | null>(
+        ['missions', 'detail', missionIdStr],
+        (old) => {
+          if (!old) return null;
+          
+          // Remove optimistic task by ID
+          const tasksWithoutOptimistic = old.tasks.filter(
+            t => t.taskId.toString() !== context?.optimisticTask.taskId.toString()
+          );
+          
+          // Check if the real task already exists (by taskId) to prevent duplicates
+          const realTaskExists = tasksWithoutOptimistic.some(
+            t => t.taskId.toString() === newTask.taskId.toString()
+          );
+          
+          // Only add the real task if it doesn't already exist
+          return {
+            ...old,
+            tasks: realTaskExists ? tasksWithoutOptimistic : [...tasksWithoutOptimistic, newTask],
+          };
+        }
+      );
+
+      // Update missions list cache with real task, ensuring no duplicates
+      queryClient.setQueryData<Mission[]>(
+        ['missions', 'list'],
+        (old) => {
+          if (!old) return old;
+          return old.map((mission) => {
+            if (mission.id.toString() !== missionIdStr) return mission;
+            
+            // Remove optimistic task by ID
+            const tasksWithoutOptimistic = mission.tasks.filter(
+              t => t.taskId.toString() !== context?.optimisticTask.taskId.toString()
+            );
+            
+            // Check if the real task already exists (by taskId) to prevent duplicates
+            const realTaskExists = tasksWithoutOptimistic.some(
+              t => t.taskId.toString() === newTask.taskId.toString()
+            );
+            
+            // Only add the real task if it doesn't already exist
+            return {
+              ...mission,
+              tasks: realTaskExists ? tasksWithoutOptimistic : [...tasksWithoutOptimistic, newTask],
+            };
+          });
+        }
+      );
+    },
+    onError: (err, variables, context) => {
+      const missionIdStr = variables.missionId.toString();
+      const errorMessage = getActorErrorMessage(err);
+      console.error('[useAddTaskToMission] Add task failed:', errorMessage);
+
+      // Rollback optimistic updates on error
+      if (context?.previousMission !== undefined) {
+        queryClient.setQueryData(['missions', 'detail', missionIdStr], context.previousMission);
+      }
+      if (context?.previousMissions !== undefined) {
+        queryClient.setQueryData(['missions', 'list'], context.previousMissions);
+      }
+    },
+  });
+}
+
+export function useToggleTaskCompletion() {
+  const { actor, status } = useBackendActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ missionId, taskId, completed }: { missionId: bigint; taskId: bigint; completed: boolean }) => {
+      if (!actor || status !== 'ready') {
+        throw createActorNotReadyError();
+      }
+      const taskStatusUpdate: TaskStatusUpdate = {
+        taskId,
+        completed,
+      };
+      await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
+      return { missionId, taskId, completed };
+    },
+    onMutate: async ({ missionId, taskId, completed }) => {
+      const missionIdStr = missionId.toString();
+      const taskIdStr = taskId.toString();
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionIdStr] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'list'] });
+
+      // Snapshot the previous values
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
+      const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+
+      // Optimistically update mission detail cache - only toggle the specific task
+      queryClient.setQueryData<Mission | null>(
+        ['missions', 'detail', missionIdStr],
+        (old) => {
+          if (!old) return null;
+          return {
+            ...old,
+            tasks: old.tasks.map(t =>
+              t.taskId.toString() === taskIdStr
+                ? { ...t, completed }
+                : t
+            ),
+          };
+        }
+      );
+
+      // Optimistically update missions list cache - only toggle the specific task
+      queryClient.setQueryData<Mission[]>(
+        ['missions', 'list'],
+        (old) => {
+          if (!old) return old;
+          return old.map((mission) =>
+            mission.id.toString() === missionIdStr
+              ? {
+                  ...mission,
                   tasks: mission.tasks.map(t =>
-                    t.taskId.toString() === taskId.toString()
+                    t.taskId.toString() === taskIdStr
                       ? { ...t, completed }
                       : t
                   ),
@@ -230,13 +362,6 @@ export function useToggleTaskCompletion() {
       if (context?.previousMissions !== undefined) {
         queryClient.setQueryData(['missions', 'list'], context.previousMissions);
       }
-    },
-    onSettled: async (data, error, variables) => {
-      const missionIdStr = variables.missionId.toString();
-      
-      // Re-sync from backend to ensure consistency
-      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionIdStr], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
     },
   });
 }

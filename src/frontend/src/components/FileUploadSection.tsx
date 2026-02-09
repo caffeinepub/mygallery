@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
-import { Upload, Link as LinkIcon, Plus } from 'lucide-react';
+import { Upload, Link as LinkIcon, Plus, FileText } from 'lucide-react';
 import { useUploadFiles, useCreateLink } from '@/hooks/useQueries';
+import { useCreateNote } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +20,15 @@ import { perfDiag } from '@/utils/performanceDiagnostics';
 export default function FileUploadSection() {
   const uploadFilesMutation = useUploadFiles();
   const createLinkMutation = useCreateLink();
+  const createNoteMutation = useCreateNote();
   const { status } = useBackendActor();
   const { startUpload, startLinkUpload, updateProgress, completeUpload } = useUpload();
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [showNoteForm, setShowNoteForm] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkName, setLinkName] = useState('');
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteBody, setNoteBody] = useState('');
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -134,6 +140,39 @@ export default function FileUploadSection() {
     [linkUrl, linkName, status, createLinkMutation, startLinkUpload, updateProgress, completeUpload]
   );
 
+  const handleNoteSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (status !== 'ready') {
+        toast.error('Please wait for the application to initialize');
+        return;
+      }
+
+      if (!noteTitle.trim()) {
+        toast.error('Please enter a title');
+        return;
+      }
+
+      try {
+        await createNoteMutation.mutateAsync({
+          title: noteTitle.trim(),
+          body: noteBody.trim(),
+        });
+
+        toast.success('Note added successfully');
+        setNoteTitle('');
+        setNoteBody('');
+        setShowNoteForm(false);
+      } catch (error) {
+        console.error('Create note error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to add note. Please try again.';
+        toast.error(errorMessage);
+      }
+    },
+    [noteTitle, noteBody, status, createNoteMutation]
+  );
+
   const isDisabled = status !== 'ready';
 
   const triggerFileInput = () => {
@@ -144,7 +183,7 @@ export default function FileUploadSection() {
 
   return (
     <div className="mb-8 flex justify-center">
-      {!showLinkForm ? (
+      {!showLinkForm && !showNoteForm ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDisabled}>
             <button
@@ -174,9 +213,13 @@ export default function FileUploadSection() {
               <LinkIcon className="mr-2 h-4 w-4" />
               Paste Link
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowNoteForm(true)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Add Note
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      ) : (
+      ) : showLinkForm ? (
         <form onSubmit={handleLinkSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5 w-full">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -227,6 +270,58 @@ export default function FileUploadSection() {
             className="w-full"
           >
             {createLinkMutation.isPending ? 'Adding...' : 'Add Link'}
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={handleNoteSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5 w-full">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Add Note
+            </h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowNoteForm(false);
+                setNoteTitle('');
+                setNoteBody('');
+              }}
+              disabled={isDisabled || createNoteMutation.isPending}
+            >
+              Cancel
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="note-title">Title *</Label>
+            <Input
+              id="note-title"
+              type="text"
+              placeholder="Note title"
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              disabled={isDisabled || createNoteMutation.isPending}
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="note-body">Notes</Label>
+            <Textarea
+              id="note-body"
+              placeholder="Write your notes here..."
+              value={noteBody}
+              onChange={(e) => setNoteBody(e.target.value)}
+              disabled={isDisabled || createNoteMutation.isPending}
+              className="w-full min-h-[120px]"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={isDisabled || createNoteMutation.isPending}
+            className="w-full"
+          >
+            {createNoteMutation.isPending ? 'Saving...' : 'Save Note'}
           </Button>
         </form>
       )}

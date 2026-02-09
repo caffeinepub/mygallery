@@ -1,29 +1,34 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Focus on fixing the Mission feature only: newly created missions must appear immediately in 'Your missions', and task completion/progress must persist and display correctly across navigation.",
+  "summary": "Improve Mission functionality: faster task addition after navigation, smooth task completion toggling with immediate progress updates, and responsive swipe-to-delete for missions; no changes to other app areas.",
   "architectural_notes": [
-    "Scope constraint: apply changes only to the Mission feature; do not modify other app functionality."
+    "Scope constraint: Changes must be limited strictly to Mission functionality; do not modify other app features."
   ],
-  "known_issues": [
-    "Mission creation does not reliably/instantly reflect in 'Your missions' list.",
-    "Task completion state and mission progress bar do not persist/update correctly across navigation."
-  ],
+  "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-that-after-a-user-creates-a-new-mission-presses-the-create-mission-button-the-newly-created-mission-appears-immediately-in-the-your-missions-list-without-errors-and-without-requiring-the-user-to-manually-refresh-or-reopen-the-missions-view",
-      "title": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
+      "id": "feature-in-the-mission-detail-screen-make-adding-a-task-feel-immediate-and-remain-reliable-even-when-the-user-navigates-away-in-the-app-and-later-returns-to-the-same-mission-to-add-tasks-again-i-e-the-mission-detail-view-should-always-show-the-latest-tasks-and-allow-instant-task-creation",
+      "title": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-make-task-completion-toggles-within-a-mission-persist-reliably-when-a-user-checks-unchecks-a-task-in-a-mission-detail-view-the-checkbox-state-must-remain-correct-with-immediate-progress-bar-updates-the-completion-state-and-progress-must-remain-correct-throughout-navigation-within-the-app-and-when-returning-to-the-missions-list-or-re-opening-the-same-mission",
-      "title": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
+      "id": "feature-in-the-mission-detail-screen-make-toggling-a-task-between-completed-and-not-completed-smooth-and-bug-free-without-causing-incorrect-changes-to-other-tasks-and-with-immediate-mission-progress-updates",
+      "title": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-swipe-to-delete-in-the-missions-list-respond-immediately-deleting-a-mission-via-swipe-should-remove-it-from-the-list-right-away-and-refresh-the-missions-list-state-reliably",
+      "title": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
@@ -31,18 +36,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "After tapping 'Create mission', the newly created mission should appear immediately in the user's 'Your missions' list without errors.",
+      "summary": "Mission: Make adding a task to a mission immediate, including when returning to a mission after navigating elsewhere in the app.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "When a user toggles tasks inside a mission, task completion state must persist and the mission progress bar must update immediately and remain correct across navigation; returning to missions list should show correct completed tasks and progress per mission.",
+      "summary": "Mission: Smoothly toggle task completion/uncompletion without affecting other tasks, with immediate mission progress update.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Mission: Swipe-to-delete mission should work immediately and refresh the missions list.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Fix Mission creation list refresh and task completion/progress persistence",
+  "projectName": "Fix Mission task add/toggle responsiveness and swipe-to-delete immediacy",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

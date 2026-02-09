@@ -51,10 +51,21 @@ export interface Mission {
   'created' : bigint,
   'owner' : Principal,
 }
+export interface Note {
+  'id' : string,
+  'title' : string,
+  'owner' : Principal,
+  'body' : string,
+  'createdAt' : Time,
+  'missionId' : [] | [bigint],
+  'folderId' : [] | [bigint],
+  'location' : [] | [string],
+}
 export interface PaginatedFiles {
   'files' : Array<FileMetadata>,
   'hasMore' : boolean,
 }
+export interface PaginatedNotes { 'hasMore' : boolean, 'notes' : Array<Note> }
 export type SortDirection = { 'asc' : null } |
   { 'desc' : null };
 export interface Task {
@@ -102,24 +113,33 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addTaskToMission' : ActorMethod<[bigint, string], Task>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'batchRemoveFromFolder' : ActorMethod<[Array<bigint>], undefined>,
+  'batchRemoveNotesFromFolder' : ActorMethod<[Array<bigint>], undefined>,
   'createFolder' : ActorMethod<[string], [] | [string]>,
   'createLink' : ActorMethod<
     [string, string, [] | [bigint], [] | [bigint]],
     UploadResponse
   >,
   'createMission' : ActorMethod<[string, Array<Task>], bigint>,
+  'createNote' : ActorMethod<
+    [string, string, [] | [bigint], [] | [bigint]],
+    UploadResponse
+  >,
   'deleteFile' : ActorMethod<[bigint], undefined>,
   'deleteFiles' : ActorMethod<[Array<bigint>], undefined>,
   'deleteFilesLowLevel' : ActorMethod<[Array<bigint>], undefined>,
   'deleteFolder' : ActorMethod<[bigint], undefined>,
   'deleteMission' : ActorMethod<[bigint], undefined>,
+  'deleteNote' : ActorMethod<[bigint], undefined>,
+  'deleteNotes' : ActorMethod<[Array<bigint>], undefined>,
   /**
    * / Admin-only method to get all files regardless of owner
    */
   'getAllFiles' : ActorMethod<[], Array<FileMetadata>>,
   'getAllFolders' : ActorMethod<[], Array<Folder>>,
+  'getAllNotes' : ActorMethod<[], Array<Note>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDiagnostics' : ActorMethod<[], DiagnosticResult>,
@@ -129,9 +149,16 @@ export interface _SERVICE {
   'getHealth' : ActorMethod<[], HealthResult>,
   'getLinksForUser' : ActorMethod<[Principal], Array<FileMetadata>>,
   'getMission' : ActorMethod<[bigint], [] | [Mission]>,
+  'getNote' : ActorMethod<[bigint], [] | [Note]>,
+  'getNotesForMission' : ActorMethod<[[] | [bigint]], Array<Note>>,
+  'getNotesInFolder' : ActorMethod<[bigint, bigint, bigint], PaginatedNotes>,
   'getPaginatedFiles' : ActorMethod<
     [SortDirection, bigint, bigint],
     PaginatedFiles
+  >,
+  'getPaginatedNotes' : ActorMethod<
+    [SortDirection, bigint, bigint],
+    PaginatedNotes
   >,
   'getTasks' : ActorMethod<[bigint], Array<TaskView>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
@@ -140,7 +167,11 @@ export interface _SERVICE {
   'moveFileToFolder' : ActorMethod<[bigint, bigint], undefined>,
   'moveFilesToFolder' : ActorMethod<[Array<bigint>, bigint], undefined>,
   'moveFilesToMission' : ActorMethod<[Array<bigint>, bigint], undefined>,
+  'moveNoteToFolder' : ActorMethod<[bigint, bigint], undefined>,
+  'moveNotesToFolder' : ActorMethod<[Array<bigint>, bigint], undefined>,
+  'moveNotesToMission' : ActorMethod<[Array<bigint>, bigint], undefined>,
   'removeFromFolder' : ActorMethod<[bigint], undefined>,
+  'removeNoteFromFolder' : ActorMethod<[bigint], undefined>,
   'renameFolder' : ActorMethod<[bigint, string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'toggleTaskCompletionStatus' : ActorMethod<

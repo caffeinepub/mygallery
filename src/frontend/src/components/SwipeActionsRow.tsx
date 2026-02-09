@@ -133,17 +133,19 @@ export default function SwipeActionsRow({
   const handleEditClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onEdit();
-    // Close the row after action
+    // Close the row before action
     setTranslateX(0);
     onOpenChange(false);
+    onEdit();
   };
 
   const handleDeleteClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Close the row before action to prevent stuck state
+    setTranslateX(0);
+    onOpenChange(false);
     onDelete();
-    // Don't close the row - let parent handle exit animation
   };
 
   return (

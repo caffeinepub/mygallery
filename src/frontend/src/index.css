@@ -196,3 +196,29 @@ img, video {
 .animate-missions-float {
     animation: missions-float 2.5s ease-in-out infinite;
 }
+
+/* Text reveal animation for welcome intro screen */
+@keyframes text-reveal {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-text-reveal {
+    opacity: 0;
+    animation: text-reveal 0.8s ease-out forwards;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .animate-text-reveal {
+        opacity: 1;
+        animation: none;
+        transform: none;
+    }
+}

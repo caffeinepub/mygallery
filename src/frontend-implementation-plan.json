@@ -1,60 +1,75 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Missions list refresh after creation and reliable task toggle persistence",
+  "title": "Mission task add/toggle and swipe-delete optimistic responsiveness fixes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "After creating a mission, update React Query caches safely so the new mission appears immediately in “Your Missions” without runtime errors and with correct sorting/progress.",
+      "summary": "Ensure Mission detail task creation is optimistic, remains reliable after navigation, and always reflects latest mission tasks when re-entering.",
       "acceptanceCriteria": [
-        "From Missions list, open the mission creation dialog, create a mission, and close the dialog: the new mission is visible immediately in \"Your Missions\".",
-        "No runtime error is thrown during or after creation (including inside React Query mutation callbacks).",
-        "The new mission row shows the correct title, task count, and progress based on its tasks.",
-        "The list order remains consistent with existing sorting behavior (newest missions first, based on created timestamp)."
+        "When a user adds a task in MissionDetailFullScreenView, the new task appears in the list immediately (optimistic UI) and remains after the backend call completes.",
+        "If the user leaves the mission detail view (navigate elsewhere) and later re-enters the same mission, the task list is refreshed from the latest backend/cached data (no missing or duplicated tasks).",
+        "After re-entering a mission, adding a task works without requiring a manual refresh and without UI glitches (e.g., input not re-populating unexpectedly, task list not reverting)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useMissionsQueries.ts",
           "operation": "modify",
-          "description": "Harden the create-mission mutation so it never throws from React Query lifecycle callbacks; ensure the missions list cache is updated with the persisted mission when available, and that any cache insertion preserves the existing newest-first ordering by created timestamp. Keep the final invalidate/refetch behavior consistent so the list remains correct without requiring manual refresh."
+          "description": "Adjust the mission detail query behavior to reliably refresh when MissionDetailFullScreenView is re-mounted (e.g., enable refetch on mount/focus and avoid stale cached detail when navigating away and back), while keeping mission flows unchanged outside list/detail/task add/toggle/delete."
         },
         {
-          "path": "frontend/src/components/MissionEditorDialog.tsx",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Ensure the dialog close flow relies on mutation completion and does not mask/trigger runtime errors; keep create button disabled/loading behavior aligned with the mutation state so the user sees immediate success and the list can render the new mission row right away."
-        },
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Verify the missions list view renders newly created missions from the React Query cache immediately and that row progress/task counts are derived from the mission’s tasks array consistently (no dependence on reopening the view). Keep existing rendering/sorting behavior intact."
+          "description": "Make the Mission detail task list use a single source of truth (React Query mission detail data and/or a carefully synchronized local editable copy) so optimistic add-task updates appear immediately, do not duplicate, and do not get overwritten by re-hydration effects when navigating away and returning; keep any new/changed user-facing text in English."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Make task completion toggles persist reliably with immediate UI/progress updates and consistent cache hydration across navigation, including robust rollback/resync on backend failure.",
+      "summary": "Make task completion toggling optimistic, isolated to the toggled task, and keep mission progress updates immediate without flicker or key/order issues.",
       "acceptanceCriteria": [
-        "In Mission detail view, toggling a task updates the checkbox UI and the mission progress bar immediately.",
-        "After toggling tasks, navigating back to \"Your Missions\" shows the correct completed task counts and progress bar for that mission.",
-        "Re-opening the same mission shows the same tasks still completed (persisted), with the progress bar matching the persisted completion state.",
-        "Task completion state is sourced consistently (no UI regressions where the mission detail re-hydrates from stale cached data and visually \"undoes\" recent toggles).",
-        "If the backend update fails, the UI does not silently drift: the app either reverts the optimistic toggle to the previous state or clearly re-syncs from backend so that mission progress and task completion are consistent with persisted state."
+        "Toggling a task’s completion updates the task UI and the mission progress percentage/bar immediately.",
+        "Toggling one task does not change the completion state of any other task (no cross-task corruption).",
+        "If the backend toggle fails, the UI rolls back only the toggled task to its prior state without disturbing other tasks, and the progress recalculates correctly.",
+        "No React key/ordering issues or flicker occur during rapid repeated toggles."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Fix the task-toggle mutation to match the backend interface (toggle returns void) and implement React Query optimistic updates for both mission detail and missions list caches. Add onMutate snapshot/rollback, and onSettled invalidations to re-sync from backend so completion state/progress remain consistent across navigation and after failures."
-        },
-        {
           "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Align the mission detail UI state with React Query cache updates so toggling a task immediately updates the checkbox state and progress bar without being overwritten by stale re-hydration. Ensure the detail view state re-syncs from cache after optimistic updates/rollbacks and that navigation back triggers consistent mission list progress rendering."
+          "description": "Refactor toggle handling to avoid double-optimistic updates (component-local + React Query) and stale-closure rollbacks; rely on the mutation’s optimistic cache update (or a consistent functional state update) and ensure progress is derived from the same up-to-date tasks source to prevent cross-task corruption and flicker."
         },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Harden the toggle-task optimistic update/rollback behavior to ensure only the targeted task is affected, and keep missions list + mission detail caches consistent under rapid repeated toggles."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Make swipe-to-delete remove missions from the list immediately with reliable rollback, consistent list state, and proper swipe-row reset.",
+      "acceptanceCriteria": [
+        "On coarse-pointer devices, after triggering delete from SwipeActionsRow, the mission row is removed from the missions list immediately (optimistic update) without needing to wait for an artificial delay.",
+        "After deletion settles (success), the missions list stays consistent with the backend (no deleted mission reappearing).",
+        "If deletion fails, the mission reappears in the list (rollback) and the app shows an error toast, with the rest of the list unaffected.",
+        "The swipe row state is closed/reset appropriately so the UI does not get stuck with an open actions state for a removed row."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Ensure the missions list progress/task completion counts reflect the same cached mission task completion state updated by toggles (including after navigating back from detail). Confirm list rows update immediately after toggles via cache updates and are corrected by post-mutation re-sync if needed."
+          "description": "Remove the artificial delay before invoking delete on swipe; trigger the delete mutation immediately for instant optimistic removal, ensure open swipe row state is reset/closed, and keep existing error toast behavior for rollback cases."
+        },
+        {
+          "path": "frontend/src/components/SwipeActionsRow.tsx",
+          "operation": "modify",
+          "description": "On delete action tap, proactively close/reset the swipe row (translate state + onOpenChange(false)) before delegating to the parent delete handler so the UI cannot remain stuck open for a row that is optimistically removed."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Ensure delete-mission optimistic cache removal + rollback remain robust and keep the missions list consistent after settle so a deleted mission does not reappear on success, while restoring it on failure."
         }
       ]
     }

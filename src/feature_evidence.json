@@ -2,9 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-that-after-a-user-creates-a-new-mission-presses-the-create-mission-button-the-newly-created-mission-appears-immediately-in-the-your-missions-list-without-errors-and-without-requiring-the-user-to-manually-refresh-or-reopen-the-missions-view",
-      "featureTitle": "Ensure that after a user creates a new mission (presses the \"Create Mission\" button), the newly created mission appears immediately in the \"Your Missions\" list without errors and without requiring the user to manually refresh or reopen the Missions view.",
+      "featureId": "feature-in-the-mission-detail-screen-make-adding-a-task-feel-immediate-and-remain-reliable-even-when-the-user-navigates-away-in-the-app-and-later-returns-to-the-same-mission-to-add-tasks-again-i-e-the-mission-detail-view-should-always-show-the-latest-tasks-and-allow-instant-task-creation",
+      "featureTitle": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
       "files": [
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
         "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
@@ -22,8 +23,8 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-make-task-completion-toggles-within-a-mission-persist-reliably-when-a-user-checks-unchecks-a-task-in-a-mission-detail-view-the-checkbox-state-must-remain-correct-with-immediate-progress-bar-updates-the-completion-state-and-progress-must-remain-correct-throughout-navigation-within-the-app-and-when-returning-to-the-missions-list-or-re-opening-the-same-mission",
-      "featureTitle": "Make task completion toggles within a mission persist reliably: when a user checks/unchecks a task in a mission detail view, the checkbox state must remain correct with immediate progress bar updates; the completion state and progress must remain correct throughout navigation within the app and when returning to the missions list or re-opening the same mission.",
+      "featureId": "feature-in-the-mission-detail-screen-make-toggling-a-task-between-completed-and-not-completed-smooth-and-bug-free-without-causing-incorrect-changes-to-other-tasks-and-with-immediate-mission-progress-updates",
+      "featureTitle": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
       "files": [
         "frontend/src/components/MissionDetailFullScreenView.tsx",
         "frontend/src/hooks/useMissionsQueries.ts"
@@ -39,6 +40,28 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-swipe-to-delete-in-the-missions-list-respond-immediately-deleting-a-mission-via-swipe-should-remove-it-from-the-list-right-away-and-refresh-the-missions-list-state-reliably",
+      "featureTitle": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
+      "files": [
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/components/SwipeActionsRow.tsx",
+        "frontend/src/hooks/useMissionsQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }
