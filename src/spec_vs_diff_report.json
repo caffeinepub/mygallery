@@ -1,61 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T19:53:19.112Z",
-  "summary": "Diff shows Mission detail now derives tasks from React Query cache, refreshes mission detail on re-entry (refetchOnMount true, shorter staleTime), and clears task input immediately on add. Missions list swipe delete handler removes artificial delay and uses mutation with toasts; SwipeActionsRow got improved pointer/drag handling and external open/close reset. However, due to truncation, key optimistic-update/rollback behaviors for task add/toggle and mission delete are not fully evidenced in the hook implementations.",
+  "generatedAt": "2026-02-09T08:08:39.437Z",
+  "summary": "MissionEditorDialog was modified with a new full-height, flex-column dialog layout (95dvh on mobile) and a header containing the Mission title input. The diff is truncated before showing the task entry row and the footer actions, so it cannot be verified from the provided evidence that the Add Task controls and Cancel/Create buttons are always visible without scrolling or that only the task list becomes scrollable as it grows.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Newly added task appears immediately via optimistic UI and remains after backend call completes; after navigating away and returning, mission detail shows latest tasks with no missing/duplicated tasks; adding a task after re-entry works without glitches.",
-      "reason": "Mission detail view code references that optimistic updates will drive UI, and refetchOnMount is enabled, but the diff is truncated before showing the actual optimistic cache update/rollback logic in useAddTaskToMission and/or completion of handleAddTask error handling. Also no evidence is shown that duplication/missing-task prevention is handled in the mutation/cache layer.",
+      "requirement": "On mobile-sized viewports, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens (no scrolling); only the task list area should scroll if it overflows, while task input row and action buttons remain accessible.",
+      "reason": "The MissionEditorDialog diff is truncated before the task input row and the primary action buttons are shown, so there is insufficient evidence that the layout pins the task entry controls and the Cancel/Create buttons while making only the task list scrollable.",
       "evidence": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Toggling a task updates UI and mission progress immediately; toggling one task does not affect others; rollback only the toggled task on backend failure; no key/ordering flicker on rapid toggles.",
-      "reason": "The diff shows task list is derived from the mission query cache and includes a calculateProgress helper, but the toggle handler/UI wiring and the mutation logic (optimistic update scoped to a single task + rollback behavior) are not visible in the truncated files. No evidence is provided about React key stability or anti-flicker measures during rapid toggles.",
-      "evidence": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Swipe-to-delete removes mission row immediately (optimistic), stays consistent after success, rolls back with error toast on failure, and resets swipe row open state appropriately for removed rows.",
-      "reason": "MissionsFullScreenView removes the prior artificial delay and shows success/error toasts, but immediate removal depends on optimistic cache updates inside useDeleteMission which are not shown due to truncation. Also, while openSwipeRowId is closed when opening delete confirm/selecting mission, there is no explicit evidence that the swipe row state is reset/closed at the moment of deletion of that row.",
-      "evidence": [
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts",
-        "frontend/src/components/SwipeActionsRow.tsx"
+        "frontend/src/components/MissionEditorDialog.tsx (truncated at `<ScrollArea cla...`)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changed missions list query caching behavior and added BigInt-safe sorting in useListMissions (staleTime/gcTime/refetchOnMount adjustments).",
-      "reason": "Not explicitly requested by REQ-1/2/3; it is an additional behavior change (though still within Mission flows).",
+      "description": "Creation is gated on backend actor readiness with a toast error prompting to wait for initialization (`Please wait for the application to initialize`).",
+      "reason": "The BuildRequest focuses on mobile layout/usability changes and explicitly constrains changes to the Mission creation form UI; this behavior change is not requested in REQ-1/REQ-2 (cannot confirm if it already existed prior to this diff).",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionEditorDialog.tsx"
       ]
     },
     {
-      "description": "Expanded create-mission success handling to fetch persisted mission, manually update React Query caches, and then invalidate missions list.",
-      "reason": "Not part of the requested fixes (task add/toggle responsiveness and swipe-to-delete immediacy).",
+      "description": "Defensive deep copy of tasks before submitting create mutation.",
+      "reason": "Not requested by the BuildRequest; it is an internal implementation change unrelated to the specified mobile layout requirements.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionEditorDialog.tsx"
       ]
     }
   ],
   "confidence": 0.55,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/SwipeActionsRow.tsx",
-    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/components/MissionEditorDialog.tsx",
     "project_state.json"
   ]
 }

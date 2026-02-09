@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-mission-detail-screen-make-adding-a-task-feel-immediate-and-remain-reliable-even-when-the-user-navigates-away-in-the-app-and-later-returns-to-the-same-mission-to-add-tasks-again-i-e-the-mission-detail-view-should-always-show-the-latest-tasks-and-allow-instant-task-creation",
-      "featureTitle": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
+      "featureId": "feature-update-the-new-mission-creation-ui-missioneditordialog-so-that-on-mobile-sized-viewports-the-full-mission-creation-form-is-immediately-usable-without-scrolling-specifically-the-mission-title-input-the-add-task-input-add-button-and-the-primary-actions-cancel-create-mission-must-all-be-visible-at-once-when-the-dialog-opens",
+      "featureTitle": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionEditorDialog.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -23,11 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-in-the-mission-detail-screen-make-toggling-a-task-between-completed-and-not-completed-smooth-and-bug-free-without-causing-incorrect-changes-to-other-tasks-and-with-immediate-mission-progress-updates",
-      "featureTitle": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
+      "featureId": "feature-limit-changes-strictly-to-the-mission-creation-form-ui-implementation-missioneditordialog-and-any-directly-required-mission-ui-wiring-do-not-modify-other-app-areas-flows-or-startup-login-behavior",
+      "featureTitle": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/MissionEditorDialog.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -40,28 +38,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-swipe-to-delete-in-the-missions-list-respond-immediately-deleting-a-mission-via-swipe-should-remove-it-from-the-list-right-away-and-refresh-the-missions-list-state-reliably",
-      "featureTitle": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
-      "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/components/SwipeActionsRow.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

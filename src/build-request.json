@@ -1,74 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Fix Mission task add/toggle responsiveness and swipe-to-delete immediacy",
+  "title": "Make New Mission creation form fully usable on mobile without scrolling to add tasks",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
+      "text": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "User"
+          "msg-1"
         ],
         "quotes": [
-          "Στην λειτουργία mission η πρόσθεση task σε mission να γίνεται πιο άμεσα ακόμα και αν ο χρήστης επιστρέψει σε mission για να προσθέσει task μετά από πλοήγηση στην εγαρμογη."
+          "Επικεντρώσου μόνο στην λειτουργία Mission και συγκεκριμενα στην φόρμα συμπλήρωσης νέου mission ... η σελίδα της φόρμας νέου mission να ανοίγει με όλο το περιεχόμενο συμπλήρωσης της ορατό στον χρήστη ... χωρίς να χρειάζεται να κάνει scroll για να προσθέσει τα task . Μην αλλαξεις τίποτα άλλο..."
         ]
       },
       "acceptanceCriteria": [
-        "When a user adds a task in MissionDetailFullScreenView, the new task appears in the list immediately (optimistic UI) and remains after the backend call completes.",
-        "If the user leaves the mission detail view (navigate elsewhere) and later re-enters the same mission, the task list is refreshed from the latest backend/cached data (no missing or duplicated tasks).",
-        "After re-entering a mission, adding a task works without requiring a manual refresh and without UI glitches (e.g., input not re-populating unexpectedly, task list not reverting)."
+        "On a mobile viewport (e.g., <= 640px width), opening “New Mission” shows the mission title input, the task entry input (\"Add a new task...\") with its add button, and the Cancel/Create buttons without requiring any scroll.",
+        "Adding tasks remains possible immediately after opening the dialog (no forced scrolling to reach the task input).",
+        "If the task list grows beyond available space, only the task list area becomes scrollable; the task input row and action buttons remain accessible (no need to scroll to reach them).",
+        "All existing mission creation behaviors remain intact (validation, toasts, create mutation, closing behavior)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
+      "text": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "User"
+          "msg-1"
         ],
         "quotes": [
-          "Επίσης σε mission το κλικ σε task ως ολοκληρωμένο ή το κλικ σε task για να βγει από ολοκληρωμένο να γίνεται ομαλά χωρίς σφάλματα στα υπολοιπα ολοκληρωμένα task ή μη ολοκληρωμένα  με άμεση ενημέρωση της προόδου του mission."
+          "Μην αλλαξεις τίποτα άλλο στην εφαρμογή και στις υπόλοιπες λειτουργίες της ώστε η εφαρμογή να λειτουργεί άμεσα όταν συνδεθεί ο χρήστης ."
         ]
       },
       "acceptanceCriteria": [
-        "Toggling a task’s completion updates the task UI and the mission progress percentage/bar immediately.",
-        "Toggling one task does not change the completion state of any other task (no cross-task corruption).",
-        "If the backend toggle fails, the UI rolls back only the toggled task to its prior state without disturbing other tasks, and the progress recalculates correctly.",
-        "No React key/ordering issues or flicker occur during rapid repeated toggles."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "User"
-        ],
-        "quotes": [
-          "Τέλος η διαγραφή mission με swipe να λειτουργεί άμεσα με ενημέρωση των mission."
-        ]
-      },
-      "acceptanceCriteria": [
-        "On coarse-pointer devices, after triggering delete from SwipeActionsRow, the mission row is removed from the missions list immediately (optimistic update) without needing to wait for an artificial delay.",
-        "After deletion settles (success), the missions list stays consistent with the backend (no deleted mission reappearing).",
-        "If deletion fails, the mission reappears in the list (rollback) and the app shows an error toast, with the rest of the list unaffected.",
-        "The swipe row state is closed/reset appropriately so the UI does not get stuck with an open actions state for a removed row."
+        "No changes to non-Mission screens/components are required for this update.",
+        "User can still log in and use the app immediately after login as before (no new loading gates, no new initialization steps)."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other application features outside Mission flows (mission list, mission detail, task add/toggle, and mission swipe-to-delete).",
-    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and anything under frontend/src/components/ui.",
-    "Use English for any user-facing text that must be added/changed."
+    "Frontend-only change unless a backend change is proven strictly necessary (default: no backend changes).",
+    "Do not change any files under frontend/src/components/ui (compose existing UI primitives only).",
+    "Keep all changes scoped to the Mission feature, specifically the New Mission creation form (MissionEditorDialog).",
+    "Do not alter other application functionality, flows, or startup behavior."
   ],
   "nonGoals": [
-    "Do not add new mission features (e.g., reordering tasks, task deletion API, recurring missions).",
-    "Do not redesign non-mission screens or change global navigation.",
-    "Do not change backend mission data structures unless strictly required to fix the specified Mission responsiveness issues."
+    "Redesigning the overall Missions list or Mission detail screens.",
+    "Changing mission data models, backend APIs, or persistence behavior.",
+    "Adding new features beyond improving the mobile usability/layout of the New Mission form."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,34 +1,26 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Improve Mission functionality: faster task addition after navigation, smooth task completion toggling with immediate progress updates, and responsive swipe-to-delete for missions; no changes to other app areas.",
+  "summary": "Project focuses on the Mission feature, specifically improving the new mission creation form for better mobile usability while keeping all other app functionality unchanged and ensuring the app feels usable immediately after login.",
   "architectural_notes": [
-    "Scope constraint: Changes must be limited strictly to Mission functionality; do not modify other app features."
+    "Scope constraint: only modify Mission -> New Mission form; do not change other features/flows so the app remains usable immediately after login."
   ],
   "known_issues": [],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-mission-detail-screen-make-adding-a-task-feel-immediate-and-remain-reliable-even-when-the-user-navigates-away-in-the-app-and-later-returns-to-the-same-mission-to-add-tasks-again-i-e-the-mission-detail-view-should-always-show-the-latest-tasks-and-allow-instant-task-creation",
-      "title": "In the Mission detail screen, make adding a task feel immediate and remain reliable even when the user navigates away in the app and later returns to the same mission to add tasks again (i.e., the mission detail view should always show the latest tasks and allow instant task creation).",
+      "id": "feature-update-the-new-mission-creation-ui-missioneditordialog-so-that-on-mobile-sized-viewports-the-full-mission-creation-form-is-immediately-usable-without-scrolling-specifically-the-mission-title-input-the-add-task-input-add-button-and-the-primary-actions-cancel-create-mission-must-all-be-visible-at-once-when-the-dialog-opens",
+      "title": "Update the New Mission creation UI (MissionEditorDialog) so that on mobile-sized viewports the full mission creation form is immediately usable without scrolling—specifically, the Mission title input, the Add task input + add button, and the primary actions (Cancel / Create Mission) must all be visible at once when the dialog opens.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-in-the-mission-detail-screen-make-toggling-a-task-between-completed-and-not-completed-smooth-and-bug-free-without-causing-incorrect-changes-to-other-tasks-and-with-immediate-mission-progress-updates",
-      "title": "In the Mission detail screen, make toggling a task between completed and not completed smooth and bug-free, without causing incorrect changes to other tasks, and with immediate mission progress updates.",
+      "id": "feature-limit-changes-strictly-to-the-mission-creation-form-ui-implementation-missioneditordialog-and-any-directly-required-mission-ui-wiring-do-not-modify-other-app-areas-flows-or-startup-login-behavior",
+      "title": "Limit changes strictly to the Mission creation form UI implementation (MissionEditorDialog) and any directly-required Mission UI wiring; do not modify other app areas, flows, or startup/login behavior.",
       "reqIds": [
         "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-swipe-to-delete-in-the-missions-list-respond-immediately-deleting-a-mission-via-swipe-should-remove-it-from-the-list-right-away-and-refresh-the-missions-list-state-reliably",
-      "title": "Make swipe-to-delete in the Missions list respond immediately: deleting a mission via swipe should remove it from the list right away and refresh the missions list state reliably.",
-      "reqIds": [
-        "REQ-3"
       ],
       "version": 1
     }
@@ -36,24 +28,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Mission: Make adding a task to a mission immediate, including when returning to a mission after navigating elsewhere in the app.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Mission: Smoothly toggle task completion/uncompletion without affecting other tasks, with immediate mission progress update.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Mission: Swipe-to-delete mission should work immediately and refresh the missions list.",
+      "summary": "Improve 'New Mission' form UX on mobile: title + tasks entry should be fully visible without scrolling to add tasks",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Fix Mission task add/toggle responsiveness and swipe-to-delete immediacy",
+  "projectName": "Make New Mission creation form fully usable on mobile without scrolling to add tasks",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

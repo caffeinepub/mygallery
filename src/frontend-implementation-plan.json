@@ -1,75 +1,37 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Mission task add/toggle and swipe-delete optimistic responsiveness fixes",
+  "title": "Mobile-first layout fixes for New Mission creation dialog",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure Mission detail task creation is optimistic, remains reliable after navigation, and always reflects latest mission tasks when re-entering.",
+      "summary": "Adjust MissionEditorDialog layout so mobile view shows title, add-task row, and primary actions without scrolling; only the task list scrolls when needed.",
       "acceptanceCriteria": [
-        "When a user adds a task in MissionDetailFullScreenView, the new task appears in the list immediately (optimistic UI) and remains after the backend call completes.",
-        "If the user leaves the mission detail view (navigate elsewhere) and later re-enters the same mission, the task list is refreshed from the latest backend/cached data (no missing or duplicated tasks).",
-        "After re-entering a mission, adding a task works without requiring a manual refresh and without UI glitches (e.g., input not re-populating unexpectedly, task list not reverting)."
+        "On a mobile viewport (e.g., <= 640px width), opening “New Mission” shows the mission title input, the task entry input (\"Add a new task...\") with its add button, and the Cancel/Create buttons without requiring any scroll.",
+        "Adding tasks remains possible immediately after opening the dialog (no forced scrolling to reach the task input).",
+        "If the task list grows beyond available space, only the task list area becomes scrollable; the task input row and action buttons remain accessible (no need to scroll to reach them).",
+        "All existing mission creation behaviors remain intact (validation, toasts, create mutation, closing behavior)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/src/components/MissionEditorDialog.tsx",
           "operation": "modify",
-          "description": "Adjust the mission detail query behavior to reliably refresh when MissionDetailFullScreenView is re-mounted (e.g., enable refetch on mount/focus and avoid stale cached detail when navigating away and back), while keeping mission flows unchanged outside list/detail/task add/toggle/delete."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Make the Mission detail task list use a single source of truth (React Query mission detail data and/or a carefully synchronized local editable copy) so optimistic add-task updates appear immediately, do not duplicate, and do not get overwritten by re-hydration effects when navigating away and returning; keep any new/changed user-facing text in English."
+          "description": "Update the dialog container sizing and layout for small viewports: make the dialog full-screen (or near full-screen) on mobile using responsive Tailwind classes (e.g., w-screen / h-[100dvh] with sm+: existing centered sizing), keep header/footer as fixed (shrink-0) regions, and ensure the middle tasks area (ScrollArea) is the only scrollable region (min-h-0 + flex layout). Adjust mobile paddings/spacing as needed so the Mission title input, the add-task input + add button, and the Cancel/Create buttons are all visible simultaneously on initial open while preserving all existing creation behaviors."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Make task completion toggling optimistic, isolated to the toggled task, and keep mission progress updates immediate without flicker or key/order issues.",
+      "summary": "Keep the change strictly scoped to MissionEditorDialog UI and directly-required Mission wiring only, without impacting other flows (including login/startup).",
       "acceptanceCriteria": [
-        "Toggling a task’s completion updates the task UI and the mission progress percentage/bar immediately.",
-        "Toggling one task does not change the completion state of any other task (no cross-task corruption).",
-        "If the backend toggle fails, the UI rolls back only the toggled task to its prior state without disturbing other tasks, and the progress recalculates correctly.",
-        "No React key/ordering issues or flicker occur during rapid repeated toggles."
+        "No changes to non-Mission screens/components are required for this update.",
+        "User can still log in and use the app immediately after login as before (no new loading gates, no new initialization steps)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "path": "frontend/src/components/MissionEditorDialog.tsx",
           "operation": "modify",
-          "description": "Refactor toggle handling to avoid double-optimistic updates (component-local + React Query) and stale-closure rollbacks; rely on the mutation’s optimistic cache update (or a consistent functional state update) and ensure progress is derived from the same up-to-date tasks source to prevent cross-task corruption and flicker."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Harden the toggle-task optimistic update/rollback behavior to ensure only the targeted task is affected, and keep missions list + mission detail caches consistent under rapid repeated toggles."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Make swipe-to-delete remove missions from the list immediately with reliable rollback, consistent list state, and proper swipe-row reset.",
-      "acceptanceCriteria": [
-        "On coarse-pointer devices, after triggering delete from SwipeActionsRow, the mission row is removed from the missions list immediately (optimistic update) without needing to wait for an artificial delay.",
-        "After deletion settles (success), the missions list stays consistent with the backend (no deleted mission reappearing).",
-        "If deletion fails, the mission reappears in the list (rollback) and the app shows an error toast, with the rest of the list unaffected.",
-        "The swipe row state is closed/reset appropriately so the UI does not get stuck with an open actions state for a removed row."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Remove the artificial delay before invoking delete on swipe; trigger the delete mutation immediately for instant optimistic removal, ensure open swipe row state is reset/closed, and keep existing error toast behavior for rollback cases."
-        },
-        {
-          "path": "frontend/src/components/SwipeActionsRow.tsx",
-          "operation": "modify",
-          "description": "On delete action tap, proactively close/reset the swipe row (translate state + onOpenChange(false)) before delegating to the parent delete handler so the UI cannot remain stuck open for a row that is optimistically removed."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Ensure delete-mission optimistic cache removal + rollback remain robust and keep the missions list consistent after settle so a deleted mission does not reappear on success, while restoring it on failure."
+          "description": "Ensure all modifications remain purely presentational/layout-focused within MissionEditorDialog (no changes to auth, actor initialization, global providers, or non-Mission UI). Avoid editing any files under frontend/src/components/ui and keep existing validation/toast/mutation/close behaviors unchanged."
         }
       ]
     }

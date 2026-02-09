@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Improve Mission task add/toggle responsiveness and make swipe-to-delete missions feel immediate and reliable.
+**Goal:** Make the “New Mission” creation dialog usable on mobile by showing the mission title, task add row, and primary actions immediately without requiring scroll.
 
 **Planned changes:**
-- Update the Mission detail screen so newly added tasks appear instantly (optimistic UI) and remain consistent after the create call completes.
-- Ensure the Mission detail screen refreshes/reloads the latest task list when re-entering the same mission after navigating elsewhere, preventing missing/duplicated tasks and avoiding input/list glitches.
-- Fix task completion toggling to be smooth and isolated (no changes to other tasks), with immediate mission progress updates and per-task rollback on failure.
-- Make swipe-to-delete in the Missions list remove the mission row immediately (optimistic removal), keep list state consistent after success, rollback + show an error toast on failure, and reset/close swipe row state correctly.
+- Update `MissionEditorDialog` layout for small viewports so the mission title input, “Add a new task…” input + add button, and Cancel/Create Mission buttons are all visible on open.
+- Constrain scrolling to the tasks list area only when tasks exceed available space, keeping the task input row and action buttons pinned/accessible.
+- Preserve all existing mission creation behavior (validation, toasts, create action, and close behavior) with no changes outside the Mission creation UI and any directly-required wiring.
 
-**User-visible outcome:** Tasks in a mission can be added and toggled instantly and reliably (even after leaving and returning), mission progress updates immediately, and swiping to delete a mission removes it from the list right away while staying consistent if the operation succeeds or fails.
+**User-visible outcome:** On mobile-sized screens, users can open “New Mission” and immediately enter a title, add tasks, and tap Cancel/Create without scrolling; only the growing tasks list scrolls if needed.
