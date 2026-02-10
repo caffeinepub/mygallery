@@ -1,42 +1,31 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Fix required: files moved from folders must appear immediately and correctly in the destination (mission/other folder/main collection) in the gallery UI.",
+  "summary": "Adjust splash screen display duration to 2 seconds before showing the main/home screen, with no other app or feature changes.",
   "architectural_notes": [
-    "When moving a file between collections (folder/mission/main collection), the destination view must update immediately to reflect the change, without altering other app behavior."
+    "Splash screen duration should be configurable; update to 2 seconds without altering other app behavior."
   ],
-  "known_issues": [
-    "In folders mode, files moved to a mission/another folder/main collection do not reliably appear in the destination immediately (UI/state not updating correctly)."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-a-mission-the-moved-files-appear-immediately-in-the-destination-mission-ui-and-are-removed-immediately-from-the-source-folder-ui-without-waiting-for-a-refetch",
-      "title": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to a mission, the moved files appear immediately in the destination mission UI and are removed immediately from the source folder UI (without waiting for a refetch).",
+      "id": "feature-update-the-intro-splash-overlay-so-it-remains-on-screen-for-2-seconds-total-before-completing-and-dismissing-without-changing-any-other-app-behavior-or-features",
+      "title": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-another-folder-the-moved-files-appear-immediately-in-the-destination-folder-ui-and-are-removed-immediately-from-the-source-folder-ui",
-      "title": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to another folder, the moved files appear immediately in the destination folder UI and are removed immediately from the source folder UI.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-existing-return-to-main-collection-flow-from-a-folder-results-in-immediate-correct-ui-state-moved-files-must-appear-in-the-main-root-gallery-list-and-disappear-from-the-folder-list-as-soon-as-the-operation-completes",
-      "title": "Ensure the existing ‘return to main collection’ flow from a folder results in immediate, correct UI state: moved files must appear in the main/root gallery list and disappear from the folder list as soon as the operation completes.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix immediate gallery updates when moving files out of folders (to mission, other folder, or main collection)",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Set splash screen to remain visible for 2 seconds before navigating to the main screen (no other changes).",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Increase splash/intro overlay duration to 2 seconds (no other changes)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

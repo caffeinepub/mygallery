@@ -1,58 +1,21 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Immediate React Query cache updates when moving files out of folders (to mission, other folder, or main collection)",
+  "title": "Adjust intro/splash overlay total duration to ~2 seconds",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update React Query optimistic cache logic so moving files from any folder to a mission immediately removes them from the folder UI and adds them to the mission UI without relying on the root list cache.",
+      "summary": "Increase the intro/splash overlay lifetime so it completes and dismisses at ~2000ms without altering any other behavior.",
       "acceptanceCriteria": [
-        "Given a file currently visible inside a folder (Folders mode), when it is moved to a selected mission, the mission’s attached-files list (React Query key pattern ['files','mission',missionId]) shows the file immediately after the mutation resolves (no manual refresh required).",
-        "After moving a file from a folder to a mission, the source folder list (React Query key pattern ['files','folder',folderId]) no longer shows the file immediately.",
-        "The optimistic update does not rely on the file being present in the main/root query (['files','not-in-folder']) and works when the file originates from any folder query cache."
+        "When the intro/splash overlay is shown, it takes approximately 2000ms from mount until it calls onComplete and is removed.",
+        "The fade/transition timing is consistent with the 2-second duration (no premature completion).",
+        "No other UI flows, authentication behavior, navigation, or data functionality changes."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/components/IntroScreen.tsx",
           "operation": "modify",
-          "description": "Fix useMoveFilesToMission optimistic update: derive filesToMove by searching across all relevant cached sources (at minimum all ['files','folder',*] queries and also ['files','not-in-folder'] when present), then (1) remove moved IDs from every cached folder list and from the root list, and (2) insert the moved items into the destination mission cache (['files','mission',missionId]) with updated missionId and cleared folderId; ensure de-duplication so the file cannot appear twice in the mission list. Keep behavior limited to cache correctness/immediacy only."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Update React Query optimistic cache logic so moving files from one folder to another immediately removes them from the source folder UI and adds them to the destination folder UI, even if the file is not in the root list cache.",
-      "acceptanceCriteria": [
-        "Given a file currently visible inside Folder A, when it is moved to Folder B, Folder B’s list (React Query key pattern ['files','folder',folderBId]) shows the file immediately after the mutation resolves.",
-        "After moving a file from Folder A to Folder B, Folder A’s list (React Query key pattern ['files','folder',folderAId]) no longer shows the file immediately.",
-        "This works even if the file is not present in the main/root list cache (['files','not-in-folder'])."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Fix useMoveFilesToFolder optimistic update: stop assuming files originate from ['files','not-in-folder']; instead, collect filesToMove by scanning cached folder queries (and root cache if present), remove the moved IDs from all cached folder lists except the destination (including the inferred/passed source folder), and then add the moved items into the destination folder cache (['files','folder',folderId]) with updated folderId and cleared missionId; ensure de-duplication in the destination list."
-        },
-        {
-          "path": "frontend/src/components/SendToFolderDialog.tsx",
-          "operation": "modify",
-          "description": "When invoking the move-to-folder mutation from Folders mode, pass along the currentFolderId (when available) as additional mutation context so the cache update can target the correct source folder list immediately; ensure no UI/flow changes beyond improved immediacy."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Ensure returning files from a folder to the main collection updates the root list and folder list immediately and does not affect other gallery behaviors.",
-      "acceptanceCriteria": [
-        "Given a file currently visible inside a folder, when it is moved to Main Collection, the main/root list (React Query key ['files','not-in-folder']) shows the file immediately after the mutation resolves.",
-        "After moving a file from a folder to Main Collection, the source folder list no longer shows the file immediately.",
-        "No other gallery behaviors (selection, preview, delete, download) change as a side-effect of this fix."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Harden useBatchRemoveFromFolder optimistic update for folder->main: ensure moved files are always sourced from the folder cache when present (and/or other cached lists if needed), inserted into ['files','not-in-folder'] without duplicates, and removed from the source folder cache immediately; keep all existing gallery interactions unchanged (only adjust cache update logic)."
+          "description": "Adjust the IntroScreen timers so the overlay remains visible for ~2000ms total before calling onComplete; keep the existing fade animation behavior aligned with the new total duration (e.g., introduce a delay before starting the existing fade-out, and move onComplete to fire at ~2000ms). Do not change any other visuals, content, interaction behavior, or app logic."
         }
       ]
     }

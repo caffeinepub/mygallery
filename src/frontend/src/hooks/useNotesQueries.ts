@@ -267,20 +267,17 @@ export function useMoveNotesToFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ noteIds, folderId, sourceFolderId }: { noteIds: bigint[]; folderId: bigint; sourceFolderId?: bigint }) => {
+    mutationFn: async ({ noteIds, folderId }: { noteIds: bigint[]; folderId: bigint }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
       await actor.moveNotesToFolder(noteIds, folderId);
-      return { noteIds, folderId, sourceFolderId };
+      return { noteIds, folderId };
     },
-    onSuccess: async ({ folderId, sourceFolderId }) => {
+    onSuccess: async ({ folderId }) => {
       // Targeted invalidations
       await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', folderId.toString()], exact: true });
-      if (sourceFolderId) {
-        await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', sourceFolderId.toString()], exact: true });
-      }
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
@@ -333,9 +330,6 @@ export function useBatchRemoveNotesFromFolder() {
       await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       if (sourceFolderId) {
         await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', sourceFolderId.toString()], exact: true });
-      } else {
-        // If we don't know the source, invalidate all folder queries
-        await queryClient.invalidateQueries({ queryKey: ['notes', 'folder'] });
       }
     },
     onError: (error) => {

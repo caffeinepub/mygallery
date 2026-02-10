@@ -1,84 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T14:34:05.339Z",
-  "summary": "Diff includes changes to folder move dialogs (passing sourceFolderId) and broad React Query hook edits, but the provided excerpts are truncated and do not show the specific cache-update logic required for immediate UI updates when moving files out of folders. Several unrelated UI/features (speech-to-text, progress tracking, styling, notes query behavior) appear to have been added/changed beyond the requested scope.",
-  "missing_requirements": [
-    {
-      "id": "REQ-1",
-      "requirement": "Fix React Query cache update logic so moving files from a folder to a mission immediately removes them from the source folder list and adds them to the destination mission list (['files','mission',missionId]) without relying on ['files','not-in-folder'].",
-      "reason": "The diff excerpt for frontend/src/hooks/useQueries.ts is truncated before any move-to-mission mutation logic and does not show concrete cache updates (e.g., queryClient.setQueryData for ['files','mission',missionId] and ['files','folder',folderId]). The SendToFolderDialog change only shows passing sourceFolderId for folder moves/return-to-main, not mission moves.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts (truncated; no move-to-mission cache update shown)",
-        "frontend/src/components/SendToFolderDialog.tsx (only folder move + return-to-main flows shown)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Fix React Query cache update logic so moving files from Folder A to Folder B immediately removes them from ['files','folder',folderAId] and adds them to ['files','folder',folderBId], even if not present in ['files','not-in-folder'].",
-      "reason": "Although SendToFolderDialog now passes sourceFolderId into useMoveFilesToFolder, the diff does not show the corresponding mutation implementation and cache writes in useMoveFilesToFolder (likely in frontend/src/hooks/useQueries.ts but truncated). بنابراین cannot verify immediate cache updates for both source and destination folder lists.",
-      "evidence": [
-        "frontend/src/components/SendToFolderDialog.tsx (passes sourceFolderId to moveFilesToFolder)",
-        "frontend/src/hooks/useQueries.ts (truncated; moveFilesToFolder implementation not shown)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Ensure returning files from a folder to Main Collection immediately adds them to ['files','not-in-folder'] and removes them from the folder list after the operation completes, without side effects to other gallery behaviors.",
-      "reason": "SendToFolderDialog calls batchRemoveFromFolder with sourceFolderId, but the diff does not show the batch-remove mutation’s cache update logic (e.g., updating ['files','not-in-folder'] and ['files','folder',folderId]) in frontend/src/hooks/useQueries.ts (truncated). Also no evidence is shown to confirm no side-effects to selection/preview/delete/download behaviors.",
-      "evidence": [
-        "frontend/src/components/SendToFolderDialog.tsx (handleReturnToMain uses batchRemoveFromFolder)",
-        "frontend/src/hooks/useQueries.ts (truncated; batchRemoveFromFolder cache updates not shown)"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-10T15:21:46.520Z",
+  "summary": "REQ-1 appears implemented by updating IntroScreen to delay fade-out and call onComplete at ~2000ms total (1000ms visible + 1000ms fade). However, there are additional non-requested file modifications (metadata/summaries) that go beyond the strictly requested timing-only change, though they likely do not affect runtime behavior.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Speech-to-text microphone dictation support added to the Add Note form in FileUploadSection.",
-      "reason": "Not requested by the BuildRequest; violates constraint to avoid changing other functionality beyond move/update correctness.",
+      "description": "Updated/added project tracking metadata in project_state.json (e.g., new_feature_requests entries AR-1/AR-2, summary/notes) which was not requested as part of changing splash timing.",
+      "reason": "BuildRequest constraints say no other changes besides splash/intro overlay timing; project_state.json changes are unrelated to runtime timing implementation.",
       "evidence": [
-        "frontend/src/components/FileUploadSection.tsx (imports/useSpeechToText, mic icons, transcript handling)",
-        "frontend-file-summaries.txt (FileUploadSection description mentions speech-to-text)"
+        "project_state.json"
       ]
     },
     {
-      "description": "Unified progress tracking integration using ExternalBlob.withUploadProgress() and upload progress context changes in FileUploadSection.",
-      "reason": "Not requested; unrelated to fixing folder move cache updates.",
+      "description": "Modified frontend-file-summaries.txt with extensive descriptions of multiple files/features unrelated to splash timing.",
+      "reason": "Not requested by REQ-1 and goes beyond changing only the intro/splash overlay timing.",
       "evidence": [
-        "frontend/src/components/FileUploadSection.tsx (ExternalBlob.withUploadProgress, updateProgress/completeUpload usage)",
-        "frontend-file-summaries.txt (FileUploadSection summary mentions unified progress bar integration)"
-      ]
-    },
-    {
-      "description": "React Query behavior changes for notes (new hooks/invalidations/concurrency limiter usage).",
-      "reason": "BuildRequest is about files moving out of folders; notes-related query changes are out of scope.",
-      "evidence": [
-        "frontend/src/hooks/useNotesQueries.ts (new/changed queries, invalidations, concurrency limiter)",
-        "frontend/src/components/SendToFolderDialog.tsx (note move/remove mutations included)"
-      ]
-    },
-    {
-      "description": "Global CSS/layout changes including mobile-only viewport constraints, OKLCH color system, new animations.",
-      "reason": "Not requested; explicitly constrained to avoid changing other user flows/functionality beyond move/update correctness.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css description)"
-      ]
-    },
-    {
-      "description": "Z-index/overlay behavior changes for FoldersButton (behindOverlay prop).",
-      "reason": "Not requested; unrelated UI/interaction change beyond the move/update bugfix.",
-      "evidence": [
-        "frontend-file-summaries.txt (frontend/src/components/FoldersButton.tsx description)"
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/SendToFolderDialog.tsx",
-    "frontend/src/hooks/useNotesQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/IntroScreen.tsx",
     "project_state.json"
   ]
 }

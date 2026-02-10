@@ -1,85 +1,39 @@
 {
   "kind": "build_request",
-  "title": "Fix immediate gallery updates when moving files out of folders (to mission, other folder, or main collection)",
+  "title": "Increase splash/intro overlay duration to 2 seconds (no other changes)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to a mission, the moved files appear immediately in the destination mission UI and are removed immediately from the source folder UI (without waiting for a refetch).",
+      "text": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Στα αρχεία που έχουν μεταφερθεί σε φακέλους στην λειτουργία folders ,όταν επιλέγουν για αποστολή σε mission ... να μεταφέρονται σωστά και άμεσα ... αν ο χρήστης μεταφέρει ένα αρχείο από φάκελο σε mission το αρχείο να εμφανιστεί στο mission ."
+          "Refine it's duration a bit further to 2 sec . Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της απλά κάνε το splash να κρατάει λίγο παραπάνω πριν εμφανιστεί η κεντρική σελίδα της εφαρμογής ."
         ]
       },
       "acceptanceCriteria": [
-        "Given a file currently visible inside a folder (Folders mode), when it is moved to a selected mission, the mission’s attached-files list (React Query key pattern ['files','mission',missionId]) shows the file immediately after the mutation resolves (no manual refresh required).",
-        "After moving a file from a folder to a mission, the source folder list (React Query key pattern ['files','folder',folderId]) no longer shows the file immediately.",
-        "The optimistic update does not rely on the file being present in the main/root query (['files','not-in-folder']) and works when the file originates from any folder query cache."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to another folder, the moved files appear immediately in the destination folder UI and are removed immediately from the source folder UI.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "...σε άλλο φάκελο ... να μεταφέρονται σωστά και άμεσα..."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Given a file currently visible inside Folder A, when it is moved to Folder B, Folder B’s list (React Query key pattern ['files','folder',folderBId]) shows the file immediately after the mutation resolves.",
-        "After moving a file from Folder A to Folder B, Folder A’s list (React Query key pattern ['files','folder',folderAId]) no longer shows the file immediately.",
-        "This works even if the file is not present in the main/root list cache (['files','not-in-folder'])."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Ensure the existing ‘return to main collection’ flow from a folder results in immediate, correct UI state: moved files must appear in the main/root gallery list and disappear from the folder list as soon as the operation completes.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "...ή στο main collection στην gallery να μεταφέρονται σωστά και άμεσα..."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Given a file currently visible inside a folder, when it is moved to Main Collection, the main/root list (React Query key ['files','not-in-folder']) shows the file immediately after the mutation resolves.",
-        "After moving a file from a folder to Main Collection, the source folder list no longer shows the file immediately.",
-        "No other gallery behaviors (selection, preview, delete, download) change as a side-effect of this fix."
+        "When the intro/splash overlay is shown, it takes approximately 2000ms from mount until it calls onComplete and is removed.",
+        "The fade/transition timing is consistent with the 2-second duration (no premature completion).",
+        "No other UI flows, authentication behavior, navigation, or data functionality changes."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other application functionality or user flows beyond fixing the correctness/immediacy of UI updates for moving files out of folders.",
-    "Do not edit any files under frontend/src/components/ui or any other paths listed as immutable in SYSTEM_CONTEXT.",
-    "Backend behavior and data model must remain unchanged unless it is strictly required to fix this issue (prefer frontend cache/invalidations/optimistic updates)."
+    "Do not modify backend code or data/state schemas.",
+    "Do not change any app functionality besides the splash/intro overlay timing.",
+    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Do not redesign the UI or change copy/text shown to users.",
-    "Do not add new features related to missions, folders, or gallery beyond the move/update correctness.",
-    "Do not introduce new authentication methods or external services."
+    "Redesigning the splash screen visuals or changing its content.",
+    "Changing when the splash triggers (e.g., login/return behavior).",
+    "Blocking user interaction during the splash (keep existing interaction behavior unchanged unless already blocking)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

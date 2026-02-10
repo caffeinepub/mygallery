@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-a-mission-the-moved-files-appear-immediately-in-the-destination-mission-ui-and-are-removed-immediately-from-the-source-folder-ui-without-waiting-for-a-refetch",
-      "featureTitle": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to a mission, the moved files appear immediately in the destination mission UI and are removed immediately from the source folder UI (without waiting for a refetch).",
+      "featureId": "feature-update-the-intro-splash-overlay-so-it-remains-on-screen-for-2-seconds-total-before-completing-and-dismissing-without-changing-any-other-app-behavior-or-features",
+      "featureTitle": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/IntroScreen.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,47 +18,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-another-folder-the-moved-files-appear-immediately-in-the-destination-folder-ui-and-are-removed-immediately-from-the-source-folder-ui",
-      "featureTitle": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to another folder, the moved files appear immediately in the destination folder UI and are removed immediately from the source folder UI.",
-      "files": [
-        "frontend/src/components/SendToFolderDialog.tsx",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-the-existing-return-to-main-collection-flow-from-a-folder-results-in-immediate-correct-ui-state-moved-files-must-appear-in-the-main-root-gallery-list-and-disappear-from-the-folder-list-as-soon-as-the-operation-completes",
-      "featureTitle": "Ensure the existing ‘return to main collection’ flow from a folder results in immediate, correct UI state: moved files must appear in the main/root gallery list and disappear from the folder list as soon as the operation completes.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }
