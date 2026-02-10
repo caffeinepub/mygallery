@@ -1,50 +1,105 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T18:22:21.398Z",
-  "summary": "Manifest linking, manifest contents, service worker registration, and a minimal service worker with fetch handling/navigation fallback appear to be implemented. However, the diff also includes substantial unrelated UI/feature and styling changes, and there is no concrete diff evidence of addressing REQ-5 installability verification criteria beyond adding PWA files.",
-  "missing_requirements": [
-    {
-      "id": "REQ-5",
-      "requirement": "Verify and fix any remaining installability criteria issues (secure context, start URL reachable, no manifest/SW console errors blocking install prompt across major browsers).",
-      "reason": "The diff shows adding/updating manifest, index.html link/registration, and sw.js, but does not provide evidence of addressing broader installability criteria checks (e.g., ensuring secure context in deployment, confirming start_url reachability in routing, or eliminating console errors across browsers). Those are primarily verification/outcome-based and not demonstrable from the provided changes.",
-      "evidence": [
-        "frontend/index.html",
-        "frontend/public/manifest.json",
-        "frontend/public/sw.js"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-10T07:24:12.896Z",
+  "summary": "The diff includes multiple performance-oriented changes (React memoization/stable callbacks, coalesced upload progress updates, React Query cache/refetch tuning, home data prefetching, and an updated service worker caching strategy). However, it also introduces several user-facing and behavioral features that were not requested and violate the constraint of no UI/logic changes.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Multiple unrelated application UI/feature changes (intro overlay behavior, data prefetch, header/footer changes, upload UI changes including speech-to-text dictation, gallery/note viewers, dialogs, etc.).",
-      "reason": "BuildRequest explicitly constrained changes to PWA installability only and disallowed other functionality/visual changes.",
+      "description": "Added speech-to-text (microphone dictation) functionality in the file upload/note flow.",
+      "reason": "BuildRequest explicitly disallows new features or logic/behavior changes; speech-to-text is a new capability and changes interaction behavior.",
       "evidence": [
+        "frontend/src/components/FileUploadSection.tsx",
         "frontend-file-summaries.txt"
       ]
     },
     {
-      "description": "Global styling and layout changes (OKLCH theme system, mobile-only viewport constraints, new animations).",
-      "reason": "Not requested; violates the constraint of no visual appearance changes beyond PWA metadata/installability.",
+      "description": "Introduced unified/global upload progress UI (UnifiedProgressBar) and new upload tracking behavior (aggregated progress, RAF-coalesced updates).",
+      "reason": "REQs ask for smoother progress updates, but adding a new global progress bar component/UI is a user-visible UI change not requested and may alter behavior/UX.",
       "evidence": [
+        "frontend/src/components/UnifiedProgressBar.tsx",
+        "frontend/src/components/Header.tsx",
+        "frontend/src/contexts/UploadContext.tsx",
         "frontend-file-summaries.txt"
       ]
     },
     {
-      "description": "Branding/copy changes in HTML/manifest metadata (new meta description, title text, app description).",
-      "reason": "Non-goals/constraints disallow changing user-facing copy/branding unrelated to PWA metadata; these changes go beyond the minimum required installability fields.",
+      "description": "Added/expanded file sharing via the Web Share API in the full-screen viewer.",
+      "reason": "Sharing is a new feature/behavior not requested; BuildRequest disallows new features.",
       "evidence": [
-        "frontend/index.html",
-        "frontend/public/manifest.json"
+        "frontend/src/components/FullScreenViewer.tsx"
+      ]
+    },
+    {
+      "description": "Added Office document preview via Office Online embed URL (view.officeapps.live.com).",
+      "reason": "This changes preview behavior and introduces cross-origin embed usage; not requested and is a functional change beyond performance optimization.",
+      "evidence": [
+        "frontend/src/components/FilePreviewDialog.tsx"
+      ]
+    },
+    {
+      "description": "Changed/expanded gallery behavior/UI to include notes as items with visual distinction (sticky note icon), separate viewers, and bulk operations for notes.",
+      "reason": "Adding note items into the gallery view and related bulk actions constitutes new UI/feature work beyond performance-only changes.",
+      "evidence": [
+        "frontend/src/components/GallerySection.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Added/changed folder move dialog behavior to support returning items to main collection and to handle both file IDs and note IDs.",
+      "reason": "Support for note IDs and a new 'Return to Main Collection' flow is additional behavior not requested under performance-only scope.",
+      "evidence": [
+        "frontend/src/components/SendToFolderDialog.tsx"
+      ]
+    },
+    {
+      "description": "Implemented a 'non-blocking intro screen overlay that renders HomePage immediately when authenticated' (behavioral change to initial rendering/interaction).",
+      "reason": "This alters app behavior/UX (interaction availability during intro) rather than being a purely internal performance optimization.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/App.tsx description)"
+      ]
+    },
+    {
+      "description": "Made broad global styling/layout changes including 'mobile-only layout constraints that enforce phone-width viewport', new animations, and theme-related CSS changes.",
+      "reason": "BuildRequest forbids any appearance/layout/styling changes; these are explicitly UI-affecting changes unrelated to performance-only constraints.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/index.css description)"
+      ]
+    },
+    {
+      "description": "Adjusted z-index/overlay behavior for UI elements (e.g., folders button behind overlay, bulk action bar stacking).",
+      "reason": "These are UI behavior/appearance changes, not strictly performance optimizations.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/components/FoldersButton.tsx description)",
+        "frontend-file-summaries.txt (frontend/src/components/GallerySection.tsx description)"
+      ]
+    },
+    {
+      "description": "Deprecated/retained a folder dialog with added swipe-to-reveal actions and confirmation modal behavior changes (as described).",
+      "reason": "Swipe actions and modal button text/behavior changes are UI/interaction changes not requested.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/components/FoldersDialog.tsx description)"
       ]
     }
   ],
-  "confidence": 0.84,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/public/manifest.json",
     "frontend/public/sw.js",
+    "frontend/src/components/FilePreviewDialog.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/FullScreenViewer.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/components/SendToFolderDialog.tsx",
+    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/contexts/UploadContext.tsx",
+    "frontend/src/hooks/useHomePrefetch.ts",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/hooks/useNotesQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/performanceDiagnostics.ts",
     "project_state.json"
   ]
 }

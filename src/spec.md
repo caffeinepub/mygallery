@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Make the app consistently installable as a fully recognized PWA across major browsers without changing any UI or app features.
+**Goal:** Improve overall frontend performance and responsiveness via targeted optimizations (bundle size, lazy loading, caching, render smoothness) with zero UI or behavior changes.
 
 **Planned changes:**
-- Ensure `frontend/public/manifest.json` is valid and meets installability requirements (name, short_name, start_url within scope, `display: "standalone"`, and working 192x192 + 512x512 PNG icon entries).
-- Ensure the manifest is discoverable by adding/keeping a single `<link rel="manifest" href="/manifest.json">` in `frontend/index.html` (not conditional).
-- Add minimal service worker registration for `/sw.js` from `frontend/index.html`, only in supported/secure contexts, without altering app flows.
-- Ensure `frontend/public/sw.js` is minimal but installability-friendly: includes a `fetch` handler, avoids interfering with cross-origin and API/canister calls, and provides a reliable navigation fallback.
-- Verify and fix any remaining installability blockers (secure context, reachable start URL, no manifest/SW console errors) so browser install UI/prompts are available.
+- Expand route-/feature-level code splitting and lazy-loading for heavy, non-critical components (e.g., dialogs/viewers/secondary full-screen subviews) to reduce initial JavaScript payload.
+- Reduce unnecessary React re-renders and inefficient state updates in top-level screens and frequently updating areas (e.g., view switching, upload progress, large lists/grids) using memoization and stable callbacks.
+- Tune React Query defaults/behaviors to reduce redundant refetching while preserving existing invalidation semantics and data correctness.
+- Optimize the service worker caching strategy for static build assets with safe cache versioning/cleanup, while ensuring navigation reliability and avoiding caching/interfering with API/canister traffic.
+- Remove/gate dev-only diagnostics and delete clearly unused code from production bundles without affecting production behavior.
 
-**User-visible outcome:** The app can be installed from supported browsers (e.g., Chrome/Edge, and where applicable others) as a standalone PWA, with no changes to the app’s UI or behavior.
+**User-visible outcome:** The app feels faster and smoother (quicker navigation and reduced jank), while the UI, text, and all existing flows behave exactly the same as before.

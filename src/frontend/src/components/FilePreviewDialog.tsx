@@ -222,7 +222,7 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
         open={showSendToFolder}
         onOpenChange={setShowSendToFolder}
         fileIds={[file.id]}
-        currentFolderId={file.folderId}
+        sourceFolderId={file.folderId}
       />
 
       <MoveToMissionDialog

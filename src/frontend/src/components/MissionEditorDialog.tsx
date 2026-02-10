@@ -91,13 +91,12 @@ export default function MissionEditorDialog({
   const handleAddTask = () => {
     if (!newTaskText.trim()) return;
     
-    // Find the highest taskId and increment
-    const maxTaskId = tasks.length > 0 
-      ? tasks.reduce((max, t) => t.taskId > max ? t.taskId : max, BigInt(0))
-      : BigInt(-1);
+    // Generate collision-resistant taskId using timestamp + random component
+    // This matches the strategy used in useAddTaskToMission for optimistic tasks
+    const collisionResistantId = BigInt(`${Date.now()}${Math.random().toString().slice(2, 8)}`);
     
     const newTask: Task = {
-      taskId: maxTaskId + BigInt(1),
+      taskId: collisionResistantId,
       task: newTaskText.trim(),
       completed: false,
     };

@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { useUpload } from '@/contexts/UploadContext';
 import { Progress } from '@/components/ui/progress';
 
-export default function UnifiedProgressBar() {
+const UnifiedProgressBar = memo(() => {
   const { isUploading, totalProgress, itemCount } = useUpload();
 
   if (!isUploading) return null;
@@ -20,4 +21,8 @@ export default function UnifiedProgressBar() {
       </div>
     </div>
   );
-}
+});
+
+UnifiedProgressBar.displayName = 'UnifiedProgressBar';
+
+export default UnifiedProgressBar;

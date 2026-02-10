@@ -334,7 +334,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
         fileIds={[currentFile.id]}
-        currentFolderId={currentFile.folderId ?? undefined}
+        sourceFolderId={currentFile.folderId ?? undefined}
         onMoveComplete={handleMoveComplete}
       />
 

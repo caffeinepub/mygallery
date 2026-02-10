@@ -1,4 +1,5 @@
-import { Moon, Sun } from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,26 +8,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut } from 'lucide-react';
 import AnimatedGalleryIcon from './AnimatedGalleryIcon';
 import UnifiedProgressBar from './UnifiedProgressBar';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 
-export default function Header() {
+const Header = memo(() => {
   const { theme, setTheme } = useTheme();
   const { identity } = useInternetIdentity();
   const { signOut } = useBackendActor();
 
   const isAuthenticated = !!identity;
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
+  }, [theme, setTheme]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
-  };
+  }, [signOut]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
@@ -71,4 +71,8 @@ export default function Header() {
       <UnifiedProgressBar />
     </header>
   );
-}
+});
+
+Header.displayName = 'Header';
+
+export default Header;

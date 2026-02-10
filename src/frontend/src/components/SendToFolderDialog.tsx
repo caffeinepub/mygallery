@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { FolderInput, ArrowLeft } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -5,166 +7,147 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Folder, Home } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGetFolders, useMoveFilesToFolder, useBatchRemoveFromFolder } from '@/hooks/useQueries';
 import { useMoveNotesToFolder, useBatchRemoveNotesFromFolder } from '@/hooks/useNotesQueries';
-import { perfDiag } from '@/utils/performanceDiagnostics';
+import { toast } from 'sonner';
+import type { Folder } from '@/backend';
 
 interface SendToFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fileIds: string[];
+  fileIds?: string[];
   noteIds?: bigint[];
-  currentFolderId?: bigint;
+  sourceFolderId?: bigint;
   onMoveComplete?: () => void;
 }
 
 export default function SendToFolderDialog({
   open,
   onOpenChange,
-  fileIds,
+  fileIds = [],
   noteIds = [],
-  currentFolderId,
+  sourceFolderId,
   onMoveComplete,
 }: SendToFolderDialogProps) {
-  const { data: folders, isLoading } = useGetFolders();
-  const moveFilesToFolder = useMoveFilesToFolder();
-  const batchRemoveFromFolder = useBatchRemoveFromFolder();
-  const moveNotesToFolder = useMoveNotesToFolder();
-  const batchRemoveNotesFromFolder = useBatchRemoveNotesFromFolder();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { data: folders, isLoading: isLoadingFolders } = useGetFolders();
+  const moveFilesToFolderMutation = useMoveFilesToFolder();
+  const moveNotesToFolderMutation = useMoveNotesToFolder();
+  const batchRemoveFromFolderMutation = useBatchRemoveFromFolder();
+  const batchRemoveNotesFromFolderMutation = useBatchRemoveNotesFromFolder();
 
-  const handleMoveToFolder = async (folderId: bigint) => {
-    const operationId = `move-to-folder-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Move to folder (UI)', { 
-      fileCount: fileIds.length,
-      noteCount: noteIds.length 
-    });
+  const handleFolderSelect = async (folder: Folder) => {
+    setIsProcessing(true);
 
     try {
       if (fileIds.length > 0) {
-        await moveFilesToFolder.mutateAsync({ fileIds, folderId });
+        await moveFilesToFolderMutation.mutateAsync({
+          fileIds,
+          folderId: folder.id,
+        });
       }
+
       if (noteIds.length > 0) {
-        await moveNotesToFolder.mutateAsync({ noteIds, folderId });
+        await moveNotesToFolderMutation.mutateAsync({
+          noteIds,
+          folderId: folder.id,
+        });
       }
-      perfDiag.endTiming(operationId, { success: true });
+
+      const itemCount = fileIds.length + noteIds.length;
+      toast.success(`Moved ${itemCount} item${itemCount > 1 ? 's' : ''} to ${folder.name}`);
       onOpenChange(false);
       onMoveComplete?.();
     } catch (error) {
-      perfDiag.endTiming(operationId, { success: false });
-      console.error('Move to folder error:', error);
+      console.error('Move to folder failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to move items';
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleReturnToMain = async () => {
-    const operationId = `return-to-main-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Return to main collection (UI)', { 
-      fileCount: fileIds.length,
-      noteCount: noteIds.length 
-    });
+    setIsProcessing(true);
 
     try {
       if (fileIds.length > 0) {
-        await batchRemoveFromFolder.mutateAsync({ 
-          fileIds, 
-          sourceFolderId: currentFolderId 
+        await batchRemoveFromFolderMutation.mutateAsync({
+          fileIds,
+          sourceFolderId,
         });
       }
+
       if (noteIds.length > 0) {
-        await batchRemoveNotesFromFolder.mutateAsync({ noteIds });
+        await batchRemoveNotesFromFolderMutation.mutateAsync({
+          noteIds,
+          sourceFolderId,
+        });
       }
-      perfDiag.endTiming(operationId, { success: true });
+
+      const itemCount = fileIds.length + noteIds.length;
+      toast.success(`Returned ${itemCount} item${itemCount > 1 ? 's' : ''} to main collection`);
       onOpenChange(false);
       onMoveComplete?.();
     } catch (error) {
-      perfDiag.endTiming(operationId, { success: false });
-      console.error('Return to main error:', error);
+      console.error('Return to main failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to return items';
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const isProcessing = moveFilesToFolder.isPending || batchRemoveFromFolder.isPending || 
-                       moveNotesToFolder.isPending || batchRemoveNotesFromFolder.isPending;
-
   return (
-    <Dialog open={open} onOpenChange={isProcessing ? undefined : onOpenChange}>
-      <DialogContent className="max-w-md max-h-[70vh] flex flex-col">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] w-full sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Move to Folder</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FolderInput className="h-5 w-5" />
+            Send to Folder
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto space-y-2">
-          {currentFolderId !== undefined && (
-            <Card
-              className={`transition-all ${
-                isProcessing 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'cursor-pointer hover:shadow-md hover:border-primary'
-              }`}
-              onClick={isProcessing ? undefined : handleReturnToMain}
+        <div className="space-y-4">
+          {sourceFolderId !== undefined && (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handleReturnToMain}
+              disabled={isProcessing}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Home className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Main Collection</p>
-                    <p className="text-xs text-muted-foreground">Return to main collection</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Return to Main Collection
+            </Button>
           )}
 
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading folders...</div>
-          ) : !folders || folders.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Folder className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">No folders</p>
-              </CardContent>
-            </Card>
-          ) : (
-            folders
-              .filter((folder) => folder.id !== currentFolderId)
-              .map((folder) => (
-                <Card
-                  key={folder.id.toString()}
-                  className={`transition-all ${
-                    isProcessing 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'cursor-pointer hover:shadow-md hover:border-primary'
-                  }`}
-                  onClick={isProcessing ? undefined : () => handleMoveToFolder(folder.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-primary/10 p-2">
-                        <Folder className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{folder.name}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-          )}
-        </div>
-
-        <div className="pt-4 border-t">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
-            className="w-full"
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
+          <ScrollArea className="h-[300px] rounded-md border p-4">
+            {isLoadingFolders ? (
+              <div className="text-center text-sm text-muted-foreground">
+                Loading folders...
+              </div>
+            ) : !folders || folders.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground">
+                No folders available. Create a folder first.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {folders.map((folder) => (
+                  <Button
+                    key={folder.id.toString()}
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => handleFolderSelect(folder)}
+                    disabled={isProcessing || folder.id === sourceFolderId}
+                  >
+                    <FolderInput className="mr-2 h-4 w-4" />
+                    {folder.name}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

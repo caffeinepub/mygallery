@@ -1,75 +1,112 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T18:22:21.401Z",
+  "generatedAt": "2026-02-10T07:24:12.899Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
+    "total": 6,
     "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
+        "summary": "Improve overall app responsiveness (navigation, page open, settings changes, core flows) using targeted performance optimizations only: reduce bundle size, add/expand lazy loading where appropriate, optimize service worker caching strategy, reduce unnecessary React re-renders/updates, remove dead/unused code, and improve state/update efficiency—without changing any UI appearance/layout or application logic/behavior.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/public/assets/generated/mygallery-mission-icon-192.dim_192x192.png",
-          "frontend/public/assets/generated/mygallery-mission-icon-512.dim_512x512.png"
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/utils/performanceDiagnostics.ts"
         ],
         "matchedFiles": [
-          "frontend/public/manifest.json"
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/utils/performanceDiagnostics.ts"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
+        "summary": "Reduce initial JavaScript bundle cost by expanding route-/feature-level code splitting and lazy-loading for heavy, non-critical components that are not needed for first paint (e.g., dialogs/viewers/secondary full-screen subviews), while keeping the current UI/UX identical once loaded.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html"
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FilePreviewDialog.tsx",
+          "frontend/src/components/FullScreenViewer.tsx",
+          "frontend/src/components/MissionsFullScreenView.tsx",
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/components/SendToFolderDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/index.html"
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FilePreviewDialog.tsx",
+          "frontend/src/components/FullScreenViewer.tsx",
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/components/SendToFolderDialog.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
+        "summary": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas (e.g., HomePage view switching, upload progress updates, large lists/grids) using memoization, stable callbacks, and targeted state updates—without altering UI or functionality.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html"
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/UnifiedProgressBar.tsx",
+          "frontend/src/components/SwipeActionsRow.tsx"
         ],
         "matchedFiles": [
-          "frontend/index.html"
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/UnifiedProgressBar.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
+        "summary": "Tune React Query configuration and query behaviors to reduce redundant refetching and improve perceived speed (e.g., sensible defaultOptions for staleTime/gcTime/refetch triggers, controlled retries), while preserving data correctness and existing query invalidation semantics.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/public/sw.js"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/hooks/useNotesQueries.ts",
+          "frontend/src/hooks/useHomePrefetch.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/hooks/useNotesQueries.ts",
+          "frontend/src/hooks/useHomePrefetch.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Optimize the service worker caching strategy in frontend/public/sw.js to improve load and navigation smoothness while maintaining PWA installability: keep navigation handling reliable, avoid caching canister/API traffic, and implement a more appropriate strategy for static build assets (e.g., cache-first or stale-while-revalidate for immutable hashed assets) with safe cache versioning and cleanup.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/public/sw.js",
+          "frontend/index.html"
         ],
         "matchedFiles": [
           "frontend/public/sw.js"
         ]
       },
       {
-        "id": "REQ-5",
-        "summary": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
-        "status": "implemented",
+        "id": "REQ-6",
+        "summary": "Remove or gate performance-costly development-only code paths and diagnostics from production bundles (e.g., ensure dev smoke tests and verbose logging remain dev-only), and delete clearly unused code that contributes to bundle size—without changing runtime behavior in production.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/public/sw.js",
-          "frontend/index.html"
+          "frontend/src/utils/smokeTestCoreFlows.ts",
+          "frontend/src/utils/reactQueryDiagnostics.ts",
+          "frontend/src/components/ConnectivityIndicator.tsx",
+          "frontend/src/components/NotesButton.tsx",
+          "frontend/src/components/NotesDialog.tsx",
+          "frontend/src/components/NotesFullScreenView.tsx",
+          "frontend/src/components/ProfileSetupDialog.tsx",
+          "frontend/src/utils/notesTime.ts"
         ],
-        "matchedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/public/sw.js",
-          "frontend/index.html"
-        ]
+        "matchedFiles": []
       }
     ]
   },
@@ -78,9 +115,21 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/index.html",
-    "frontend/public/manifest.json",
     "frontend/public/sw.js",
+    "frontend/src/components/FilePreviewDialog.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/FullScreenViewer.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/components/SendToFolderDialog.tsx",
+    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/contexts/UploadContext.tsx",
+    "frontend/src/hooks/useHomePrefetch.ts",
+    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/hooks/useNotesQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/performanceDiagnostics.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

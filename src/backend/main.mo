@@ -13,6 +13,8 @@ import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
+
+
 actor {
   include MixinStorage();
 
@@ -102,7 +104,6 @@ actor {
   };
 
   public type PersistentMissions = {
-    nextMissionId : Nat;
     nextTaskId : Nat;
     map : Map.Map<Principal, Missions>;
   };
@@ -143,7 +144,6 @@ actor {
   let notes = Map.empty<Nat, Note>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   var persistentMissions : PersistentMissions = {
-    nextMissionId = 0;
     nextTaskId = 0;
     map = Map.empty<Principal, Missions>();
   };
@@ -218,8 +218,11 @@ actor {
       Runtime.trap("Unauthorized: Only users can create missions");
     };
 
+    let missionId = nextMissionId;
+    nextMissionId += 1;
+
     let mission : Mission = {
-      id = nextMissionId;
+      id = missionId;
       title;
       created = Time.now();
       owner = caller;
@@ -238,15 +241,8 @@ actor {
       case (?missions) { missions };
     };
 
-    let currentMissionId = nextMissionId;
-    nextMissionId += 1;
-    persistentMissions := {
-      persistentMissions with
-      nextMissionId
-    };
-    userMissions.data.add(currentMissionId, mission);
-
-    currentMissionId;
+    userMissions.data.add(missionId, mission);
+    missionId;
   };
 
   public query ({ caller }) func getMission(missionId : Nat) : async ?Mission {

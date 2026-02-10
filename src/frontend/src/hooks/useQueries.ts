@@ -22,10 +22,11 @@ export function useGetFilesNotInFolder() {
       return result.files;
     },
     enabled: !!actor && status === 'ready' && !!identity,
-    staleTime: 2000, // 2 seconds - reduce redundant refetches
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - data doesn't change unless user acts
+    gcTime: 15 * 60 * 1000, // 15 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Rely on staleTime instead
+    refetchOnMount: false,
+    retry: 1,
   });
 }
 
@@ -41,10 +42,11 @@ export function useGetFilesInFolder(folderId: bigint | null) {
       return result.files;
     },
     enabled: !!actor && status === 'ready' && folderId !== null && !!identity,
-    staleTime: 2000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    retry: 1,
   });
 }
 
@@ -59,10 +61,11 @@ export function useGetFilesForMission(missionId: bigint | null) {
       return actor.getFilesForMission(missionId);
     },
     enabled: !!actor && status === 'ready' && missionId !== null && !!identity,
-    staleTime: 2000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    retry: 1,
   });
 }
 
@@ -77,10 +80,11 @@ export function useGetFolders() {
       return actor.getAllFolders();
     },
     enabled: !!actor && status === 'ready' && !!identity,
-    staleTime: 3000, // 3 seconds for folders
-    gcTime: 15 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes - folders change infrequently
+    gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    retry: 1,
   });
 }
 
@@ -507,10 +511,13 @@ export function useDeleteFiles() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      // Convert string IDs to bigint for backend
-      const bigintIds = fileIds.map(id => BigInt(id));
-      await actor.deleteFiles(bigintIds);
-      return fileIds;
+      
+      return timeOperation('deleteFiles', async () => {
+        // Convert string IDs to bigint for backend
+        const bigintIds = fileIds.map(id => BigInt(id));
+        await actor.deleteFiles(bigintIds);
+        return fileIds;
+      }, { fileCount: fileIds.length });
     },
     onMutate: async (fileIds) => {
       await queryClient.cancelQueries({ queryKey: ['files'] });
@@ -547,7 +554,7 @@ export function useDeleteFiles() {
     },
     onError: (err, fileIds, context) => {
       const errorMessage = getActorErrorMessage(err);
-      console.error('Bulk file deletion failed:', errorMessage);
+      console.error('Batch file deletion failed:', errorMessage);
       
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
@@ -581,45 +588,32 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      mimeType, 
-      size, 
-      blob, 
+    mutationFn: async ({
+      name,
+      mimeType,
+      size,
+      blob,
       missionId,
-      onProgress 
-    }: { 
-      name: string; 
-      mimeType: string; 
-      size: number; 
-      blob: Uint8Array; 
-      missionId?: bigint;
+      onProgress,
+    }: {
+      name: string;
+      mimeType: string;
+      size: bigint;
+      blob: ExternalBlob;
+      missionId?: bigint | null;
       onProgress?: (percentage: number) => void;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter
       return uploadLimiter.run(async () => {
+        const blobWithProgress = onProgress ? blob.withUploadProgress(onProgress) : blob;
+        
         return timeOperation('uploadFile', async () => {
-          // Create a new Uint8Array with proper ArrayBuffer type
-          const properBlob = new Uint8Array(blob);
-          
-          const externalBlob = onProgress 
-            ? ExternalBlob.fromBytes(properBlob).withUploadProgress(onProgress)
-            : ExternalBlob.fromBytes(properBlob);
-          
-          const result = await actor.uploadFile(
-            name,
-            mimeType,
-            BigInt(size),
-            externalBlob,
-            missionId ?? null
-          );
-          
+          const result = await actor.uploadFile(name, mimeType, size, blobWithProgress, missionId ?? null);
           return result;
-        }, { fileName: name, fileSize: size, missionId: missionId?.toString() });
+        }, { fileName: name, fileSize: size.toString() });
       });
     },
     onSuccess: async (_, variables) => {
@@ -644,93 +638,30 @@ export function useUploadFile() {
   });
 }
 
-export function useUploadFiles() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ 
-      files, 
-      onProgress 
-    }: { 
-      files: File[]; 
-      onProgress?: (fileName: string, percentage: number) => void;
-    }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-
-      const uploadPromises = files.map(async (file) => {
-        const arrayBuffer = await file.arrayBuffer();
-        const blob = new Uint8Array(arrayBuffer);
-        
-        return uploadLimiter.run(async () => {
-          return timeOperation('uploadFile', async () => {
-            const externalBlob = onProgress 
-              ? ExternalBlob.fromBytes(blob).withUploadProgress((pct) => onProgress(file.name, pct))
-              : ExternalBlob.fromBytes(blob);
-            
-            const result = await actor.uploadFile(
-              file.name,
-              file.type || 'application/octet-stream',
-              BigInt(file.size),
-              externalBlob,
-              null
-            );
-            
-            return result;
-          }, { fileName: file.name, fileSize: file.size });
-        });
-      });
-
-      return Promise.all(uploadPromises);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ 
-        queryKey: ['files', 'not-in-folder'], 
-        exact: true 
-      });
-    },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('File upload failed:', errorMessage);
-      throw new Error(`Failed to upload files: ${errorMessage}`);
-    },
-  });
-}
-
 export function useCreateLink() {
   const { actor, status } = useBackendActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      url, 
-      folderId, 
-      missionId 
-    }: { 
-      name: string; 
-      url: string; 
-      folderId?: bigint; 
-      missionId?: bigint;
+    mutationFn: async ({
+      name,
+      url,
+      folderId,
+      missionId,
+    }: {
+      name: string;
+      url: string;
+      folderId?: bigint | null;
+      missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter for links too
-      return uploadLimiter.run(async () => {
-        return timeOperation('createLink', async () => {
-          const result = await actor.createLink(
-            name,
-            url,
-            folderId ?? null,
-            missionId ?? null
-          );
-          return result;
-        }, { linkName: name, folderId: folderId?.toString(), missionId: missionId?.toString() });
-      });
+      return timeOperation('createLink', async () => {
+        const result = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
+        return result;
+      }, { linkName: name });
     },
     onSuccess: async (_, variables) => {
       // Targeted invalidations based on where link was created
@@ -755,47 +686,6 @@ export function useCreateLink() {
       const errorMessage = getActorErrorMessage(error);
       console.error('Link creation failed:', errorMessage);
       throw new Error(`Failed to create link: ${errorMessage}`);
-    },
-  });
-}
-
-export function useGetCallerUserProfile() {
-  const { actor, status } = useBackendActor();
-  const { identity } = useInternetIdentity();
-
-  return useQuery({
-    queryKey: ['currentUserProfile'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserProfile();
-    },
-    enabled: !!actor && status === 'ready' && !!identity,
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000,
-  });
-}
-
-export function useSaveCallerUserProfile() {
-  const { actor, status } = useBackendActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (profile: { name: string }) => {
-      if (!actor || status !== 'ready') {
-        throw createActorNotReadyError();
-      }
-      await actor.saveCallerUserProfile(profile);
-      return profile;
-    },
-    onSuccess: async (profile) => {
-      queryClient.setQueryData(['currentUserProfile'], profile);
-      await queryClient.invalidateQueries({ queryKey: ['currentUserProfile'], exact: true });
-    },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('Profile save failed:', errorMessage);
-      throw new Error(`Failed to save profile: ${errorMessage}`);
     },
   });
 }

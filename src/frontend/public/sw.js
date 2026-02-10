@@ -1,24 +1,25 @@
-// Service Worker for MyGallery PWA - Optimized for installability
-const CACHE_NAME = 'mygallery-v1';
-const RUNTIME_CACHE = 'mygallery-runtime';
+// Service Worker for MyGallery PWA - Optimized caching strategy
+const CACHE_VERSION = 'v2';
+const STATIC_CACHE = `mygallery-static-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `mygallery-runtime-${CACHE_VERSION}`;
+const MAX_RUNTIME_CACHE_SIZE = 50;
 
-// Minimal assets to cache on install - includes fallback document
+// Minimal precache - only essential fallback
 const PRECACHE_ASSETS = [
-  '/',
   '/index.html',
-  '/manifest.json',
 ];
 
-// Install event - precache essential assets including fallback
+// Install event - precache fallback and skip waiting
 self.addEventListener('install', (event) => {
-  // Skip waiting immediately to activate faster
+  console.log('⚙️ Service Worker installing...');
+  
   self.skipWaiting();
   
-  // Cache essential assets including fallback document
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(STATIC_CACHE).then((cache) => {
+      console.log('📦 Precaching fallback document');
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Precache failed, continuing anyway:', err);
+        console.warn('⚠️ Precache failed:', err);
       });
     })
   );
@@ -26,22 +27,59 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
+  console.log('✅ Service Worker activating...');
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
+          if (cacheName !== STATIC_CACHE && cacheName !== RUNTIME_CACHE) {
+            console.log('🗑️ Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
+      console.log('🎯 Service Worker claiming clients');
       return self.clients.claim();
     })
   );
 });
 
-// Fetch event - network first with reliable offline fallback
+// Helper: Limit runtime cache size
+async function limitCacheSize(cacheName, maxSize) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  
+  if (keys.length > maxSize) {
+    const keysToDelete = keys.slice(0, keys.length - maxSize);
+    await Promise.all(keysToDelete.map(key => cache.delete(key)));
+  }
+}
+
+// Helper: Check if request should be cached
+function shouldCache(request, response) {
+  const url = new URL(request.url);
+  
+  // Don't cache cross-origin
+  if (url.origin !== location.origin) return false;
+  
+  // Don't cache API/canister calls
+  if (url.pathname.includes('/api/') || url.pathname.includes('canister')) return false;
+  
+  // Don't cache non-GET requests
+  if (request.method !== 'GET') return false;
+  
+  // Don't cache unsuccessful responses
+  if (!response || !response.ok) return false;
+  
+  // Don't cache opaque responses
+  if (response.type === 'opaque') return false;
+  
+  return true;
+}
+
+// Fetch event - optimized caching strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -51,68 +89,78 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip canister API calls - always fetch from network
+  // Skip canister/API calls - always network
   if (url.pathname.includes('/api/') || url.pathname.includes('canister')) {
     return;
   }
 
-  // For navigation requests, use network first with fallback
+  // Navigation requests: Network first with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache successful responses
           if (response.ok) {
             const responseClone = response.clone();
             caches.open(RUNTIME_CACHE).then((cache) => {
               cache.put(request, responseClone);
+              limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
             });
           }
           return response;
         })
         .catch(() => {
-          // Fallback to cached response or index.html
           return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Guaranteed fallback to precached index.html
-            return caches.match('/index.html').then((indexResponse) => {
-              if (indexResponse) {
-                return indexResponse;
-              }
-              // Final fallback if precache failed
-              return caches.match('/');
-            });
+            if (cachedResponse) return cachedResponse;
+            return caches.match('/index.html');
           });
         })
     );
     return;
   }
 
-  // For other requests, try network first
+  // Static assets with hash (immutable): Cache first
+  if (url.pathname.match(/\.[a-f0-9]{8}\.(js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/)) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        
+        return fetch(request).then((response) => {
+          if (shouldCache(request, response)) {
+            const responseClone = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Other assets: Stale-while-revalidate
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Cache successful GET responses
-        if (response.ok && request.method === 'GET') {
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((response) => {
+        if (shouldCache(request, response)) {
           const responseClone = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => {
             cache.put(request, responseClone);
+            limitCacheSize(RUNTIME_CACHE, MAX_RUNTIME_CACHE_SIZE);
           });
         }
         return response;
-      })
-      .catch(() => {
-        // Fallback to cache if network fails
-        return caches.match(request);
-      })
+      });
+      
+      return cachedResponse || fetchPromise;
+    })
   );
 });
 
 // Handle messages from clients
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('⏭️ Skipping waiting phase');
     self.skipWaiting();
   }
 });

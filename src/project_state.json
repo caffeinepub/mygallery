@@ -1,48 +1,48 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Make the existing web app fully installable as a PWA across major browsers (meeting installability criteria) without changing any other functionality or UI.",
+  "summary": "Project focused on performance optimization (speed/smoothness) across navigation, page loads, settings changes, and overall interactions, with strict constraint to not change UI/layout or business logic.",
   "architectural_notes": [
-    "Do not change any other app functionality or appearance; limit work strictly to PWA installability (manifest, icons, linking, service worker registration, installability criteria)."
+    "Do not change appearance/UI (buttons, menus, forms, layout) or application logic; only performance-focused changes are allowed."
   ],
   "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-pwa-manifest-is-valid-and-meets-installability-requirements-keep-a-correct-frontend-public-manifest-json-containing-at-minimum-name-short-name-start-url-within-scope-display-set-to-standalone-and-an-icons-array-that-includes-working-192x192-and-512x512-png-entries",
-      "title": "Ensure the PWA manifest is valid and meets installability requirements: keep a correct `frontend/public/manifest.json` containing at minimum `name`, `short_name`, `start_url` (within scope), `display` set to `\"standalone\"`, and an `icons` array that includes working 192x192 and 512x512 PNG entries.",
+      "id": "feature-improve-overall-app-responsiveness-navigation-page-open-settings-changes-core-flows-using-targeted-performance-optimizations-only-reduce-bundle-size-add-expand-lazy-loading-where-appropriate-optimize-service-worker-caching-strategy-reduce-unnecessary-react-re-renders-updates-remove-dead-unused-code-and-improve-state-update-efficiency-without-changing-any-ui-appearance-layout-or-application-logic-behavior",
+      "title": "Improve overall app responsiveness (navigation, page open, settings changes, core flows) using targeted performance optimizations only: reduce bundle size, add/expand lazy loading where appropriate, optimize service worker caching strategy, reduce unnecessary React re-renders/updates, remove dead/unused code, and improve state/update efficiency—without changing any UI appearance/layout or application logic/behavior.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-manifest-is-linked-correctly-so-it-is-discoverable-on-the-app-entry-html-and-therefore-all-client-side-routes-keep-add-link-rel-manifest-href-manifest-json-in-frontend-index-html-and-ensure-it-is-not-conditionally-omitted",
-      "title": "Ensure the manifest is linked correctly so it is discoverable on the app entry HTML (and therefore all client-side routes): keep/add `<link rel=\"manifest\" href=\"/manifest.json\">` in `frontend/index.html` and ensure it is not conditionally omitted.",
+      "id": "feature-reduce-initial-javascript-bundle-cost-by-expanding-route-feature-level-code-splitting-and-lazy-loading-for-heavy-non-critical-components-that-are-not-needed-for-first-paint-e-g-dialogs-viewers-secondary-full-screen-subviews-while-keeping-the-current-ui-ux-identical-once-loaded",
+      "title": "Reduce initial JavaScript bundle cost by expanding route-/feature-level code splitting and lazy-loading for heavy, non-critical components that are not needed for first paint (e.g., dialogs/viewers/secondary full-screen subviews), while keeping the current UI/UX identical once loaded.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-register-the-service-worker-correctly-without-modifying-application-ui-flows-add-minimal-service-worker-registration-for-sw-js-from-frontend-index-html-not-from-immutable-react-entry-files-ensuring-it-runs-only-in-secure-contexts-and-does-not-introduce-unrelated-app-logic",
-      "title": "Register the service worker correctly without modifying application UI/flows: add minimal service worker registration for `/sw.js` from `frontend/index.html` (not from immutable React entry files), ensuring it runs only in secure contexts and does not introduce unrelated app logic.",
+      "id": "feature-optimize-react-rendering-and-state-updates-to-minimize-unnecessary-re-renders-in-top-level-screens-and-frequently-updating-areas-e-g-homepage-view-switching-upload-progress-updates-large-lists-grids-using-memoization-stable-callbacks-and-targeted-state-updates-without-altering-ui-or-functionality",
+      "title": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas (e.g., HomePage view switching, upload progress updates, large lists/grids) using memoization, stable callbacks, and targeted state updates—without altering UI or functionality.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-make-frontend-public-sw-js-satisfy-browser-installability-expectations-while-remaining-minimal-keep-a-fetch-handler-avoid-intercepting-cross-origin-requests-and-canister-api-calls-and-ensure-navigation-requests-have-a-working-fallback-without-introducing-new-user-facing-behavior",
-      "title": "Make `frontend/public/sw.js` satisfy browser installability expectations while remaining minimal: keep a fetch handler, avoid intercepting cross-origin requests and canister/API calls, and ensure navigation requests have a working fallback (without introducing new user-facing behavior).",
+      "id": "feature-tune-react-query-configuration-and-query-behaviors-to-reduce-redundant-refetching-and-improve-perceived-speed-e-g-sensible-defaultoptions-for-staletime-gctime-refetch-triggers-controlled-retries-while-preserving-data-correctness-and-existing-query-invalidation-semantics",
+      "title": "Tune React Query configuration and query behaviors to reduce redundant refetching and improve perceived speed (e.g., sensible defaultOptions for staleTime/gcTime/refetch triggers, controlled retries), while preserving data correctness and existing query invalidation semantics.",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-verify-and-fix-any-remaining-installability-criteria-issues-without-changing-app-ui-behavior-ensure-the-app-is-served-over-a-secure-context-the-start-url-is-reachable-and-there-are-no-manifest-service-worker-console-errors-that-would-prevent-the-install-app-prompt-across-major-browsers-chrome-edge-firefox-and-safari-ios-where-applicable",
-      "title": "Verify and fix any remaining installability criteria issues (without changing app UI/behavior): ensure the app is served over a secure context, the start URL is reachable, and there are no manifest/service-worker console errors that would prevent the “Install app” prompt across major browsers (Chrome, Edge, Firefox, and Safari iOS where applicable).",
+      "id": "feature-optimize-the-service-worker-caching-strategy-in-frontend-public-sw-js-to-improve-load-and-navigation-smoothness-while-maintaining-pwa-installability-keep-navigation-handling-reliable-avoid-caching-canister-api-traffic-and-implement-a-more-appropriate-strategy-for-static-build-assets-e-g-cache-first-or-stale-while-revalidate-for-immutable-hashed-assets-with-safe-cache-versioning-and-cleanup",
+      "title": "Optimize the service worker caching strategy in frontend/public/sw.js to improve load and navigation smoothness while maintaining PWA installability: keep navigation handling reliable, avoid caching canister/API traffic, and implement a more appropriate strategy for static build assets (e.g., cache-first or stale-while-revalidate for immutable hashed assets) with safe cache versioning and cleanup.",
       "reqIds": [
         "REQ-5"
       ],
@@ -52,12 +52,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Ensure app is recognized as an installable PWA across browsers: add/validate manifest.json (name, short_name, start_url, display=standalone), include 192x192 and 512x512 icons, link manifest on all pages, correctly register service worker without adding unrelated code, and satisfy browser installability criteria.",
+      "summary": "Targeted performance optimizations (bundle size reduction, lazy loading, service worker/caching tuning, faster component render/updates, remove dead code, improved state management) without changing UI/layout or app logic",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Remove or gate performance-costly development-only code paths and diagnostics from production bundles (e.g., ensure dev smoke tests and verbose logging remain dev-only), and delete clearly unused code that contributes to bundle size—without changing runtime behavior in production.",
+      "reqIds": [
+        "REQ-6"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Make the app installable as a fully recognized PWA across major browsers (no UI/feature changes)",
+  "projectName": "Targeted performance optimizations (bundle, lazy loading, caching, render smoothness) without UI/logic changes",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

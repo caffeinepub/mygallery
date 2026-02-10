@@ -1,104 +1,218 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "PWA installability compliance (manifest, service worker, registration) with no UI/flow changes",
+  "title": "Targeted frontend performance optimizations without UI/logic changes",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Validate and complete the PWA manifest with required fields and working 192x192/512x512 PNG icons.",
+      "summary": "Improve overall responsiveness via bundle reduction, more lazy loading, better caching, and fewer unnecessary React updates without any UI/logic changes.",
       "acceptanceCriteria": [
-        "`/manifest.json` is fetchable from the deployed app and parses as valid JSON.",
-        "Manifest contains `name`, `short_name`, `start_url`, `display: \"standalone\"`, and `scope` that includes `start_url`.",
-        "Manifest `icons` includes at least one `sizes: \"192x192\"` PNG and one `sizes: \"512x512\"` PNG, and both URLs resolve with HTTP 200 when requested from the app origin."
+        "No visual/layout changes: the rendered UI structure, styling, spacing, component placement, and user-visible copy remain identical (aside from faster load/render).",
+        "No behavior/logic changes: existing flows (auth, uploads, gallery, folders, missions, notes, settings/theme toggles) behave the same, with no regressions.",
+        "Navigation between major views (Home ↔ Folders full-screen ↔ Missions full-screen, opening dialogs/viewers) feels immediate and does not introduce new jank/stutters under typical usage.",
+        "No new runtime errors in the console during normal usage flows."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/manifest.json",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Ensure required installability fields remain present and correct (including `name`, `short_name`, `start_url`, `display: \"standalone\"`, and `scope` containing `start_url`), and confirm `icons` includes working PNG entries for sizes 192x192 and 512x512 that match the actual asset paths under frontend/public."
+          "description": "Tighten render/update efficiency in the top-level HomePage container (e.g., stabilize handlers with memoized callbacks where appropriate, ensure memoization boundaries don’t recreate heavy subtrees unnecessarily, and keep dev-only code paths gated) while preserving identical UI/behavior."
         },
         {
-          "path": "frontend/public/assets/generated/mygallery-mission-icon-192.dim_192x192.png",
-          "operation": "create",
-          "description": "Add the required 192x192 PNG icon asset to the public assets directory so the manifest icon URL resolves (source file available in workspace assets list)."
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Reduce unnecessary re-renders in large grid/list rendering and frequently updating UI by applying memoization/stable props (e.g., React.memo, useMemo/useCallback, derived state) without changing output UI or behavior."
         },
         {
-          "path": "frontend/public/assets/generated/mygallery-mission-icon-512.dim_512x512.png",
-          "operation": "create",
-          "description": "Add the required 512x512 PNG icon asset to the public assets directory so the manifest icon URL resolves (source file available in workspace assets list)."
+          "path": "frontend/src/components/FileUploadSection.tsx",
+          "operation": "modify",
+          "description": "Optimize upload progress-driven state updates and expensive derived computations to keep upload UI smooth under multiple simultaneous uploads while preserving identical behavior and UI."
+        },
+        {
+          "path": "frontend/src/contexts/UploadContext.tsx",
+          "operation": "modify",
+          "description": "Further optimize progress aggregation and state updates (e.g., avoid recomputing totals more than necessary, keep RAF batching efficient) to reduce CPU churn during uploads without altering exposed context behavior."
+        },
+        {
+          "path": "frontend/src/utils/performanceDiagnostics.ts",
+          "operation": "modify",
+          "description": "Ensure performance diagnostics utilities are production-safe and tree-shakeable (dev-only guards, no side effects on import) to avoid bundle/runtime cost in production without changing app behavior."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Ensure the manifest link tag is present and discoverable from the app entry HTML for all client-side routes.",
+      "summary": "Reduce initial JS bundle cost by expanding route/feature-level code splitting and lazy-loading for heavy non-critical components while keeping identical UI/UX once loaded.",
       "acceptanceCriteria": [
-        "`frontend/index.html` contains a single, correct `<link rel=\"manifest\" href=\"/manifest.json\">`.",
-        "In Chrome/Edge DevTools (Application tab) the manifest is detected when loading the app root and when reloading on any client-side route."
+        "Production build shows a reduced initial JS payload compared to the current baseline (verify via build output/analyzer).",
+        "Lazy-loaded components render exactly as before once opened; no UI/layout changes and no missing styles.",
+        "No new waterfalls that slow down initial Home render when authenticated."
       ],
       "file_operations": [
         {
-          "path": "frontend/index.html",
+          "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Verify the document head contains exactly one `<link rel=\"manifest\" href=\"/manifest.json\">` and that it is unconditional (not gated by runtime conditions) so the manifest remains discoverable across reloads and client-side routes."
+          "description": "Convert heavy secondary UI (dialogs/viewers used after first paint) to feature-level lazy loading (React.lazy/Suspense or dynamic import patterns) so the initial authenticated Home render downloads less JS; ensure identical rendering once opened."
+        },
+        {
+          "path": "frontend/src/components/FilePreviewDialog.tsx",
+          "operation": "modify",
+          "description": "Refactor internal heavy preview sub-views (e.g., large viewer logic, optional share/download helpers) to load on demand where safe, keeping UI and behavior identical after load."
+        },
+        {
+          "path": "frontend/src/components/FullScreenViewer.tsx",
+          "operation": "modify",
+          "description": "Gate heavy viewer-only dependencies and auxiliary dialogs behind lazy imports so they do not inflate initial bundle cost; keep viewer UI/behavior identical."
+        },
+        {
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Lazy-load mission creation/editor and mission detail subviews that are not required for initial Home paint; keep the same UX once opened."
+        },
+        {
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Lazy-load secondary dialogs/viewers used inside mission detail (attachments preview, move dialogs, open-fallback dialogs) to reduce the cost of entering the screen while keeping UI/behavior identical."
+        },
+        {
+          "path": "frontend/src/components/SendToFolderDialog.tsx",
+          "operation": "modify",
+          "description": "Split out optional/rarely used code paths (e.g., diagnostics helpers) behind on-demand imports where safe to reduce baseline bundle size without changing functionality."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Register the service worker from frontend/index.html with minimal, secure-context guarded logic and basic update handling only.",
+      "summary": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas without altering UI or functionality.",
       "acceptanceCriteria": [
-        "On supported browsers, `navigator.serviceWorker.register('/sw.js')` successfully registers with an appropriate scope covering the app.",
-        "Registration code is limited to service worker registration and basic update handling; it does not modify UI, routing, authentication, or app business logic.",
-        "No service-worker registration attempt occurs when `navigator.serviceWorker` is unavailable (e.g., unsupported environments)."
+        "React render profiling shows fewer redundant renders for top-level containers during common interactions (opening/closing overlays, toggling selections, upload progress updates).",
+        "Upload progress updates remain smooth under multiple simultaneous uploads, with no UI glitches and no increased CPU spikes from state churn.",
+        "All interactions remain functionally identical (same clicks/taps lead to the same outcomes)."
       ],
       "file_operations": [
         {
-          "path": "frontend/index.html",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Add a minimal inline service worker registration snippet for `/sw.js` (placed in index.html), guarded to run only when `navigator.serviceWorker` exists and the context is secure (HTTPS or localhost). Include only basic update handling (e.g., listen for updates and optionally trigger `SKIP_WAITING` via postMessage) without any UI/business-logic changes."
+          "description": "Reduce top-level render churn during view switching (Home vs full-screen views) by stabilizing props/handlers and minimizing state changes that invalidate large subtrees, while keeping identical UI/behavior."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Apply targeted memoization/stable callbacks for frequently updating header content (e.g., unified progress bar inputs, auth/menu interactions) to prevent avoidable re-renders without altering UI."
+        },
+        {
+          "path": "frontend/src/components/UnifiedProgressBar.tsx",
+          "operation": "modify",
+          "description": "Optimize progress bar rendering to update only when relevant values change (memoization and minimal derived computations) to keep animations smooth under upload churn without changing appearance."
+        },
+        {
+          "path": "frontend/src/components/SwipeActionsRow.tsx",
+          "operation": "modify",
+          "description": "Reduce re-render frequency for swipeable rows in large lists by stabilizing props and isolating state updates to the row being interacted with, keeping gestures and UI identical."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Keep the service worker minimal while meeting installability checks: include fetch handler, avoid cross-origin/canister interception, and provide a navigation fallback.",
+      "summary": "Tune React Query query behaviors to reduce redundant refetching and improve perceived speed while preserving correctness and existing invalidation semantics.",
       "acceptanceCriteria": [
-        "`/sw.js` is served from the app origin, installs, activates, and controls the page (DevTools shows the page is controlled by a service worker).",
-        "`sw.js` includes a `fetch` event handler (required for installability in some browser checks).",
-        "Navigation requests have a reliable fallback path if the network is unavailable (no infinite errors/loops), and non-navigation requests do not break normal network behavior."
+        "No increase in unnecessary network calls during normal navigation (e.g., repeatedly opening/closing views does not trigger extra refetches beyond current behavior).",
+        "Data remains correct after mutations (create/rename/delete/move operations still update UI as before).",
+        "Authentication changes (login/logout) still properly reset or refetch data as currently intended."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/sw.js",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Adjust the existing minimal service worker to ensure installability expectations: keep the `fetch` handler, continue skipping cross-origin and canister/API calls, and ensure navigation requests reliably fall back offline by guaranteeing the fallback document (e.g., `/index.html`) is available in cache (add it to minimal precache and/or cache on first successful navigation)."
+          "description": "Adjust per-query React Query options (staleTime/gcTime/refetch triggers/retry behavior, and where appropriate keepPreviousData/notifyOnChangeProps) to reduce redundant fetching while preserving current cache invalidation semantics and correctness."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Tune mission-related query and mutation hooks to avoid unnecessary refetches during navigation and overlay open/close (sensible staleTime/gcTime/refetchOnMount/windowFocus/retry) while keeping invalidation behavior and data correctness the same."
+        },
+        {
+          "path": "frontend/src/hooks/useNotesQueries.ts",
+          "operation": "modify",
+          "description": "Tune notes-related query and mutation hooks for fewer redundant network calls and smoother perceived performance, ensuring post-mutation correctness remains identical."
+        },
+        {
+          "path": "frontend/src/hooks/useHomePrefetch.ts",
+          "operation": "modify",
+          "description": "Refine Home prefetch behavior to reduce duplicated work (e.g., align staleTime with primary queries, avoid overlapping fetches) without changing what data is available or when the UI becomes interactive."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Eliminate remaining installability blockers (manifest/SW errors) while keeping the app’s UI/behavior unchanged.",
+      "summary": "Optimize service worker caching strategy for smoother load/navigation while maintaining installability and avoiding caching backend/canister traffic with bounded cache growth.",
       "acceptanceCriteria": [
-        "Chrome/Edge DevTools Lighthouse (or Application > Manifest) reports the app as installable with no blocking manifest or service worker errors.",
-        "Install prompt (or browser install UI) becomes available in Chrome/Edge when criteria are met.",
-        "No new UI elements, screens, or styling changes are introduced as part of this work."
+        "PWA remains installable and continues to register a controlling service worker in secure contexts (https/localhost).",
+        "App navigation continues to work online and has a reliable offline fallback (no blank screens).",
+        "Service worker does not cache or interfere with backend/canister/API calls (still always network).",
+        "Cache growth is bounded via explicit cache management rules (versioning/cleanup) and does not indiscriminately store large/unsafe responses."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/manifest.json",
-          "operation": "modify",
-          "description": "Add any non-UI manifest fields needed to avoid installability warnings across major browsers (e.g., ensure `start_url` is reachable and within `scope`, and add a stable manifest `id` if needed by Chromium) while keeping existing app naming/branding and visuals unchanged."
-        },
-        {
           "path": "frontend/public/sw.js",
           "operation": "modify",
-          "description": "Harden service worker behavior to avoid console errors that can block installability (e.g., ensure cache lookups used for navigation fallback cannot fail due to missing precached entries; keep behavior minimal and avoid introducing offline-first features beyond the required fallback)."
+          "description": "Implement a more appropriate caching strategy: keep navigation handling reliable with a safe offline fallback, use cache-first or stale-while-revalidate for static build assets (especially immutable hashed assets), maintain explicit cache versioning and cleanup, and ensure backend/canister/API traffic is always network (never cached)."
         },
         {
           "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Ensure service worker registration cannot throw in insecure/unsupported contexts (guard checks + error logging only) and keep PWA head metadata consistent so browser install UI is not blocked by manifest/service worker discovery issues."
+          "description": "If needed for the updated service worker behavior, make minimal non-UI changes to service worker registration/update handling while preserving PWA installability and not changing any manifest/icon metadata paths."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Remove or gate production-costly dev-only code paths/diagnostics and delete clearly unused code that contributes to bundle size without changing production behavior.",
+      "acceptanceCriteria": [
+        "Production build does not include dev-only smoke test utilities or dev-only dependencies unless required elsewhere.",
+        "No change to production behavior other than improved performance; dev tooling still works in development mode as before.",
+        "Dead/unused code removal does not break builds or introduce runtime errors."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/smokeTestCoreFlows.ts",
+          "operation": "modify",
+          "description": "Ensure smoke test utilities remain dev-only friendly and do not introduce production bundle cost (keep side-effect-free module structure; avoid heavyweight imports at top level) while preserving dev behavior."
+        },
+        {
+          "path": "frontend/src/utils/reactQueryDiagnostics.ts",
+          "operation": "modify",
+          "description": "Gate React Query diagnostics/logging so production builds avoid verbose logging and unused diagnostic helpers, maintaining identical runtime behavior aside from reduced overhead."
+        },
+        {
+          "path": "frontend/src/components/ConnectivityIndicator.tsx",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+        },
+        {
+          "path": "frontend/src/components/NotesButton.tsx",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+        },
+        {
+          "path": "frontend/src/components/NotesDialog.tsx",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+        },
+        {
+          "path": "frontend/src/components/NotesFullScreenView.tsx",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+        },
+        {
+          "path": "frontend/src/components/ProfileSetupDialog.tsx",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+        },
+        {
+          "path": "frontend/src/utils/notesTime.ts",
+          "operation": "delete",
+          "description": "Remove clearly unused placeholder utility file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
         }
       ]
     }
