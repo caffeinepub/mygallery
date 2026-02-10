@@ -2,13 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-improve-overall-app-responsiveness-navigation-page-open-settings-changes-core-flows-using-targeted-performance-optimizations-only-reduce-bundle-size-add-expand-lazy-loading-where-appropriate-optimize-service-worker-caching-strategy-reduce-unnecessary-react-re-renders-updates-remove-dead-unused-code-and-improve-state-update-efficiency-without-changing-any-ui-appearance-layout-or-application-logic-behavior",
-      "featureTitle": "Improve overall app responsiveness (navigation, page open, settings changes, core flows) using targeted performance optimizations only: reduce bundle size, add/expand lazy loading where appropriate, optimize service worker caching strategy, reduce unnecessary React re-renders/updates, remove dead/unused code, and improve state/update efficiency—without changing any UI appearance/layout or application logic/behavior.",
+      "featureId": "feature-fix-the-mission-task-completion-interaction-so-that-when-a-user-clicks-a-task-checkbox-in-missiondetailfullscreenview-the-ui-updates-immediately-and-consistently-reflects-the-new-completion-state-without-requiring-extra-clicks-or-waiting-for-a-refetch",
+      "featureTitle": "Fix the mission task completion interaction so that when a user clicks a task checkbox in MissionDetailFullScreenView, the UI updates immediately and consistently reflects the new completion state without requiring extra clicks or waiting for a refetch.",
       "files": [
-        "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/contexts/UploadContext.tsx",
-        "frontend/src/utils/performanceDiagnostics.ts"
+        "frontend/src/components/MissionDetailFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -25,14 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-reduce-initial-javascript-bundle-cost-by-expanding-route-feature-level-code-splitting-and-lazy-loading-for-heavy-non-critical-components-that-are-not-needed-for-first-paint-e-g-dialogs-viewers-secondary-full-screen-subviews-while-keeping-the-current-ui-ux-identical-once-loaded",
-      "featureTitle": "Reduce initial JavaScript bundle cost by expanding route-/feature-level code splitting and lazy-loading for heavy, non-critical components that are not needed for first paint (e.g., dialogs/viewers/secondary full-screen subviews), while keeping the current UI/UX identical once loaded.",
+      "featureId": "feature-ensure-react-query-cache-updates-for-task-completion-are-applied-immediately-and-correctly-for-missions-by-updating-the-relevant-mission-caches-in-usetoggletaskcompletion-at-minimum-the-mission-detail-cache-and-also-the-missions-list-cache-if-it-displays-task-completion-progress-so-progress-task-counts-stay-in-sync-without-waiting-for-invalidation-refetch",
+      "featureTitle": "Ensure React Query cache updates for task completion are applied immediately and correctly for missions by updating the relevant mission caches in useToggleTaskCompletion (at minimum the mission detail cache, and also the missions list cache if it displays task completion/progress), so progress/task counts stay in sync without waiting for invalidation/refetch.",
       "files": [
-        "frontend/src/components/FilePreviewDialog.tsx",
-        "frontend/src/components/FullScreenViewer.tsx",
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/components/SendToFolderDialog.tsx"
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -49,11 +42,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-optimize-react-rendering-and-state-updates-to-minimize-unnecessary-re-renders-in-top-level-screens-and-frequently-updating-areas-e-g-homepage-view-switching-upload-progress-updates-large-lists-grids-using-memoization-stable-callbacks-and-targeted-state-updates-without-altering-ui-or-functionality",
-      "featureTitle": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas (e.g., HomePage view switching, upload progress updates, large lists/grids) using memoization, stable callbacks, and targeted state updates—without altering UI or functionality.",
+      "featureId": "feature-adjust-mission-autosave-baseline-synchronization-in-missiondetailfullscreenview-so-that-after-task-add-toggle-mutations-the-autosave-baseline-is-synced-using-the-latest-task-state-from-the-react-query-cache-or-mutation-result-avoiding-stale-closures-that-can-cause-incorrect-follow-up-saves-or-inconsistent-ui-behavior",
+      "featureTitle": "Adjust mission autosave baseline synchronization in MissionDetailFullScreenView so that after task add/toggle mutations, the autosave baseline is synced using the latest task state (from the React Query cache or mutation result), avoiding stale closures that can cause incorrect follow-up saves or inconsistent UI behavior.",
       "files": [
-        "frontend/src/components/Header.tsx",
-        "frontend/src/components/UnifiedProgressBar.tsx"
+        "frontend/src/components/MissionDetailFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -66,49 +58,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-tune-react-query-configuration-and-query-behaviors-to-reduce-redundant-refetching-and-improve-perceived-speed-e-g-sensible-defaultoptions-for-staletime-gctime-refetch-triggers-controlled-retries-while-preserving-data-correctness-and-existing-query-invalidation-semantics",
-      "featureTitle": "Tune React Query configuration and query behaviors to reduce redundant refetching and improve perceived speed (e.g., sensible defaultOptions for staleTime/gcTime/refetch triggers, controlled retries), while preserving data correctness and existing query invalidation semantics.",
-      "files": [
-        "frontend/src/hooks/useHomePrefetch.ts",
-        "frontend/src/hooks/useMissionsQueries.ts",
-        "frontend/src/hooks/useNotesQueries.ts",
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-optimize-the-service-worker-caching-strategy-in-frontend-public-sw-js-to-improve-load-and-navigation-smoothness-while-maintaining-pwa-installability-keep-navigation-handling-reliable-avoid-caching-canister-api-traffic-and-implement-a-more-appropriate-strategy-for-static-build-assets-e-g-cache-first-or-stale-while-revalidate-for-immutable-hashed-assets-with-safe-cache-versioning-and-cleanup",
-      "featureTitle": "Optimize the service worker caching strategy in frontend/public/sw.js to improve load and navigation smoothness while maintaining PWA installability: keep navigation handling reliable, avoid caching canister/API traffic, and implement a more appropriate strategy for static build assets (e.g., cache-first or stale-while-revalidate for immutable hashed assets) with safe cache versioning and cleanup.",
-      "files": [
-        "frontend/public/sw.js"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }

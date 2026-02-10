@@ -3,25 +3,29 @@ import { useBackendActor } from '@/contexts/ActorContext';
 import { useInternetIdentity } from './useInternetIdentity';
 import type { Mission, Task, TaskStatusUpdate } from '@/backend';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
+import { logMissionMutationPhase } from '@/utils/reactQueryDiagnostics';
 
 export function useListMissions() {
   const { actor, status } = useBackendActor();
   const { identity } = useInternetIdentity();
 
   return useQuery<Mission[]>({
-    queryKey: ['missions'],
+    queryKey: ['missions', 'list'],
     queryFn: async () => {
       if (!actor) return [];
       const missions = await actor.listMissions();
-      // Sort by created timestamp descending (newest first)
-      return missions.sort((a, b) => Number(b.created - a.created));
+      // Sort by created date descending (newest first) - BigInt-safe comparison
+      return missions.sort((a, b) => {
+        if (a.created > b.created) return -1;
+        if (a.created < b.created) return 1;
+        return 0;
+      });
     },
     enabled: !!actor && status === 'ready' && !!identity,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -30,7 +34,7 @@ export function useGetMission(missionId: bigint | null) {
   const { identity } = useInternetIdentity();
 
   return useQuery<Mission | null>({
-    queryKey: ['mission', missionId?.toString()],
+    queryKey: ['missions', 'detail', missionId?.toString()],
     queryFn: async () => {
       if (!actor || missionId === null) return null;
       return actor.getMission(missionId);
@@ -39,8 +43,7 @@ export function useGetMission(missionId: bigint | null) {
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Refetch on mount for mission detail view
-    retry: 1,
+    refetchOnMount: true, // Refetch on mount for mission detail
   });
 }
 
@@ -53,14 +56,20 @@ export function useCreateMission() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+
+      logMissionMutationPhase('createMission', 'start', { title, taskCount: tasks.length });
       const missionId = await actor.createMission(title, tasks);
-      return { missionId, title, tasks };
+      logMissionMutationPhase('createMission', 'success', { missionId: missionId.toString() });
+      
+      return missionId;
     },
-    onSuccess: async () => {
-      // Targeted invalidation
-      await queryClient.invalidateQueries({ queryKey: ['missions'], exact: true });
+    onSuccess: async (missionId) => {
+      // Targeted invalidations
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionId.toString()], exact: true });
     },
     onError: (error) => {
+      logMissionMutationPhase('createMission', 'error', { error: String(error) });
       const errorMessage = getActorErrorMessage(error);
       console.error('Mission creation failed:', errorMessage);
       throw new Error(`Failed to create mission: ${errorMessage}`);
@@ -77,18 +86,43 @@ export function useUpdateMission() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+
+      logMissionMutationPhase('updateMission', 'start', { missionId: missionId.toString(), title, taskCount: tasks.length });
       await actor.updateMission(missionId, title, tasks);
+      logMissionMutationPhase('updateMission', 'success', { missionId: missionId.toString() });
+      
       return { missionId, title, tasks };
     },
-    onSuccess: async (_, variables) => {
-      // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['mission', variables.missionId.toString()], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['missions'], exact: true });
+    onMutate: async ({ missionId, title, tasks }) => {
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
+      
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
+      
+      if (previousMission) {
+        queryClient.setQueryData<Mission | null>(['missions', 'detail', missionId.toString()], {
+          ...previousMission,
+          title,
+          tasks,
+        });
+      }
+      
+      return { previousMission };
     },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
+    onError: (err, { missionId }, context) => {
+      logMissionMutationPhase('updateMission', 'error', { missionId: missionId.toString(), error: String(err) });
+      const errorMessage = getActorErrorMessage(err);
       console.error('Mission update failed:', errorMessage);
+      
+      if (context?.previousMission) {
+        queryClient.setQueryData(['missions', 'detail', missionId.toString()], context.previousMission);
+      }
+      
       throw new Error(`Failed to update mission: ${errorMessage}`);
+    },
+    onSuccess: async ({ missionId }) => {
+      // Targeted invalidations
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionId.toString()], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
     },
   });
 }
@@ -102,44 +136,62 @@ export function useAddTaskToMission() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+
+      logMissionMutationPhase('addTaskToMission', 'start', { missionId: missionId.toString(), task });
       const newTask = await actor.addTaskToMission(missionId, task);
+      logMissionMutationPhase('addTaskToMission', 'success', { missionId: missionId.toString(), taskId: newTask.taskId.toString() });
+      
       return { missionId, newTask };
     },
     onMutate: async ({ missionId, task }) => {
-      await queryClient.cancelQueries({ queryKey: ['mission', missionId.toString()] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
       
-      const previousMission = queryClient.getQueryData<Mission>(['mission', missionId.toString()]);
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
       
       if (previousMission) {
-        const optimisticTaskId = BigInt(Date.now() * 1000 + Math.floor(Math.random() * 1000));
+        // Generate collision-resistant temporary ID (timestamp + random component)
+        const tempTaskId = BigInt(Date.now() * 1000 + Math.floor(Math.random() * 1000));
         const optimisticTask: Task = {
-          taskId: optimisticTaskId,
+          taskId: tempTaskId,
           task,
           completed: false,
         };
         
-        const updatedMission: Mission = {
+        queryClient.setQueryData<Mission | null>(['missions', 'detail', missionId.toString()], {
           ...previousMission,
           tasks: [...previousMission.tasks, optimisticTask],
-        };
-        
-        queryClient.setQueryData(['mission', missionId.toString()], updatedMission);
+        });
       }
       
       return { previousMission };
     },
-    onError: (err, variables, context) => {
+    onError: (err, { missionId }, context) => {
+      logMissionMutationPhase('addTaskToMission', 'error', { missionId: missionId.toString(), error: String(err) });
       const errorMessage = getActorErrorMessage(err);
       console.error('Add task failed:', errorMessage);
+      
       if (context?.previousMission) {
-        queryClient.setQueryData(['mission', variables.missionId.toString()], context.previousMission);
+        queryClient.setQueryData(['missions', 'detail', missionId.toString()], context.previousMission);
       }
+      
       throw new Error(`Failed to add task: ${errorMessage}`);
     },
-    onSuccess: async (data) => {
+    onSuccess: async ({ missionId, newTask }) => {
+      // Replace optimistic task with real task from backend
+      const currentMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
+      
+      if (currentMission) {
+        // Remove optimistic task and add real task
+        const tasksWithoutOptimistic = currentMission.tasks.filter(t => t.taskId < BigInt(Date.now() * 1000));
+        queryClient.setQueryData<Mission | null>(['missions', 'detail', missionId.toString()], {
+          ...currentMission,
+          tasks: [...tasksWithoutOptimistic, newTask],
+        });
+      }
+      
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['mission', data.missionId.toString()], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['missions'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionId.toString()], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
     },
   });
 }
@@ -153,42 +205,84 @@ export function useToggleTaskCompletion() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+
+      logMissionMutationPhase('toggleTaskCompletion', 'start', { missionId: missionId.toString(), taskId: taskId.toString(), completed });
       
-      const taskStatusUpdate: TaskStatusUpdate = { taskId, completed };
+      const taskStatusUpdate: TaskStatusUpdate = {
+        taskId,
+        completed,
+      };
+      
       await actor.toggleTaskCompletionStatus(missionId, taskStatusUpdate);
+      logMissionMutationPhase('toggleTaskCompletion', 'success', { missionId: missionId.toString(), taskId: taskId.toString() });
       
       return { missionId, taskId, completed };
     },
     onMutate: async ({ missionId, taskId, completed }) => {
-      await queryClient.cancelQueries({ queryKey: ['mission', missionId.toString()] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
       
-      const previousMission = queryClient.getQueryData<Mission>(['mission', missionId.toString()]);
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
       
       if (previousMission) {
-        const updatedMission: Mission = {
+        // Optimistically update the task completion state
+        queryClient.setQueryData<Mission | null>(['missions', 'detail', missionId.toString()], {
           ...previousMission,
-          tasks: previousMission.tasks.map(task =>
-            task.taskId === taskId ? { ...task, completed } : task
+          tasks: previousMission.tasks.map(t => 
+            t.taskId === taskId ? { ...t, completed } : t
           ),
-        };
-        
-        queryClient.setQueryData(['mission', missionId.toString()], updatedMission);
+        });
+
+        // Also update the missions list cache to keep progress in sync
+        const missionsList = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+        if (missionsList) {
+          queryClient.setQueryData<Mission[]>(['missions', 'list'], 
+            missionsList.map(m => 
+              m.id === missionId 
+                ? { ...m, tasks: m.tasks.map(t => t.taskId === taskId ? { ...t, completed } : t) }
+                : m
+            )
+          );
+        }
       }
       
-      return { previousMission };
+      return { previousMission, missionId, taskId, completed };
     },
     onError: (err, variables, context) => {
+      logMissionMutationPhase('toggleTaskCompletion', 'error', { missionId: variables.missionId.toString(), error: String(err) });
       const errorMessage = getActorErrorMessage(err);
       console.error('Toggle task completion failed:', errorMessage);
+      
+      // Rollback only if the cache still reflects this specific optimistic update
       if (context?.previousMission) {
-        queryClient.setQueryData(['mission', variables.missionId.toString()], context.previousMission);
+        const currentMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', context.missionId.toString()]);
+        const currentTask = currentMission?.tasks.find(t => t.taskId === context.taskId);
+        
+        // Only rollback if the current state matches what we optimistically set
+        if (currentTask && currentTask.completed === context.completed) {
+          queryClient.setQueryData(['missions', 'detail', context.missionId.toString()], context.previousMission);
+          
+          // Also rollback missions list
+          const missionsList = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+          if (missionsList) {
+            queryClient.setQueryData<Mission[]>(['missions', 'list'], 
+              missionsList.map(m => 
+                m.id === context.missionId && context.previousMission
+                  ? { ...m, tasks: context.previousMission.tasks }
+                  : m
+              )
+            );
+          }
+        }
       }
-      throw new Error(`Failed to toggle task: ${errorMessage}`);
+      
+      throw new Error(`Failed to toggle task completion: ${errorMessage}`);
     },
-    onSuccess: async (data) => {
-      // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['mission', data.missionId.toString()], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['missions'], exact: true });
+    onSettled: async (data) => {
+      // Minimal invalidation after success - only refetch to ensure sync with backend
+      if (data) {
+        await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', data.missionId.toString()], exact: true });
+        await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
+      }
     },
   });
 }
@@ -202,33 +296,48 @@ export function useDeleteMission() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
+
+      logMissionMutationPhase('deleteMission', 'start', { missionId: missionId.toString() });
       await actor.deleteMission(missionId);
+      logMissionMutationPhase('deleteMission', 'success', { missionId: missionId.toString() });
+      
       return missionId;
     },
     onMutate: async (missionId) => {
-      await queryClient.cancelQueries({ queryKey: ['missions'] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'list'] });
+      await queryClient.cancelQueries({ queryKey: ['missions', 'detail', missionId.toString()] });
       
-      const previousMissions = queryClient.getQueryData<Mission[]>(['missions']);
+      const previousMissions = queryClient.getQueryData<Mission[]>(['missions', 'list']);
+      const previousMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
       
-      queryClient.setQueryData<Mission[]>(['missions'], (old = []) =>
+      queryClient.setQueryData<Mission[]>(['missions', 'list'], (old = []) => 
         old.filter(m => m.id !== missionId)
       );
       
-      return { previousMissions };
+      queryClient.removeQueries({ queryKey: ['missions', 'detail', missionId.toString()], exact: true });
+      
+      return { previousMissions, previousMission };
     },
     onError: (err, missionId, context) => {
+      logMissionMutationPhase('deleteMission', 'error', { missionId: missionId.toString(), error: String(err) });
       const errorMessage = getActorErrorMessage(err);
       console.error('Mission deletion failed:', errorMessage);
+      
       if (context?.previousMissions) {
-        queryClient.setQueryData(['missions'], context.previousMissions);
+        queryClient.setQueryData(['missions', 'list'], context.previousMissions);
       }
+      if (context?.previousMission) {
+        queryClient.setQueryData(['missions', 'detail', missionId.toString()], context.previousMission);
+      }
+      
       throw new Error(`Failed to delete mission: ${errorMessage}`);
     },
     onSuccess: async (missionId) => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['missions'], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['mission', missionId.toString()], exact: true });
-      // Also invalidate mission files/notes
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', missionId.toString()], exact: true });
+      
+      // Also invalidate files/notes that might have been attached to this mission
       await queryClient.invalidateQueries({ queryKey: ['files', 'mission', missionId.toString()], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'mission', missionId.toString()], exact: true });
     },

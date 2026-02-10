@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FileUploadSection from '@/components/FileUploadSection';
@@ -84,12 +84,12 @@ export default function HomePage() {
     }
   }, [isActorReady, actor]);
 
-  const handleFolderSelect = (folder: Folder) => {
+  const handleFolderSelect = useCallback((folder: Folder) => {
     setSelectedFolder(folder);
     setFolderOpenedFromFoldersView(true);
-  };
+  }, []);
 
-  const handleBackToMain = () => {
+  const handleBackToMain = useCallback(() => {
     if (folderOpenedFromFoldersView) {
       // If folder was opened from folders view, return to folders view
       setSelectedFolder(null);
@@ -99,11 +99,16 @@ export default function HomePage() {
       // Otherwise just clear the selected folder (return to main collection)
       setSelectedFolder(null);
     }
-  };
+  }, [folderOpenedFromFoldersView]);
 
-  const handleBulkSelectionChange = (isActive: boolean) => {
+  const handleBulkSelectionChange = useCallback((isActive: boolean) => {
     setIsBulkSelectionActive(isActive);
-  };
+  }, []);
+
+  const handleCloseFolders = useCallback(() => setIsFoldersOpen(false), []);
+  const handleCloseMissions = useCallback(() => setIsMissionsOpen(false), []);
+  const handleOpenFolders = useCallback(() => setIsFoldersOpen(true), []);
+  const handleOpenMissions = useCallback(() => setIsMissionsOpen(true), []);
 
   const mainContent = useMemo(() => {
     // Show welcome intro for unauthenticated users (every time there's no active session)
@@ -150,10 +155,10 @@ export default function HomePage() {
             </div>
           }>
             {isMissionsOpen ? (
-              <MissionsFullScreenView onClose={() => setIsMissionsOpen(false)} />
+              <MissionsFullScreenView onClose={handleCloseMissions} />
             ) : isFoldersOpen ? (
               <FoldersFullScreenView 
-                onClose={() => setIsFoldersOpen(false)} 
+                onClose={handleCloseFolders} 
                 onSelectFolder={handleFolderSelect}
               />
             ) : (
@@ -179,12 +184,12 @@ export default function HomePage() {
                 </main>
                 <DecorativeBottomLine />
                 <FoldersButton 
-                  onClick={() => setIsFoldersOpen(true)} 
+                  onClick={handleOpenFolders} 
                   disabled={!isActorReady}
                   behindOverlay={isBulkSelectionActive}
                 />
                 <MissionsButton 
-                  onClick={() => setIsMissionsOpen(true)} 
+                  onClick={handleOpenMissions} 
                   disabled={!isActorReady}
                   behindOverlay={isBulkSelectionActive}
                 />
@@ -211,7 +216,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, folderOpenedFromFoldersView]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect]);
 
   return mainContent;
 }

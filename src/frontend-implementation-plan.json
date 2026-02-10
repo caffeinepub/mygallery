@@ -1,218 +1,54 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Targeted frontend performance optimizations without UI/logic changes",
+  "title": "Mission task toggle: immediate optimistic UI, correct React Query cache sync, and autosave baseline alignment",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Improve overall responsiveness via bundle reduction, more lazy loading, better caching, and fewer unnecessary React updates without any UI/logic changes.",
+      "summary": "Make task checkbox toggles in MissionDetailFullScreenView update immediately and remain consistent without extra clicks/refetch reliance, including rapid toggles.",
       "acceptanceCriteria": [
-        "No visual/layout changes: the rendered UI structure, styling, spacing, component placement, and user-visible copy remain identical (aside from faster load/render).",
-        "No behavior/logic changes: existing flows (auth, uploads, gallery, folders, missions, notes, settings/theme toggles) behave the same, with no regressions.",
-        "Navigation between major views (Home ↔ Folders full-screen ↔ Missions full-screen, opening dialogs/viewers) feels immediate and does not introduce new jank/stutters under typical usage.",
-        "No new runtime errors in the console during normal usage flows."
+        "In the mission detail screen, clicking a task checkbox updates the checkbox state (checked/unchecked) immediately (optimistic UI).",
+        "After the backend mutation resolves, the task completion state remains correct (no reverting to the previous state).",
+        "Rapid successive toggles of the same task do not result in incorrect final state (the final UI state matches the last click).",
+        "No other screens/features are changed beyond what is necessary to make mission task completion clicks update immediately and correctly."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Tighten render/update efficiency in the top-level HomePage container (e.g., stabilize handlers with memoized callbacks where appropriate, ensure memoization boundaries don’t recreate heavy subtrees unnecessarily, and keep dev-only code paths gated) while preserving identical UI/behavior."
-        },
-        {
-          "path": "frontend/src/components/GallerySection.tsx",
-          "operation": "modify",
-          "description": "Reduce unnecessary re-renders in large grid/list rendering and frequently updating UI by applying memoization/stable props (e.g., React.memo, useMemo/useCallback, derived state) without changing output UI or behavior."
-        },
-        {
-          "path": "frontend/src/components/FileUploadSection.tsx",
-          "operation": "modify",
-          "description": "Optimize upload progress-driven state updates and expensive derived computations to keep upload UI smooth under multiple simultaneous uploads while preserving identical behavior and UI."
-        },
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Further optimize progress aggregation and state updates (e.g., avoid recomputing totals more than necessary, keep RAF batching efficient) to reduce CPU churn during uploads without altering exposed context behavior."
-        },
-        {
-          "path": "frontend/src/utils/performanceDiagnostics.ts",
-          "operation": "modify",
-          "description": "Ensure performance diagnostics utilities are production-safe and tree-shakeable (dev-only guards, no side effects on import) to avoid bundle/runtime cost in production without changing app behavior."
+          "description": "Update task checkbox interaction to use the Checkbox's next checked value (from onCheckedChange) rather than inverting a potentially stale `task.completed` value; avoid globally disabling all task toggles while a toggle mutation is pending so rapid successive toggles are possible; keep behavior changes strictly scoped to mission task completion clicks."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Reduce initial JS bundle cost by expanding route/feature-level code splitting and lazy-loading for heavy non-critical components while keeping identical UI/UX once loaded.",
+      "summary": "Apply correct immediate React Query optimistic cache updates and robust rollback for mission task completion, syncing both mission detail and (if applicable) missions list caches.",
       "acceptanceCriteria": [
-        "Production build shows a reduced initial JS payload compared to the current baseline (verify via build output/analyzer).",
-        "Lazy-loaded components render exactly as before once opened; no UI/layout changes and no missing styles.",
-        "No new waterfalls that slow down initial Home render when authenticated."
+        "Toggling a task completion updates the React Query cache for ['missions','detail',<missionId>] immediately.",
+        "If the missions list UI depends on task completion/progress, it reflects the change immediately via an optimistic update to ['missions','list'] (not only after a refetch).",
+        "If the backend mutation fails, optimistic updates are rolled back and the UI returns to the prior correct state."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/GallerySection.tsx",
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
           "operation": "modify",
-          "description": "Convert heavy secondary UI (dialogs/viewers used after first paint) to feature-level lazy loading (React.lazy/Suspense or dynamic import patterns) so the initial authenticated Home render downloads less JS; ensure identical rendering once opened."
-        },
-        {
-          "path": "frontend/src/components/FilePreviewDialog.tsx",
-          "operation": "modify",
-          "description": "Refactor internal heavy preview sub-views (e.g., large viewer logic, optional share/download helpers) to load on demand where safe, keeping UI and behavior identical after load."
-        },
-        {
-          "path": "frontend/src/components/FullScreenViewer.tsx",
-          "operation": "modify",
-          "description": "Gate heavy viewer-only dependencies and auxiliary dialogs behind lazy imports so they do not inflate initial bundle cost; keep viewer UI/behavior identical."
-        },
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Lazy-load mission creation/editor and mission detail subviews that are not required for initial Home paint; keep the same UX once opened."
-        },
-        {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Lazy-load secondary dialogs/viewers used inside mission detail (attachments preview, move dialogs, open-fallback dialogs) to reduce the cost of entering the screen while keeping UI/behavior identical."
-        },
-        {
-          "path": "frontend/src/components/SendToFolderDialog.tsx",
-          "operation": "modify",
-          "description": "Split out optional/rarely used code paths (e.g., diagnostics helpers) behind on-demand imports where safe to reduce baseline bundle size without changing functionality."
+          "description": "Enhance `useToggleTaskCompletion` optimistic updates to (1) update ['missions','detail', missionId] immediately, (2) also update ['missions','list'] entries for the same mission so progress/task counts stay in sync, and (3) implement rollback that does not clobber newer rapid toggles (e.g., rollback only if the cache still reflects the optimistic value for that mutation). Reduce reliance on invalidate/refetch for correctness (keep minimal invalidation only if needed), ensuring UI does not revert after success."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas without altering UI or functionality.",
+      "summary": "Sync mission autosave baseline after add/toggle mutations using the latest tasks state (from cache/mutation), avoiding stale closures and unintended follow-up saves.",
       "acceptanceCriteria": [
-        "React render profiling shows fewer redundant renders for top-level containers during common interactions (opening/closing overlays, toggling selections, upload progress updates).",
-        "Upload progress updates remain smooth under multiple simultaneous uploads, with no UI glitches and no increased CPU spikes from state churn.",
-        "All interactions remain functionally identical (same clicks/taps lead to the same outcomes)."
+        "After a task toggle completes, the autosave baseline is aligned with the latest tasks state so no unintended extra save occurs that could overwrite the user’s last click.",
+        "After adding a task completes, the autosave baseline is aligned with the latest tasks state.",
+        "No changes are made to autosave behavior outside missions/task completion correctness."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/HomePage.tsx",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Reduce top-level render churn during view switching (Home vs full-screen views) by stabilizing props/handlers and minimizing state changes that invalidate large subtrees, while keeping identical UI/behavior."
-        },
-        {
-          "path": "frontend/src/components/Header.tsx",
-          "operation": "modify",
-          "description": "Apply targeted memoization/stable callbacks for frequently updating header content (e.g., unified progress bar inputs, auth/menu interactions) to prevent avoidable re-renders without altering UI."
-        },
-        {
-          "path": "frontend/src/components/UnifiedProgressBar.tsx",
-          "operation": "modify",
-          "description": "Optimize progress bar rendering to update only when relevant values change (memoization and minimal derived computations) to keep animations smooth under upload churn without changing appearance."
-        },
-        {
-          "path": "frontend/src/components/SwipeActionsRow.tsx",
-          "operation": "modify",
-          "description": "Reduce re-render frequency for swipeable rows in large lists by stabilizing props and isolating state updates to the row being interacted with, keeping gestures and UI identical."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Tune React Query query behaviors to reduce redundant refetching and improve perceived speed while preserving correctness and existing invalidation semantics.",
-      "acceptanceCriteria": [
-        "No increase in unnecessary network calls during normal navigation (e.g., repeatedly opening/closing views does not trigger extra refetches beyond current behavior).",
-        "Data remains correct after mutations (create/rename/delete/move operations still update UI as before).",
-        "Authentication changes (login/logout) still properly reset or refetch data as currently intended."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Adjust per-query React Query options (staleTime/gcTime/refetch triggers/retry behavior, and where appropriate keepPreviousData/notifyOnChangeProps) to reduce redundant fetching while preserving current cache invalidation semantics and correctness."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Tune mission-related query and mutation hooks to avoid unnecessary refetches during navigation and overlay open/close (sensible staleTime/gcTime/refetchOnMount/windowFocus/retry) while keeping invalidation behavior and data correctness the same."
-        },
-        {
-          "path": "frontend/src/hooks/useNotesQueries.ts",
-          "operation": "modify",
-          "description": "Tune notes-related query and mutation hooks for fewer redundant network calls and smoother perceived performance, ensuring post-mutation correctness remains identical."
-        },
-        {
-          "path": "frontend/src/hooks/useHomePrefetch.ts",
-          "operation": "modify",
-          "description": "Refine Home prefetch behavior to reduce duplicated work (e.g., align staleTime with primary queries, avoid overlapping fetches) without changing what data is available or when the UI becomes interactive."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Optimize service worker caching strategy for smoother load/navigation while maintaining installability and avoiding caching backend/canister traffic with bounded cache growth.",
-      "acceptanceCriteria": [
-        "PWA remains installable and continues to register a controlling service worker in secure contexts (https/localhost).",
-        "App navigation continues to work online and has a reliable offline fallback (no blank screens).",
-        "Service worker does not cache or interfere with backend/canister/API calls (still always network).",
-        "Cache growth is bounded via explicit cache management rules (versioning/cleanup) and does not indiscriminately store large/unsafe responses."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/public/sw.js",
-          "operation": "modify",
-          "description": "Implement a more appropriate caching strategy: keep navigation handling reliable with a safe offline fallback, use cache-first or stale-while-revalidate for static build assets (especially immutable hashed assets), maintain explicit cache versioning and cleanup, and ensure backend/canister/API traffic is always network (never cached)."
-        },
-        {
-          "path": "frontend/index.html",
-          "operation": "modify",
-          "description": "If needed for the updated service worker behavior, make minimal non-UI changes to service worker registration/update handling while preserving PWA installability and not changing any manifest/icon metadata paths."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Remove or gate production-costly dev-only code paths/diagnostics and delete clearly unused code that contributes to bundle size without changing production behavior.",
-      "acceptanceCriteria": [
-        "Production build does not include dev-only smoke test utilities or dev-only dependencies unless required elsewhere.",
-        "No change to production behavior other than improved performance; dev tooling still works in development mode as before.",
-        "Dead/unused code removal does not break builds or introduce runtime errors."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/smokeTestCoreFlows.ts",
-          "operation": "modify",
-          "description": "Ensure smoke test utilities remain dev-only friendly and do not introduce production bundle cost (keep side-effect-free module structure; avoid heavyweight imports at top level) while preserving dev behavior."
-        },
-        {
-          "path": "frontend/src/utils/reactQueryDiagnostics.ts",
-          "operation": "modify",
-          "description": "Gate React Query diagnostics/logging so production builds avoid verbose logging and unused diagnostic helpers, maintaining identical runtime behavior aside from reduced overhead."
-        },
-        {
-          "path": "frontend/src/components/ConnectivityIndicator.tsx",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
-        },
-        {
-          "path": "frontend/src/components/NotesButton.tsx",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
-        },
-        {
-          "path": "frontend/src/components/NotesDialog.tsx",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
-        },
-        {
-          "path": "frontend/src/components/NotesFullScreenView.tsx",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetupDialog.tsx",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder component file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
-        },
-        {
-          "path": "frontend/src/utils/notesTime.ts",
-          "operation": "delete",
-          "description": "Remove clearly unused placeholder utility file to reduce dead code surface area, ensuring it is not imported anywhere (no UI/behavior change)."
+          "description": "After `addTaskMutation` and `toggleTaskMutation` resolve, sync autosave baseline using the latest mission/tasks from the React Query cache (or mutation result) rather than the potentially stale `selectedMission` reference captured in the handler; keep autosave behavior otherwise unchanged and scoped to mission task correctness."
         }
       ]
     }

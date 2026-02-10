@@ -13,8 +13,6 @@ import Cycles "mo:core/Cycles";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
-
 actor {
   include MixinStorage();
 
@@ -834,16 +832,19 @@ actor {
 
     // Remove all files in the deleted folder (only caller's files)
     let filesToDelete = files.toArray().filter(
-      func((_, file)) {
+      func((id, file)) {
         switch (file.folderId) {
-          case (?id) { id == folderId and file.owner == caller };
+          case (?fid) {
+            fid == folderId and file.owner == caller
+          };
           case (null) { false };
         };
       }
     );
 
-    for ((fileId, _) in filesToDelete.values()) {
-      files.remove(fileId);
+    // FIX: Only call remove if there is a valid Nat key
+    for ((id, _) in filesToDelete.values()) {
+      files.remove(id);
     };
 
     // Time check
@@ -1413,4 +1414,3 @@ actor {
     );
   };
 };
-

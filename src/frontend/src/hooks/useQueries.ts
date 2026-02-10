@@ -22,11 +22,10 @@ export function useGetFilesNotInFolder() {
       return result.files;
     },
     enabled: !!actor && status === 'ready' && !!identity,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data doesn't change unless user acts
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -43,10 +42,9 @@ export function useGetFilesInFolder(folderId: bigint | null) {
     },
     enabled: !!actor && status === 'ready' && folderId !== null && !!identity,
     staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -62,10 +60,9 @@ export function useGetFilesForMission(missionId: bigint | null) {
     },
     enabled: !!actor && status === 'ready' && missionId !== null && !!identity,
     staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -81,10 +78,9 @@ export function useGetFolders() {
     },
     enabled: !!actor && status === 'ready' && !!identity,
     staleTime: 10 * 60 * 1000, // 10 minutes - folders change infrequently
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -471,7 +467,7 @@ export function useDeleteFile() {
       
       return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, fileId, context) => {
+    onError: (err, _, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('File deletion failed:', errorMessage);
       
@@ -552,7 +548,7 @@ export function useDeleteFiles() {
       
       return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, fileIds, context) => {
+    onError: (err, _, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('Batch file deletion failed:', errorMessage);
       
@@ -588,18 +584,18 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      name,
-      mimeType,
-      size,
-      blob,
+    mutationFn: async ({ 
+      name, 
+      mimeType, 
+      size, 
+      blob, 
       missionId,
-      onProgress,
-    }: {
-      name: string;
-      mimeType: string;
-      size: bigint;
-      blob: ExternalBlob;
+      onProgress 
+    }: { 
+      name: string; 
+      mimeType: string; 
+      size: bigint; 
+      blob: ExternalBlob; 
       missionId?: bigint | null;
       onProgress?: (percentage: number) => void;
     }) => {
@@ -607,27 +603,19 @@ export function useUploadFile() {
         throw createActorNotReadyError();
       }
 
+      // Use concurrency limiter to control parallel uploads
       return uploadLimiter.run(async () => {
         const blobWithProgress = onProgress ? blob.withUploadProgress(onProgress) : blob;
-        
-        return timeOperation('uploadFile', async () => {
-          const result = await actor.uploadFile(name, mimeType, size, blobWithProgress, missionId ?? null);
-          return result;
-        }, { fileName: name, fileSize: size.toString() });
+        const response = await actor.uploadFile(name, mimeType, size, blobWithProgress, missionId ?? null);
+        return response;
       });
     },
     onSuccess: async (_, variables) => {
       // Targeted invalidations based on where file was uploaded
       if (variables.missionId) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['files', 'mission', variables.missionId.toString()], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()], exact: true });
       } else {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['files', 'not-in-folder'], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
       }
     },
     onError: (error) => {
@@ -643,43 +631,35 @@ export function useCreateLink() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      name,
-      url,
-      folderId,
-      missionId,
-    }: {
-      name: string;
-      url: string;
-      folderId?: bigint | null;
+    mutationFn: async ({ 
+      name, 
+      url, 
+      folderId, 
+      missionId 
+    }: { 
+      name: string; 
+      url: string; 
+      folderId?: bigint | null; 
       missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      return timeOperation('createLink', async () => {
-        const result = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
-        return result;
-      }, { linkName: name });
+      // Use concurrency limiter for consistency with file uploads
+      return uploadLimiter.run(async () => {
+        const response = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
+        return response;
+      });
     },
     onSuccess: async (_, variables) => {
       // Targeted invalidations based on where link was created
       if (variables.missionId) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['files', 'mission', variables.missionId.toString()], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()], exact: true });
       } else if (variables.folderId) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['files', 'folder', variables.folderId.toString()], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['files', 'folder', variables.folderId.toString()], exact: true });
       } else {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['files', 'not-in-folder'], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
       }
     },
     onError: (error) => {

@@ -32,7 +32,7 @@ export default function MissionDetailFullScreenView({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [noteViewerOpen, setNoteViewerOpen] = useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
   const [currentLinkUrl, setCurrentLinkUrl] = useState('');
   const [isHydrated, setIsHydrated] = useState(false);
@@ -55,51 +55,47 @@ export default function MissionDetailFullScreenView({
     missionId,
     title: missionTitle,
     tasks,
-    debounceMs: 800,
     enabled: autosaveEnabled,
   });
 
-  // Load selected mission data when mission changes or loads
+  // Hydrate local state from React Query cache on mount and when mission changes
   useEffect(() => {
     if (selectedMission) {
       setMissionTitle(selectedMission.title);
-      setIsEditingTitle(false);
-      
-      // Mark as hydrated and set the baseline for autosave
-      markAsHydrated(selectedMission.title, selectedMission.tasks);
-      setIsHydrated(true);
+      setIsHydrated(false);
+      // Mark as hydrated after a short delay to prevent initial save
+      setTimeout(() => {
+        markAsHydrated(selectedMission.title, selectedMission.tasks);
+        setIsHydrated(true);
+      }, 100);
     }
   }, [selectedMission, markAsHydrated]);
 
-  // Reset hydration state when mission ID changes
-  useEffect(() => {
-    setIsHydrated(false);
-  }, [missionId]);
-
-  // Sync autosave baseline after add-task mutation settles
-  useEffect(() => {
-    if (addTaskMutation.isSuccess && selectedMission && isHydrated) {
-      syncBaseline(selectedMission.title, selectedMission.tasks);
-    }
-  }, [addTaskMutation.isSuccess, selectedMission, isHydrated, syncBaseline]);
-
-  // Sync autosave baseline after toggle-task mutation settles
-  useEffect(() => {
-    if (toggleTaskMutation.isSuccess && selectedMission && isHydrated) {
-      syncBaseline(selectedMission.title, selectedMission.tasks);
-    }
-  }, [toggleTaskMutation.isSuccess, selectedMission, isHydrated, syncBaseline]);
+  // Flush pending autosave before navigating back
+  const handleBack = async () => {
+    await flushPendingSave(missionTitle, tasks);
+    onBack();
+  };
 
   const handleAddTask = async () => {
     const taskTextToAdd = newTaskText.trim();
-    if (!taskTextToAdd) return;
+    if (!taskTextToAdd || !isActorReady) return;
 
     try {
       await addTaskMutation.mutateAsync({
         missionId,
         task: taskTextToAdd,
       });
+
       setNewTaskText('');
+
+      // Sync autosave baseline after mutation settles using latest cache state
+      setTimeout(() => {
+        const latestMission = selectedMission;
+        if (latestMission) {
+          syncBaseline(missionTitle, latestMission.tasks);
+        }
+      }, 0);
     } catch (error) {
       console.error('Failed to add task:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to add task';
@@ -107,29 +103,77 @@ export default function MissionDetailFullScreenView({
     }
   };
 
-  const handleToggleTask = async (taskId: bigint, currentCompleted: boolean) => {
+  const handleToggleTask = async (taskId: bigint, newCompleted: boolean) => {
+    if (!isActorReady) return;
+
     try {
       await toggleTaskMutation.mutateAsync({
         missionId,
         taskId,
-        completed: !currentCompleted,
+        completed: newCompleted,
       });
+
+      // Sync autosave baseline after mutation settles using latest cache state
+      setTimeout(() => {
+        const latestMission = selectedMission;
+        if (latestMission) {
+          syncBaseline(missionTitle, latestMission.tasks);
+        }
+      }, 0);
     } catch (error) {
       console.error('Failed to toggle task:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle task';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
       toast.error(errorMessage);
     }
   };
 
-  const handleBack = async () => {
-    // Flush any pending autosave before navigating away
-    await flushPendingSave(missionTitle, tasks);
-    onBack();
+  const handleFileClick = (index: number) => {
+    const file = attachedFiles?.[index];
+    if (!file) return;
+
+    if (file.link) {
+      // Handle link click
+      const url = file.link;
+      openExternally(url)
+        .then((opened) => {
+          if (!opened) {
+            setCurrentLinkUrl(url);
+            setLinkFallbackOpen(true);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to open link:', error);
+          setCurrentLinkUrl(url);
+          setLinkFallbackOpen(true);
+        });
+    } else {
+      // Handle file click - open in viewer
+      setSelectedFileIndex(index);
+      setViewerOpen(true);
+    }
   };
 
-  const completedTasks = tasks.filter((t) => t.completed).length;
-  const totalTasks = tasks.length;
-  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const handleNoteClick = (note: Note) => {
+    setSelectedNote(note);
+    setNoteViewerOpen(true);
+  };
+
+  const handleRetryOpenLink = async () => {
+    if (currentLinkUrl) {
+      await openExternally(currentLinkUrl);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (currentLinkUrl) {
+      try {
+        await navigator.clipboard.writeText(currentLinkUrl);
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+        toast.error('Failed to copy link');
+      }
+    }
+  };
 
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) return FileImage;
@@ -140,52 +184,25 @@ export default function MissionDetailFullScreenView({
     return FileIcon;
   };
 
-  const handleFileClick = (index: number) => {
-    setSelectedFileIndex(index);
-    setViewerOpen(true);
-  };
+  const completedTasks = tasks.filter(t => t.completed).length;
+  const totalTasks = tasks.length;
+  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const handleNoteClick = (noteId: string) => {
-    setSelectedNoteId(noteId);
-    setNoteViewerOpen(true);
-  };
-
-  const handleLinkClick = async (url: string) => {
-    try {
-      await openExternally(url);
-    } catch (error) {
-      console.error('Failed to open link:', error);
-      setCurrentLinkUrl(url);
-      setLinkFallbackOpen(true);
-    }
-  };
-
-  const handleRetryOpenLink = async () => {
-    try {
-      await openExternally(currentLinkUrl);
-    } catch (error) {
-      console.error('Retry failed:', error);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(currentLinkUrl);
-    } catch (error) {
-      console.error('Copy failed:', error);
-    }
-  };
-
-  const selectedNote = attachedNotes?.find((n) => n.id === selectedNoteId) ?? null;
+  const isLoading = isLoadingMission || isLoadingFiles || isLoadingNotes;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1 mx-4">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center px-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="mr-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           {isEditingTitle ? (
             <Input
               value={missionTitle}
@@ -197,192 +214,200 @@ export default function MissionDetailFullScreenView({
                 }
               }}
               autoFocus
-              className="text-lg font-semibold"
+              className="flex-1 text-lg font-semibold"
+              disabled={!isActorReady}
             />
           ) : (
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold truncate">{missionTitle}</h1>
+            <div className="flex flex-1 items-center gap-2">
+              <h1 className="text-lg font-semibold truncate">{missionTitle || 'Untitled Mission'}</h1>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsEditingTitle(true)}
+                disabled={!isActorReady}
                 className="h-8 w-8"
               >
                 <Edit2 className="h-4 w-4" />
               </Button>
+              {isSaving && (
+                <span className="text-xs text-muted-foreground">Saving...</span>
+              )}
             </div>
           )}
         </div>
-        {isSaving && (
-          <div className="text-xs text-muted-foreground">Saving...</div>
-        )}
-      </div>
+      </header>
 
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Progress</span>
-              <span className="text-muted-foreground">
-                {completedTasks} / {totalTasks} tasks
-              </span>
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-6 pb-24">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+              <p className="text-muted-foreground">Loading mission...</p>
             </div>
-            <Progress value={progressPercentage} className="h-2" />
           </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Progress Section */}
+            {totalTasks > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Progress</span>
+                  <span className="text-muted-foreground">
+                    {completedTasks} / {totalTasks} tasks
+                  </span>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+            )}
 
-          {/* Tasks */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Tasks</h2>
-            
-            {/* Add Task Input */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add a new task..."
-                value={newTaskText}
-                onChange={(e) => setNewTaskText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddTask();
-                  }
-                }}
-                disabled={!isActorReady || addTaskMutation.isPending}
-              />
-              <Button
-                size="icon"
-                onClick={handleAddTask}
-                disabled={!isActorReady || !newTaskText.trim() || addTaskMutation.isPending}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            {/* Tasks Section */}
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Tasks</h2>
+              
+              {/* Add Task Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a new task..."
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddTask();
+                    }
+                  }}
+                  disabled={!isActorReady || addTaskMutation.isPending}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleAddTask}
+                  disabled={!isActorReady || !newTaskText.trim() || addTaskMutation.isPending}
+                  size="icon"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Task List */}
+              <ScrollArea className="h-[300px] rounded-md border p-4">
+                {tasks.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No tasks yet. Add one above!</p>
+                ) : (
+                  <div className="space-y-3">
+                    {tasks.map((task) => (
+                      <div key={task.taskId.toString()} className="flex items-start gap-3 group">
+                        <Checkbox
+                          checked={task.completed}
+                          onCheckedChange={(checked) => {
+                            // Use the checked value directly from Checkbox (already the next state)
+                            const newCompleted = checked === true;
+                            handleToggleTask(task.taskId, newCompleted);
+                          }}
+                          disabled={!isActorReady}
+                          className="mt-1"
+                        />
+                        <span className={`flex-1 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                          {task.task}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
             </div>
 
-            {/* Task List */}
-            <div className="space-y-2">
-              {isLoadingMission ? (
-                <div className="text-sm text-muted-foreground">Loading tasks...</div>
-              ) : tasks.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No tasks yet. Add one above!</div>
-              ) : (
-                tasks.map((task) => (
-                  <div
-                    key={task.taskId.toString()}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                  >
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={(checked) => {
-                        handleToggleTask(task.taskId, task.completed);
-                      }}
-                      disabled={!isActorReady || toggleTaskMutation.isPending}
-                    />
-                    <span
-                      className={`flex-1 ${
-                        task.completed ? 'line-through text-muted-foreground' : ''
-                      }`}
-                    >
-                      {task.task}
-                    </span>
+            {/* Attachments Section */}
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Attachments</h2>
+              
+              {/* Files */}
+              {attachedFiles && attachedFiles.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground mb-2">Files & Links</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {attachedFiles.map((file, index) => {
+                      const isLink = !!file.link;
+                      const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
+                      const isImage = !isLink && file.mimeType.startsWith('image/');
+                      const isVideo = !isLink && file.mimeType.startsWith('video/');
+
+                      return (
+                        <div
+                          key={file.id}
+                          onClick={() => handleFileClick(index)}
+                          className="group cursor-pointer relative"
+                        >
+                          <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]">
+                            {isLink ? (
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                                <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+                              </div>
+                            ) : isImage && file.blob ? (
+                              <img
+                                src={file.blob.getDirectURL()}
+                                alt={file.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : isVideo && file.blob ? (
+                              <video src={file.blob.getDirectURL()} className="h-full w-full object-cover" preload="metadata" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Icon className="h-10 w-10 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
+                            {isLink && (
+                              <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-md">
+                                <ExternalLink className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="mt-1.5 text-xs truncate" title={file.name}>
+                            {file.name}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))
+                </div>
+              )}
+
+              {/* Notes */}
+              {attachedNotes && attachedNotes.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground mb-2">Notes</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {attachedNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        onClick={() => handleNoteClick(note)}
+                        className="group cursor-pointer relative"
+                      >
+                        <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-amber-50 dark:bg-amber-950/20 transition-all duration-150 hover:shadow-lg hover:scale-[1.02] border border-amber-200 dark:border-amber-800">
+                          <div className="flex h-full w-full items-center justify-center">
+                            <StickyNote className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
+                        </div>
+                        <p className="mt-1.5 text-xs truncate" title={note.title}>
+                          {note.title}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!attachedFiles || attachedFiles.length === 0) && (!attachedNotes || attachedNotes.length === 0) && (
+                <p className="text-center text-muted-foreground py-8">No attachments yet</p>
               )}
             </div>
           </div>
+        )}
+      </main>
 
-          {/* Attachments */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Attachments</h2>
-            
-            {isLoadingFiles || isLoadingNotes ? (
-              <div className="text-sm text-muted-foreground">Loading attachments...</div>
-            ) : (attachedFiles?.length ?? 0) === 0 && (attachedNotes?.length ?? 0) === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No attachments yet. Use the "Send to Mission" option from the main gallery.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3">
-                {/* Files */}
-                {attachedFiles?.map((file, index) => {
-                  const isLink = !!file.link;
-                  const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
-                  const isImage = !isLink && file.mimeType.startsWith('image/');
-                  const isVideo = !isLink && file.mimeType.startsWith('video/');
-
-                  return (
-                    <div
-                      key={file.id}
-                      className="group cursor-pointer relative"
-                      onClick={() => {
-                        if (isLink && file.link) {
-                          handleLinkClick(file.link);
-                        } else {
-                          handleFileClick(index);
-                        }
-                      }}
-                    >
-                      <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]">
-                        {isLink ? (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                            <Icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                          </div>
-                        ) : isImage && file.blob ? (
-                          <img
-                            src={file.blob.getDirectURL()}
-                            alt={file.name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : isVideo && file.blob ? (
-                          <video
-                            src={file.blob.getDirectURL()}
-                            className="h-full w-full object-cover"
-                            preload="metadata"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <Icon className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        {isLink && (
-                          <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-md">
-                            <ExternalLink className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs truncate" title={file.name}>
-                        {file.name}
-                      </p>
-                    </div>
-                  );
-                })}
-
-                {/* Notes */}
-                {attachedNotes?.map((note) => (
-                  <div
-                    key={note.id}
-                    className="group cursor-pointer relative"
-                    onClick={() => handleNoteClick(note.id)}
-                  >
-                    <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-800 transition-all duration-150 hover:shadow-lg hover:scale-[1.02] p-3 flex flex-col">
-                      <div className="flex items-start justify-between mb-2">
-                        <StickyNote className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                      </div>
-                      <p className="text-xs font-medium text-amber-900 dark:text-amber-100 line-clamp-3 flex-1">
-                        {note.title}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-xs truncate text-amber-700 dark:text-amber-300" title={note.title}>
-                      {note.title}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </ScrollArea>
-
-      {/* Viewers */}
+      {/* Full Screen Viewer */}
       {viewerOpen && attachedFiles && attachedFiles.length > 0 && (
         <FullScreenViewer
           files={attachedFiles}
@@ -392,23 +417,28 @@ export default function MissionDetailFullScreenView({
         />
       )}
 
+      {/* Note Viewer Dialog */}
       {noteViewerOpen && selectedNote && (
         <NoteViewerDialog
           note={selectedNote}
           open={noteViewerOpen}
-          onOpenChange={setNoteViewerOpen}
+          onOpenChange={(open) => {
+            setNoteViewerOpen(open);
+            if (!open) {
+              setSelectedNote(null);
+            }
+          }}
         />
       )}
 
-      {linkFallbackOpen && (
-        <LinkOpenFallbackDialog
-          linkUrl={currentLinkUrl}
-          open={linkFallbackOpen}
-          onOpenChange={setLinkFallbackOpen}
-          onRetryOpen={handleRetryOpenLink}
-          onCopyLink={handleCopyLink}
-        />
-      )}
+      {/* Link Fallback Dialog */}
+      <LinkOpenFallbackDialog
+        open={linkFallbackOpen}
+        onOpenChange={setLinkFallbackOpen}
+        linkUrl={currentLinkUrl}
+        onRetryOpen={handleRetryOpenLink}
+        onCopyLink={handleCopyLink}
+      />
     </div>
   );
 }

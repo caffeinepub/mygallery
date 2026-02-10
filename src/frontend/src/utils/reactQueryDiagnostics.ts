@@ -1,56 +1,33 @@
 /**
- * Developer-facing diagnostics helper for React Query cache state
- * Used to identify whether delete failures are frontend caching/mutations or backend logic
+ * React Query diagnostics helper for mission mutations
+ * Logs mutation lifecycle phases for debugging
  */
 
-import { QueryClient } from '@tanstack/react-query';
-import type { Mission } from '@/backend';
+type MutationPhase = 'start' | 'success' | 'error' | 'settled';
 
-export interface CacheDiagnostics {
-  entityId: string;
-  inListCache: boolean;
-  inDetailCache: boolean;
-  listCacheSize: number;
-}
-
-export function diagnoseMissionCache(
-  queryClient: QueryClient,
-  missionId: bigint
-): CacheDiagnostics {
-  const missionIdStr = missionId.toString();
-  const listData = queryClient.getQueryData<Mission[]>(['missions', 'list']);
-  const detailData = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionIdStr]);
-
-  return {
-    entityId: missionIdStr,
-    inListCache: listData ? listData.some(m => m.id.toString() === missionIdStr) : false,
-    inDetailCache: detailData !== undefined,
-    listCacheSize: listData?.length ?? 0,
-  };
-}
-
-export function logDeleteMutationLifecycle(
-  phase: 'onMutate' | 'onSuccess' | 'onError' | 'onSettled',
-  entityType: 'mission',
-  entityId: string,
-  diagnostics: CacheDiagnostics,
-  error?: unknown
+export function logMissionMutationPhase(
+  mutationName: string,
+  phase: MutationPhase,
+  metadata?: Record<string, any>
 ) {
-  const prefix = `[${entityType.toUpperCase()} DELETE ${phase.toUpperCase()}]`;
-  console.log(`${prefix} ID: ${entityId}`);
-  console.log(`${prefix} In list cache: ${diagnostics.inListCache}`);
-  console.log(`${prefix} In detail cache: ${diagnostics.inDetailCache}`);
-  console.log(`${prefix} List cache size: ${diagnostics.listCacheSize}`);
-  
-  if (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`${prefix} Error: ${errorMessage}`);
-  }
-}
+  // Only log in development mode
+  if (!import.meta.env.DEV) return;
 
-export function formatActorError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
+  const timestamp = new Date().toISOString();
+  const prefix = `[RQ-Diag ${timestamp}]`;
+  
+  switch (phase) {
+    case 'start':
+      console.log(`${prefix} ${mutationName} started`, metadata || '');
+      break;
+    case 'success':
+      console.log(`${prefix} ${mutationName} succeeded`, metadata || '');
+      break;
+    case 'error':
+      console.error(`${prefix} ${mutationName} failed`, metadata || '');
+      break;
+    case 'settled':
+      console.log(`${prefix} ${mutationName} settled`, metadata || '');
+      break;
   }
-  return String(error);
 }

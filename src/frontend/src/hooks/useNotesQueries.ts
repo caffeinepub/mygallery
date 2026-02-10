@@ -4,13 +4,17 @@ import { useInternetIdentity } from './useInternetIdentity';
 import type { Note } from '@/backend';
 import { SortDirection } from '@/backend';
 import { createActorNotReadyError, getActorErrorMessage } from '@/utils/actorInitializationMessaging';
+import { createConcurrencyLimiter } from '@/utils/uploadConcurrency';
+
+// Use same concurrency limiter as file uploads for consistency
+const noteLimiter = createConcurrencyLimiter(3);
 
 export function useGetNotesNotInFolder() {
   const { actor, status } = useBackendActor();
   const { identity } = useInternetIdentity();
 
   return useQuery<Note[]>({
-    queryKey: ['notes', 'not-in-folder'],
+    queryKey: ['notes', 'root'],
     queryFn: async () => {
       if (!actor) return [];
       const result = await actor.getPaginatedNotes(SortDirection.desc, BigInt(0), BigInt(1000));
@@ -18,10 +22,9 @@ export function useGetNotesNotInFolder() {
     },
     enabled: !!actor && status === 'ready' && !!identity,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -38,10 +41,9 @@ export function useGetNotesInFolder(folderId: bigint | null) {
     },
     enabled: !!actor && status === 'ready' && folderId !== null && !!identity,
     staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -57,10 +59,9 @@ export function useGetNotesForMission(missionId: bigint | null) {
     },
     enabled: !!actor && status === 'ready' && missionId !== null && !!identity,
     staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 1,
   });
 }
 
@@ -69,40 +70,35 @@ export function useCreateNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      title,
-      body,
-      folderId,
-      missionId,
-    }: {
-      title: string;
-      body: string;
-      folderId?: bigint | null;
+    mutationFn: async ({ 
+      title, 
+      body, 
+      folderId, 
+      missionId 
+    }: { 
+      title: string; 
+      body: string; 
+      folderId?: bigint | null; 
       missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      const result = await actor.createNote(title, body, folderId ?? null, missionId ?? null);
-      return result;
+
+      // Use concurrency limiter for consistency with file uploads
+      return noteLimiter.run(async () => {
+        const response = await actor.createNote(title, body, folderId ?? null, missionId ?? null);
+        return response;
+      });
     },
     onSuccess: async (_, variables) => {
       // Targeted invalidations based on where note was created
       if (variables.missionId) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['notes', 'mission', variables.missionId.toString()], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['notes', 'mission', variables.missionId.toString()], exact: true });
       } else if (variables.folderId) {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['notes', 'folder', variables.folderId.toString()], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', variables.folderId.toString()], exact: true });
       } else {
-        await queryClient.invalidateQueries({ 
-          queryKey: ['notes', 'not-in-folder'], 
-          exact: true 
-        });
+        await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       }
     },
     onError: (error) => {
@@ -128,10 +124,10 @@ export function useDeleteNote() {
     onMutate: async (noteId) => {
       await queryClient.cancelQueries({ queryKey: ['notes'] });
       
-      const previousMainNotes = queryClient.getQueryData<Note[]>(['notes', 'not-in-folder']);
+      const previousRootNotes = queryClient.getQueryData<Note[]>(['notes', 'root']);
       
-      queryClient.setQueryData<Note[]>(['notes', 'not-in-folder'], (old = []) => 
-        old.filter(n => BigInt(n.id) !== noteId)
+      queryClient.setQueryData<Note[]>(['notes', 'root'], (old = []) => 
+        old.filter(n => n.id !== noteId.toString())
       );
       
       const allFolderQueries = queryClient.getQueriesData<Note[]>({ queryKey: ['notes', 'folder'] });
@@ -141,7 +137,7 @@ export function useDeleteNote() {
         if (notes) {
           const keyStr = JSON.stringify(queryKey);
           previousFolderNotes.set(keyStr, notes);
-          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => BigInt(n.id) !== noteId));
+          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => n.id !== noteId.toString()));
         }
       }
       
@@ -152,18 +148,18 @@ export function useDeleteNote() {
         if (notes) {
           const keyStr = JSON.stringify(queryKey);
           previousMissionNotes.set(keyStr, notes);
-          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => BigInt(n.id) !== noteId));
+          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => n.id !== noteId.toString()));
         }
       }
       
-      return { previousMainNotes, previousFolderNotes, previousMissionNotes };
+      return { previousRootNotes, previousFolderNotes, previousMissionNotes };
     },
-    onError: (err, noteId, context) => {
+    onError: (err, _, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('Note deletion failed:', errorMessage);
       
-      if (context?.previousMainNotes) {
-        queryClient.setQueryData(['notes', 'not-in-folder'], context.previousMainNotes);
+      if (context?.previousRootNotes) {
+        queryClient.setQueryData(['notes', 'root'], context.previousRootNotes);
       }
       if (context?.previousFolderNotes) {
         context.previousFolderNotes.forEach((notes, keyStr) => {
@@ -182,7 +178,7 @@ export function useDeleteNote() {
     },
     onSuccess: async () => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['notes', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder'] });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'mission'] });
     },
@@ -204,10 +200,11 @@ export function useDeleteNotes() {
     onMutate: async (noteIds) => {
       await queryClient.cancelQueries({ queryKey: ['notes'] });
       
-      const previousMainNotes = queryClient.getQueryData<Note[]>(['notes', 'not-in-folder']);
+      const noteIdStrings = noteIds.map(id => id.toString());
+      const previousRootNotes = queryClient.getQueryData<Note[]>(['notes', 'root']);
       
-      queryClient.setQueryData<Note[]>(['notes', 'not-in-folder'], (old = []) => 
-        old.filter(n => !noteIds.includes(BigInt(n.id)))
+      queryClient.setQueryData<Note[]>(['notes', 'root'], (old = []) => 
+        old.filter(n => !noteIdStrings.includes(n.id))
       );
       
       const allFolderQueries = queryClient.getQueriesData<Note[]>({ queryKey: ['notes', 'folder'] });
@@ -217,7 +214,7 @@ export function useDeleteNotes() {
         if (notes) {
           const keyStr = JSON.stringify(queryKey);
           previousFolderNotes.set(keyStr, notes);
-          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => !noteIds.includes(BigInt(n.id))));
+          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => !noteIdStrings.includes(n.id)));
         }
       }
       
@@ -228,18 +225,18 @@ export function useDeleteNotes() {
         if (notes) {
           const keyStr = JSON.stringify(queryKey);
           previousMissionNotes.set(keyStr, notes);
-          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => !noteIds.includes(BigInt(n.id))));
+          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => !noteIdStrings.includes(n.id)));
         }
       }
       
-      return { previousMainNotes, previousFolderNotes, previousMissionNotes };
+      return { previousRootNotes, previousFolderNotes, previousMissionNotes };
     },
-    onError: (err, noteIds, context) => {
+    onError: (err, _, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('Batch note deletion failed:', errorMessage);
       
-      if (context?.previousMainNotes) {
-        queryClient.setQueryData(['notes', 'not-in-folder'], context.previousMainNotes);
+      if (context?.previousRootNotes) {
+        queryClient.setQueryData(['notes', 'root'], context.previousRootNotes);
       }
       if (context?.previousFolderNotes) {
         context.previousFolderNotes.forEach((notes, keyStr) => {
@@ -258,7 +255,7 @@ export function useDeleteNotes() {
     },
     onSuccess: async () => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['notes', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder'] });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'mission'] });
     },
@@ -277,14 +274,14 @@ export function useMoveNotesToFolder() {
       await actor.moveNotesToFolder(noteIds, folderId);
       return { noteIds, folderId };
     },
-    onSuccess: async (_, { folderId }) => {
+    onSuccess: async ({ folderId }) => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['notes', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', folderId.toString()], exact: true });
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
-      console.error('Move notes failed:', errorMessage);
+      console.error('Move notes to folder failed:', errorMessage);
       throw new Error(`Failed to move notes: ${errorMessage}`);
     },
   });
@@ -302,15 +299,15 @@ export function useMoveNotesToMission() {
       await actor.moveNotesToMission(noteIds, missionId);
       return { noteIds, missionId };
     },
-    onSuccess: async (_, { missionId }) => {
+    onSuccess: async ({ missionId }) => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['notes', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'mission', missionId.toString()], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder'] });
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
-      console.error('Move to mission failed:', errorMessage);
+      console.error('Move notes to mission failed:', errorMessage);
       throw new Error(`Failed to move notes to mission: ${errorMessage}`);
     },
   });
@@ -330,14 +327,14 @@ export function useBatchRemoveNotesFromFolder() {
     },
     onSuccess: async (_, { sourceFolderId }) => {
       // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['notes', 'not-in-folder'], exact: true });
+      await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       if (sourceFolderId) {
         await queryClient.invalidateQueries({ queryKey: ['notes', 'folder', sourceFolderId.toString()], exact: true });
       }
     },
     onError: (error) => {
       const errorMessage = getActorErrorMessage(error);
-      console.error('Batch remove from folder failed:', errorMessage);
+      console.error('Batch remove notes from folder failed:', errorMessage);
       throw new Error(`Failed to return notes to main collection: ${errorMessage}`);
     },
   });

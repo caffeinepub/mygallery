@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Improve overall frontend performance and responsiveness via targeted optimizations (bundle size, lazy loading, caching, render smoothness) with zero UI or behavior changes.
+**Goal:** Make mission task completion checkbox clicks update immediately and stay correct in the mission detail screen.
 
 **Planned changes:**
-- Expand route-/feature-level code splitting and lazy-loading for heavy, non-critical components (e.g., dialogs/viewers/secondary full-screen subviews) to reduce initial JavaScript payload.
-- Reduce unnecessary React re-renders and inefficient state updates in top-level screens and frequently updating areas (e.g., view switching, upload progress, large lists/grids) using memoization and stable callbacks.
-- Tune React Query defaults/behaviors to reduce redundant refetching while preserving existing invalidation semantics and data correctness.
-- Optimize the service worker caching strategy for static build assets with safe cache versioning/cleanup, while ensuring navigation reliability and avoiding caching/interfering with API/canister traffic.
-- Remove/gate dev-only diagnostics and delete clearly unused code from production bundles without affecting production behavior.
+- Update task completion toggling in `MissionDetailFullScreenView` to apply an optimistic UI update so checkbox state changes immediately on click.
+- Adjust `useToggleTaskCompletion` to optimistically update the React Query cache for `['missions','detail',<missionId>]`, and also update `['missions','list']` if that UI shows task completion/progress.
+- Ensure optimistic updates correctly roll back on mutation failure so the UI returns to the prior correct state.
+- Sync the mission autosave baseline after task add/toggle mutations using the latest tasks state (from React Query cache or mutation result) to avoid stale state causing incorrect follow-up saves.
 
-**User-visible outcome:** The app feels faster and smoother (quicker navigation and reduced jank), while the UI, text, and all existing flows behave exactly the same as before.
+**User-visible outcome:** In mission details, checking/unchecking tasks updates instantly and reliably (even with rapid clicks), mission progress stays in sync without waiting for refetch, and task changes don’t get overwritten by stale autosave state.

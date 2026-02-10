@@ -1,72 +1,109 @@
-// Lightweight opt-in performance diagnostics utility
-// Defers all initialization work until first use to avoid startup cost
+/**
+ * Lightweight performance diagnostics utility
+ * Opt-in via localStorage flag: localStorage.setItem('perf_diagnostics', 'true')
+ * Or URL param: ?perf_diagnostics=true
+ */
 
-let diagnosticsEnabled: boolean | null = null;
-let hasInitialized = false;
+interface TimingEntry {
+  operation: string;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  metadata?: Record<string, any>;
+}
 
-function initializeDiagnostics() {
-  if (hasInitialized) return;
-  hasInitialized = true;
+class PerformanceDiagnostics {
+  private enabled: boolean | null = null;
+  private timings: Map<string, TimingEntry> = new Map();
 
-  // Check localStorage and URL params only when diagnostics are first accessed
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlFlag = urlParams.get('perfDiag');
-    const storageFlag = localStorage.getItem('perfDiag');
+  // Lazy initialization - only check enabled state when first needed
+  private checkEnabled() {
+    if (this.enabled !== null) return;
+
+    // Check localStorage
+    const localStorageFlag = localStorage.getItem('perf_diagnostics') === 'true';
     
-    diagnosticsEnabled = urlFlag === 'true' || storageFlag === 'true';
-  } catch {
-    diagnosticsEnabled = false;
+    // Check URL param
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlFlag = urlParams.get('perf_diagnostics') === 'true';
+    
+    this.enabled = localStorageFlag || urlFlag;
+    
+    if (this.enabled) {
+      console.log('[PerfDiag] Performance diagnostics enabled');
+    }
+  }
+
+  isEnabled(): boolean {
+    this.checkEnabled();
+    return this.enabled === true;
+  }
+
+  startTiming(operationId: string, operation: string, metadata?: Record<string, any>) {
+    if (!this.isEnabled()) return;
+
+    this.timings.set(operationId, {
+      operation,
+      startTime: performance.now(),
+      metadata,
+    });
+  }
+
+  endTiming(operationId: string, additionalMetadata?: Record<string, any>) {
+    if (!this.isEnabled()) return;
+
+    const entry = this.timings.get(operationId);
+    if (!entry) return;
+
+    entry.endTime = performance.now();
+    entry.duration = entry.endTime - entry.startTime;
+    
+    if (additionalMetadata) {
+      entry.metadata = { ...entry.metadata, ...additionalMetadata };
+    }
+
+    console.log(
+      `[PerfDiag] ${entry.operation} completed in ${entry.duration.toFixed(2)}ms`,
+      entry.metadata || ''
+    );
+
+    this.timings.delete(operationId);
+  }
+
+  logOperation(operation: string, duration: number, metadata?: Record<string, any>) {
+    if (!this.isEnabled()) return;
+
+    console.log(
+      `[PerfDiag] ${operation} took ${duration.toFixed(2)}ms`,
+      metadata || ''
+    );
   }
 }
 
-function isDiagnosticsEnabled(): boolean {
-  if (diagnosticsEnabled === null) {
-    initializeDiagnostics();
-  }
-  return diagnosticsEnabled ?? false;
-}
+// Singleton instance
+export const perfDiag = new PerformanceDiagnostics();
 
-export const perfDiag = {
-  log: (message: string, data?: any) => {
-    if (!isDiagnosticsEnabled()) return;
-    console.log(`[PerfDiag] ${message}`, data ?? '');
-  },
-  
-  warn: (message: string, data?: any) => {
-    if (!isDiagnosticsEnabled()) return;
-    console.warn(`[PerfDiag] ${message}`, data ?? '');
-  },
-  
-  time: (label: string) => {
-    if (!isDiagnosticsEnabled()) return;
-    console.time(`[PerfDiag] ${label}`);
-  },
-  
-  timeEnd: (label: string) => {
-    if (!isDiagnosticsEnabled()) return;
-    console.timeEnd(`[PerfDiag] ${label}`);
-  },
-};
-
+/**
+ * Helper to time an async operation
+ */
 export async function timeOperation<T>(
-  operationName: string,
-  operation: () => Promise<T>,
+  operation: string,
+  fn: () => Promise<T>,
   metadata?: Record<string, any>
 ): Promise<T> {
-  if (!isDiagnosticsEnabled()) {
-    return operation();
+  if (!perfDiag.isEnabled()) {
+    return fn();
   }
 
-  const startTime = performance.now();
+  const operationId = `${operation}-${Date.now()}-${Math.random()}`;
+  perfDiag.startTiming(operationId, operation, metadata);
+
   try {
-    const result = await operation();
-    const duration = performance.now() - startTime;
-    perfDiag.log(`${operationName} completed in ${duration.toFixed(2)}ms`, metadata);
+    const result = await fn();
+    perfDiag.endTiming(operationId, { success: true });
     return result;
   } catch (error) {
-    const duration = performance.now() - startTime;
-    perfDiag.warn(`${operationName} failed after ${duration.toFixed(2)}ms`, { error, metadata });
+    perfDiag.endTiming(operationId, { success: false, error: String(error) });
     throw error;
   }
 }

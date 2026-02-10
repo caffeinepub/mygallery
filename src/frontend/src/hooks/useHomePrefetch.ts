@@ -3,63 +3,73 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useInternetIdentity } from './useInternetIdentity';
 import { SortDirection } from '@/backend';
+import type { FileMetadata, Folder, Mission } from '@/backend';
 
+/**
+ * Home-specific prefetch hook that triggers core data fetching
+ * as soon as actor becomes ready, without introducing refetch loops.
+ * Runs once per actor-ready session.
+ */
 export function useHomePrefetch() {
-  const queryClient = useQueryClient();
   const { actor, status } = useBackendActor();
   const { identity } = useInternetIdentity();
+  const queryClient = useQueryClient();
   const hasPrefetchedRef = useRef(false);
 
   useEffect(() => {
-    // Only prefetch once per actor-ready session
-    if (!actor || status !== 'ready' || !identity || hasPrefetchedRef.current) {
-      return;
-    }
+    // Only prefetch once when actor becomes ready and user is authenticated
+    if (actor && status === 'ready' && identity && !hasPrefetchedRef.current) {
+      hasPrefetchedRef.current = true;
 
-    hasPrefetchedRef.current = true;
-
-    // Prefetch core Home data in parallel
-    const prefetchPromises = [
-      queryClient.prefetchQuery({
+      // Prefetch folders
+      queryClient.prefetchQuery<Folder[]>({
         queryKey: ['folders'],
-        queryFn: () => actor.getAllFolders(),
-        staleTime: 10 * 60 * 1000,
-      }),
-      queryClient.prefetchQuery({
-        queryKey: ['missions'],
         queryFn: async () => {
-          const missions = await actor.listMissions();
-          return missions.sort((a, b) => Number(b.created - a.created));
+          return actor.getAllFolders();
         },
-        staleTime: 5 * 60 * 1000,
-      }),
-      queryClient.prefetchQuery({
+        staleTime: 10 * 60 * 1000,
+      });
+
+      // Prefetch main gallery files (not in folder)
+      queryClient.prefetchQuery<FileMetadata[]>({
         queryKey: ['files', 'not-in-folder'],
         queryFn: async () => {
           const result = await actor.getPaginatedFiles(SortDirection.desc, BigInt(0), BigInt(1000));
           return result.files;
         },
         staleTime: 5 * 60 * 1000,
-      }),
+      });
+
+      // Prefetch missions list
+      queryClient.prefetchQuery<Mission[]>({
+        queryKey: ['missions', 'list'],
+        queryFn: async () => {
+          const missions = await actor.listMissions();
+          return missions.sort((a, b) => {
+            if (a.created > b.created) return -1;
+            if (a.created < b.created) return 1;
+            return 0;
+          });
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+
+      // Prefetch notes (not in folder)
       queryClient.prefetchQuery({
-        queryKey: ['notes', 'not-in-folder'],
+        queryKey: ['notes', 'root'],
         queryFn: async () => {
           const result = await actor.getPaginatedNotes(SortDirection.desc, BigInt(0), BigInt(1000));
           return result.notes;
         },
         staleTime: 5 * 60 * 1000,
-      }),
-    ];
-
-    Promise.all(prefetchPromises).catch((error) => {
-      console.warn('[useHomePrefetch] Prefetch failed:', error);
-    });
+      });
+    }
   }, [actor, status, identity, queryClient]);
 
-  // Reset prefetch flag when actor changes (e.g., after logout/login)
+  // Reset prefetch flag when identity is cleared (logout)
   useEffect(() => {
-    if (status !== 'ready' || !actor) {
+    if (!identity) {
       hasPrefetchedRef.current = false;
     }
-  }, [status, actor]);
+  }, [identity]);
 }

@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { perfDiag } from '@/utils/performanceDiagnostics';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { ExternalBlob } from '@/backend';
 
@@ -23,7 +24,7 @@ export default function FileUploadSection() {
   const createLinkMutation = useCreateLink();
   const createNoteMutation = useCreateNote();
   const { status } = useBackendActor();
-  const { startUpload, updateProgress, completeUpload } = useUpload();
+  const { startUpload, startLinkUpload, startNoteUpload, updateProgress, completeUpload } = useUpload();
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -76,13 +77,14 @@ export default function FileUploadSection() {
       }
 
       const fileArray = Array.from(files);
+      const uploadId = startUpload(fileArray);
 
-      // Upload files sequentially with individual progress tracking
-      for (const file of fileArray) {
-        const uploadId = `file-${Date.now()}-${Math.random()}`;
-        startUpload(uploadId);
+      const operationId = `upload-files-${Date.now()}`;
+      perfDiag.startTiming(operationId, 'Upload files (UI)', { fileCount: fileArray.length });
 
-        try {
+      try {
+        // Upload files sequentially with progress tracking
+        for (const file of fileArray) {
           const arrayBuffer = await file.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
           const blob = ExternalBlob.fromBytes(uint8Array);
@@ -93,20 +95,22 @@ export default function FileUploadSection() {
             size: BigInt(file.size),
             blob,
             onProgress: (progress) => {
-              updateProgress(uploadId, progress);
+              updateProgress(uploadId, file.name, progress);
             },
           });
-
-          completeUpload(uploadId);
-        } catch (error) {
-          completeUpload(uploadId);
-          console.error('Upload error:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Upload failed. Please try again.';
-          toast.error(`Failed to upload ${file.name}: ${errorMessage}`);
         }
+
+        perfDiag.endTiming(operationId, { success: true });
+        completeUpload(uploadId);
+        toast.success(`Successfully uploaded ${fileArray.length} file${fileArray.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        perfDiag.endTiming(operationId, { success: false });
+        completeUpload(uploadId);
+        console.error('Upload error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed. Please try again.';
+        toast.error(errorMessage);
       }
 
-      toast.success(`Successfully uploaded ${fileArray.length} file${fileArray.length > 1 ? 's' : ''}`);
       event.target.value = '';
     },
     [uploadFileMutation, status, startUpload, updateProgress, completeUpload]
@@ -134,15 +138,14 @@ export default function FileUploadSection() {
       const displayName = linkName.trim() || new URL(linkUrl).hostname;
       
       // Start tracked link upload
-      const uploadId = `link-${Date.now()}`;
-      startUpload(uploadId);
+      const uploadId = startLinkUpload(displayName);
       let currentProgress = 0;
 
       try {
         // Simulate progress during the backend call
         const progressInterval = setInterval(() => {
           currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(uploadId, currentProgress);
+          updateProgress(uploadId, displayName, currentProgress);
         }, 200);
 
         await createLinkMutation.mutateAsync({
@@ -153,7 +156,7 @@ export default function FileUploadSection() {
         clearInterval(progressInterval);
         
         // Complete to 100% before clearing
-        updateProgress(uploadId, 100);
+        updateProgress(uploadId, displayName, 100);
         
         // Small delay to show 100% before clearing
         setTimeout(() => {
@@ -171,7 +174,7 @@ export default function FileUploadSection() {
         toast.error(errorMessage);
       }
     },
-    [linkUrl, linkName, status, createLinkMutation, startUpload, updateProgress, completeUpload]
+    [linkUrl, linkName, status, createLinkMutation, startLinkUpload, updateProgress, completeUpload]
   );
 
   const handleNoteSubmit = useCallback(
@@ -196,8 +199,7 @@ export default function FileUploadSection() {
       const displayTitle = noteTitle.trim();
       
       // Start tracked note upload
-      const uploadId = `note-${Date.now()}`;
-      startUpload(uploadId);
+      const uploadId = startNoteUpload(displayTitle);
       let currentProgress = 0;
       let progressInterval: NodeJS.Timeout | null = null;
 
@@ -205,7 +207,7 @@ export default function FileUploadSection() {
         // Simulate progress during the backend call
         progressInterval = setInterval(() => {
           currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(uploadId, currentProgress);
+          updateProgress(uploadId, displayTitle, currentProgress);
         }, 200);
 
         await createNoteMutation.mutateAsync({
@@ -217,7 +219,7 @@ export default function FileUploadSection() {
         progressInterval = null;
         
         // Complete to 100% before clearing
-        updateProgress(uploadId, 100);
+        updateProgress(uploadId, displayTitle, 100);
         
         // Small delay to show 100% before clearing
         setTimeout(() => {
@@ -238,7 +240,7 @@ export default function FileUploadSection() {
         toast.error(errorMessage);
       }
     },
-    [noteTitle, noteBody, status, createNoteMutation, startUpload, updateProgress, completeUpload, isListening, stopListening]
+    [noteTitle, noteBody, status, createNoteMutation, startNoteUpload, updateProgress, completeUpload, isListening, stopListening]
   );
 
   const handleCancelNote = () => {

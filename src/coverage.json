@@ -1,112 +1,47 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T07:24:12.899Z",
+  "generatedAt": "2026-02-10T11:08:15.338Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 5,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Improve overall app responsiveness (navigation, page open, settings changes, core flows) using targeted performance optimizations only: reduce bundle size, add/expand lazy loading where appropriate, optimize service worker caching strategy, reduce unnecessary React re-renders/updates, remove dead/unused code, and improve state/update efficiency—without changing any UI appearance/layout or application logic/behavior.",
+        "summary": "Fix the mission task completion interaction so that when a user clicks a task checkbox in MissionDetailFullScreenView, the UI updates immediately and consistently reflects the new completion state without requiring extra clicks or waiting for a refetch.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FileUploadSection.tsx",
-          "frontend/src/contexts/UploadContext.tsx",
-          "frontend/src/utils/performanceDiagnostics.ts"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FileUploadSection.tsx",
-          "frontend/src/contexts/UploadContext.tsx",
-          "frontend/src/utils/performanceDiagnostics.ts"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Reduce initial JavaScript bundle cost by expanding route-/feature-level code splitting and lazy-loading for heavy, non-critical components that are not needed for first paint (e.g., dialogs/viewers/secondary full-screen subviews), while keeping the current UI/UX identical once loaded.",
+        "summary": "Ensure React Query cache updates for task completion are applied immediately and correctly for missions by updating the relevant mission caches in useToggleTaskCompletion (at minimum the mission detail cache, and also the missions list cache if it displays task completion/progress), so progress/task counts stay in sync without waiting for invalidation/refetch.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FilePreviewDialog.tsx",
-          "frontend/src/components/FullScreenViewer.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "frontend/src/components/SendToFolderDialog.tsx"
+          "frontend/src/hooks/useMissionsQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/components/FilePreviewDialog.tsx",
-          "frontend/src/components/FullScreenViewer.tsx",
-          "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "frontend/src/components/SendToFolderDialog.tsx"
+          "frontend/src/hooks/useMissionsQueries.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Optimize React rendering and state updates to minimize unnecessary re-renders in top-level screens and frequently updating areas (e.g., HomePage view switching, upload progress updates, large lists/grids) using memoization, stable callbacks, and targeted state updates—without altering UI or functionality.",
+        "summary": "Adjust mission autosave baseline synchronization in MissionDetailFullScreenView so that after task add/toggle mutations, the autosave baseline is synced using the latest task state (from the React Query cache or mutation result), avoiding stale closures that can cause incorrect follow-up saves or inconsistent UI behavior.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/components/Header.tsx",
-          "frontend/src/components/UnifiedProgressBar.tsx",
-          "frontend/src/components/SwipeActionsRow.tsx"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx",
-          "frontend/src/components/UnifiedProgressBar.tsx"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Tune React Query configuration and query behaviors to reduce redundant refetching and improve perceived speed (e.g., sensible defaultOptions for staleTime/gcTime/refetch triggers, controlled retries), while preserving data correctness and existing query invalidation semantics.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useMissionsQueries.ts",
-          "frontend/src/hooks/useNotesQueries.ts",
-          "frontend/src/hooks/useHomePrefetch.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/hooks/useMissionsQueries.ts",
-          "frontend/src/hooks/useNotesQueries.ts",
-          "frontend/src/hooks/useHomePrefetch.ts"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Optimize the service worker caching strategy in frontend/public/sw.js to improve load and navigation smoothness while maintaining PWA installability: keep navigation handling reliable, avoid caching canister/API traffic, and implement a more appropriate strategy for static build assets (e.g., cache-first or stale-while-revalidate for immutable hashed assets) with safe cache versioning and cleanup.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/public/sw.js",
-          "frontend/index.html"
-        ],
-        "matchedFiles": [
-          "frontend/public/sw.js"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Remove or gate performance-costly development-only code paths and diagnostics from production bundles (e.g., ensure dev smoke tests and verbose logging remain dev-only), and delete clearly unused code that contributes to bundle size—without changing runtime behavior in production.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/utils/smokeTestCoreFlows.ts",
-          "frontend/src/utils/reactQueryDiagnostics.ts",
-          "frontend/src/components/ConnectivityIndicator.tsx",
-          "frontend/src/components/NotesButton.tsx",
-          "frontend/src/components/NotesDialog.tsx",
-          "frontend/src/components/NotesFullScreenView.tsx",
-          "frontend/src/components/ProfileSetupDialog.tsx",
-          "frontend/src/utils/notesTime.ts"
-        ],
-        "matchedFiles": []
       }
     ]
   },
@@ -115,21 +50,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/public/sw.js",
-    "frontend/src/components/FilePreviewDialog.tsx",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/FullScreenViewer.tsx",
-    "frontend/src/components/GallerySection.tsx",
-    "frontend/src/components/Header.tsx",
     "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/components/SendToFolderDialog.tsx",
-    "frontend/src/components/UnifiedProgressBar.tsx",
-    "frontend/src/contexts/UploadContext.tsx",
-    "frontend/src/hooks/useHomePrefetch.ts",
     "frontend/src/hooks/useMissionsQueries.ts",
-    "frontend/src/hooks/useNotesQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/utils/performanceDiagnostics.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
