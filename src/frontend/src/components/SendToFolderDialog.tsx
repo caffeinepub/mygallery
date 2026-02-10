@@ -43,10 +43,18 @@ export default function SendToFolderDialog({
 
     try {
       if (fileIds.length > 0) {
-        await moveFilesToFolder.mutateAsync({ fileIds, folderId });
+        await moveFilesToFolder.mutateAsync({ 
+          fileIds, 
+          folderId,
+          sourceFolderId: currentFolderId 
+        });
       }
       if (noteIds.length > 0) {
-        await moveNotesToFolder.mutateAsync({ noteIds, folderId });
+        await moveNotesToFolder.mutateAsync({ 
+          noteIds, 
+          folderId,
+          sourceFolderId: currentFolderId 
+        });
       }
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);
@@ -72,7 +80,10 @@ export default function SendToFolderDialog({
         });
       }
       if (noteIds.length > 0) {
-        await batchRemoveNotesFromFolder.mutateAsync({ noteIds });
+        await batchRemoveNotesFromFolder.mutateAsync({ 
+          noteIds,
+          sourceFolderId: currentFolderId 
+        });
       }
       perfDiag.endTiming(operationId, { success: true });
       onOpenChange(false);

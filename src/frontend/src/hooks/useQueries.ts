@@ -203,7 +203,7 @@ export function useMoveFilesToFolder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ fileIds, folderId }: { fileIds: string[]; folderId: bigint }) => {
+    mutationFn: async ({ fileIds, folderId, sourceFolderId }: { fileIds: string[]; folderId: bigint; sourceFolderId?: bigint }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
@@ -212,28 +212,76 @@ export function useMoveFilesToFolder() {
         // Convert string IDs to bigint for backend
         const bigintIds = fileIds.map(id => BigInt(id));
         await actor.moveFilesToFolder(bigintIds, folderId);
-        return { fileIds, folderId };
+        return { fileIds, folderId, sourceFolderId };
       }, { fileCount: fileIds.length, folderId: folderId.toString() });
     },
-    onMutate: async ({ fileIds, folderId }) => {
+    onMutate: async ({ fileIds, folderId, sourceFolderId }) => {
       await queryClient.cancelQueries({ queryKey: ['files'] });
       
+      // Collect all cached file lists
       const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
       const previousTargetFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()]);
       
-      const filesToMove = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
+      // Collect all folder queries
+      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
+      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
       
+      for (const [queryKey, files] of allFolderQueries) {
+        if (files) {
+          const keyStr = JSON.stringify(queryKey);
+          previousFolderFiles.set(keyStr, files);
+        }
+      }
+      
+      // Find files to move from all cached sources
+      const filesToMove: FileMetadata[] = [];
+      const fileIdSet = new Set(fileIds);
+      
+      // Check main collection
+      if (previousMainFiles) {
+        filesToMove.push(...previousMainFiles.filter(f => fileIdSet.has(f.id)));
+      }
+      
+      // Check all folder caches
+      for (const [, files] of allFolderQueries) {
+        if (files) {
+          filesToMove.push(...files.filter(f => fileIdSet.has(f.id)));
+        }
+      }
+      
+      // Deduplicate by ID
+      const uniqueFilesToMove = Array.from(
+        new Map(filesToMove.map(f => [f.id, f])).values()
+      );
+      
+      // Remove from main collection
       queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
+        old.filter(f => !fileIdSet.has(f.id))
       );
       
-      queryClient.setQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()], (old = []) => 
-        [...filesToMove.map(f => ({ ...f, folderId })), ...old]
-      );
+      // Remove from all folder caches (including source)
+      for (const [queryKey, files] of allFolderQueries) {
+        if (files) {
+          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIdSet.has(f.id)));
+        }
+      }
       
-      return { previousMainFiles, previousTargetFiles };
+      // Add to destination folder with updated metadata
+      queryClient.setQueryData<FileMetadata[]>(['files', 'folder', folderId.toString()], (old = []) => {
+        const updatedFiles = uniqueFilesToMove.map(f => ({ 
+          ...f, 
+          folderId,
+          missionId: undefined 
+        }));
+        // Deduplicate in case files already exist in destination
+        const existingIds = new Set(old.map(f => f.id));
+        const newFiles = updatedFiles.filter(f => !existingIds.has(f.id));
+        return [...newFiles, ...old];
+      });
+      
+      return { previousMainFiles, previousTargetFiles, previousFolderFiles, sourceFolderId };
     },
-    onError: (err, { folderId }, context) => {
+    onError: (err, { folderId, sourceFolderId }, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('Move files failed:', errorMessage);
       if (context?.previousMainFiles) {
@@ -242,12 +290,21 @@ export function useMoveFilesToFolder() {
       if (context?.previousTargetFiles) {
         queryClient.setQueryData(['files', 'folder', folderId.toString()], context.previousTargetFiles);
       }
+      if (context?.previousFolderFiles) {
+        context.previousFolderFiles.forEach((files, keyStr) => {
+          const queryKey = JSON.parse(keyStr);
+          queryClient.setQueryData(queryKey, files);
+        });
+      }
       throw new Error(`Failed to move files: ${errorMessage}`);
     },
-    onSuccess: async ({ folderId }) => {
+    onSuccess: async ({ folderId, sourceFolderId }) => {
       // Targeted invalidations
       await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['files', 'folder', folderId.toString()], exact: true });
+      if (sourceFolderId) {
+        await queryClient.invalidateQueries({ queryKey: ['files', 'folder', sourceFolderId.toString()], exact: true });
+      }
     },
   });
 }
@@ -274,6 +331,7 @@ export function useMoveFilesToMission() {
       const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
       const previousMissionFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()]);
       
+      // Collect all folder queries
       const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
       const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
       
@@ -284,20 +342,51 @@ export function useMoveFilesToMission() {
         }
       }
       
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
-      );
+      // Find files to move from all cached sources
+      const filesToMove: FileMetadata[] = [];
+      const fileIdSet = new Set(fileIds);
       
-      for (const [queryKey, files] of allFolderQueries) {
+      // Check main collection
+      if (previousMainFiles) {
+        filesToMove.push(...previousMainFiles.filter(f => fileIdSet.has(f.id)));
+      }
+      
+      // Check all folder caches
+      for (const [, files] of allFolderQueries) {
         if (files) {
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
+          filesToMove.push(...files.filter(f => fileIdSet.has(f.id)));
         }
       }
       
-      const filesToMove = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
-      queryClient.setQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()], (old = []) => 
-        [...filesToMove.map(f => ({ ...f, missionId, folderId: undefined })), ...(old ?? [])]
+      // Deduplicate by ID
+      const uniqueFilesToMove = Array.from(
+        new Map(filesToMove.map(f => [f.id, f])).values()
       );
+      
+      // Remove from main collection
+      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
+        old.filter(f => !fileIdSet.has(f.id))
+      );
+      
+      // Remove from all folder caches
+      for (const [queryKey, files] of allFolderQueries) {
+        if (files) {
+          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIdSet.has(f.id)));
+        }
+      }
+      
+      // Add to mission with updated metadata
+      queryClient.setQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()], (old = []) => {
+        const updatedFiles = uniqueFilesToMove.map(f => ({ 
+          ...f, 
+          missionId, 
+          folderId: undefined 
+        }));
+        // Deduplicate in case files already exist in mission
+        const existingIds = new Set((old ?? []).map(f => f.id));
+        const newFiles = updatedFiles.filter(f => !existingIds.has(f.id));
+        return [...newFiles, ...(old ?? [])];
+      });
       
       return { previousMainFiles, previousMissionFiles, previousFolderFiles };
     },
@@ -353,21 +442,48 @@ export function useBatchRemoveFromFolder() {
       await queryClient.cancelQueries({ queryKey: ['files'] });
       
       const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
-      const previousFolderFiles = sourceFolderId 
-        ? queryClient.getQueryData<FileMetadata[]>(['files', 'folder', sourceFolderId.toString()])
-        : undefined;
       
-      // Files from folder move to main collection
-      const filesToMove = previousFolderFiles?.filter(f => fileIds.includes(f.id)) ?? [];
+      // Collect all folder queries
+      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
+      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
       
-      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        [...filesToMove.map(f => ({ ...f, folderId: undefined })), ...old]
+      for (const [queryKey, files] of allFolderQueries) {
+        if (files) {
+          const keyStr = JSON.stringify(queryKey);
+          previousFolderFiles.set(keyStr, files);
+        }
+      }
+      
+      // Find files to move from folder caches
+      const filesToMove: FileMetadata[] = [];
+      const fileIdSet = new Set(fileIds);
+      
+      // Check all folder caches for the files
+      for (const [, files] of allFolderQueries) {
+        if (files) {
+          filesToMove.push(...files.filter(f => fileIdSet.has(f.id)));
+        }
+      }
+      
+      // Deduplicate by ID
+      const uniqueFilesToMove = Array.from(
+        new Map(filesToMove.map(f => [f.id, f])).values()
       );
       
-      if (sourceFolderId) {
-        queryClient.setQueryData<FileMetadata[]>(['files', 'folder', sourceFolderId.toString()], (old = []) => 
-          old.filter(f => !fileIds.includes(f.id))
-        );
+      // Add to main collection with cleared folderId
+      queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => {
+        const updatedFiles = uniqueFilesToMove.map(f => ({ ...f, folderId: undefined }));
+        // Deduplicate in case files already exist in main
+        const existingIds = new Set(old.map(f => f.id));
+        const newFiles = updatedFiles.filter(f => !existingIds.has(f.id));
+        return [...newFiles, ...old];
+      });
+      
+      // Remove from all folder caches
+      for (const [queryKey, files] of allFolderQueries) {
+        if (files) {
+          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIdSet.has(f.id)));
+        }
       }
       
       return { previousMainFiles, previousFolderFiles, sourceFolderId };
@@ -379,8 +495,11 @@ export function useBatchRemoveFromFolder() {
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
       }
-      if (context?.previousFolderFiles && sourceFolderId) {
-        queryClient.setQueryData(['files', 'folder', sourceFolderId.toString()], context.previousFolderFiles);
+      if (context?.previousFolderFiles) {
+        context.previousFolderFiles.forEach((files, keyStr) => {
+          const queryKey = JSON.parse(keyStr);
+          queryClient.setQueryData(queryKey, files);
+        });
       }
       
       throw new Error(`Failed to return files to main collection: ${errorMessage}`);
@@ -390,6 +509,9 @@ export function useBatchRemoveFromFolder() {
       await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
       if (sourceFolderId) {
         await queryClient.invalidateQueries({ queryKey: ['files', 'folder', sourceFolderId.toString()], exact: true });
+      } else {
+        // If we don't know the source, invalidate all folder queries
+        await queryClient.invalidateQueries({ queryKey: ['files', 'folder'] });
       }
     },
   });
@@ -467,9 +589,9 @@ export function useDeleteFile() {
       
       return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, _, context) => {
+    onError: (err, fileId, context) => {
       const errorMessage = getActorErrorMessage(err);
-      console.error('File deletion failed:', errorMessage);
+      console.error('Delete file failed:', errorMessage);
       
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
@@ -490,10 +612,7 @@ export function useDeleteFile() {
       throw new Error(`Failed to delete file: ${errorMessage}`);
     },
     onSuccess: async () => {
-      // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'folder'] });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'mission'] });
+      await queryClient.invalidateQueries({ queryKey: ['files'] });
     },
   });
 }
@@ -518,10 +637,11 @@ export function useDeleteFiles() {
     onMutate: async (fileIds) => {
       await queryClient.cancelQueries({ queryKey: ['files'] });
       
+      const fileIdSet = new Set(fileIds);
       const previousMainFiles = queryClient.getQueryData<FileMetadata[]>(['files', 'not-in-folder']);
       
       queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
-        old.filter(f => !fileIds.includes(f.id))
+        old.filter(f => !fileIdSet.has(f.id))
       );
       
       const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
@@ -531,7 +651,7 @@ export function useDeleteFiles() {
         if (files) {
           const keyStr = JSON.stringify(queryKey);
           previousFolderFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
+          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIdSet.has(f.id)));
         }
       }
       
@@ -542,15 +662,15 @@ export function useDeleteFiles() {
         if (files) {
           const keyStr = JSON.stringify(queryKey);
           previousMissionFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
+          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIdSet.has(f.id)));
         }
       }
       
       return { previousMainFiles, previousFolderFiles, previousMissionFiles };
     },
-    onError: (err, _, context) => {
+    onError: (err, fileIds, context) => {
       const errorMessage = getActorErrorMessage(err);
-      console.error('Batch file deletion failed:', errorMessage);
+      console.error('Delete files failed:', errorMessage);
       
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
@@ -571,10 +691,7 @@ export function useDeleteFiles() {
       throw new Error(`Failed to delete files: ${errorMessage}`);
     },
     onSuccess: async () => {
-      // Targeted invalidations
-      await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'folder'] });
-      await queryClient.invalidateQueries({ queryKey: ['files', 'mission'] });
+      await queryClient.invalidateQueries({ queryKey: ['files'] });
     },
   });
 }
@@ -584,38 +701,48 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      mimeType, 
-      size, 
-      blob, 
+    mutationFn: async ({
+      name,
+      mimeType,
+      size,
+      blob,
       missionId,
-      onProgress 
-    }: { 
-      name: string; 
-      mimeType: string; 
-      size: bigint; 
-      blob: ExternalBlob; 
+    }: {
+      name: string;
+      mimeType: string;
+      size: number;
+      blob: ExternalBlob;
       missionId?: bigint | null;
-      onProgress?: (percentage: number) => void;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter to control parallel uploads
       return uploadLimiter.run(async () => {
-        const blobWithProgress = onProgress ? blob.withUploadProgress(onProgress) : blob;
-        const response = await actor.uploadFile(name, mimeType, size, blobWithProgress, missionId ?? null);
-        return response;
+        return timeOperation('uploadFile', async () => {
+          const result = await actor.uploadFile(
+            name,
+            mimeType,
+            BigInt(size),
+            blob,
+            missionId ?? null
+          );
+          return result;
+        }, { fileName: name, fileSize: size });
       });
     },
     onSuccess: async (_, variables) => {
-      // Targeted invalidations based on where file was uploaded
+      // Targeted invalidations based on where the file was uploaded
       if (variables.missionId) {
-        await queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()], exact: true });
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'mission', variables.missionId.toString()], 
+          exact: true 
+        });
       } else {
-        await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'not-in-folder'], 
+          exact: true 
+        });
       }
     },
     onError: (error) => {
@@ -631,35 +758,50 @@ export function useCreateLink() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      url, 
-      folderId, 
-      missionId 
-    }: { 
-      name: string; 
-      url: string; 
-      folderId?: bigint | null; 
+    mutationFn: async ({
+      name,
+      url,
+      folderId,
+      missionId,
+    }: {
+      name: string;
+      url: string;
+      folderId?: bigint | null;
       missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter for consistency with file uploads
       return uploadLimiter.run(async () => {
-        const response = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
-        return response;
+        return timeOperation('createLink', async () => {
+          const result = await actor.createLink(
+            name,
+            url,
+            folderId ?? null,
+            missionId ?? null
+          );
+          return result;
+        }, { linkName: name });
       });
     },
     onSuccess: async (_, variables) => {
-      // Targeted invalidations based on where link was created
+      // Targeted invalidations based on where the link was created
       if (variables.missionId) {
-        await queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()], exact: true });
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'mission', variables.missionId.toString()], 
+          exact: true 
+        });
       } else if (variables.folderId) {
-        await queryClient.invalidateQueries({ queryKey: ['files', 'folder', variables.folderId.toString()], exact: true });
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'folder', variables.folderId.toString()], 
+          exact: true 
+        });
       } else {
-        await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
+        await queryClient.invalidateQueries({ 
+          queryKey: ['files', 'not-in-folder'], 
+          exact: true 
+        });
       }
     },
     onError: (error) => {

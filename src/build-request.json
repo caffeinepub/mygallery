@@ -1,75 +1,72 @@
 {
   "kind": "build_request",
-  "title": "Fix mission task completion clicks to update immediately and correctly",
+  "title": "Fix immediate gallery updates when moving files out of folders (to mission, other folder, or main collection)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the mission task completion interaction so that when a user clicks a task checkbox in MissionDetailFullScreenView, the UI updates immediately and consistently reflects the new completion state without requiring extra clicks or waiting for a refetch.",
+      "text": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to a mission, the moved files appear immediately in the destination mission UI and are removed immediately from the source folder UI (without waiting for a refetch).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Κάνε μια διόρθωση μονο στην λειτουργία mission ώστε τα κλικ που κάνει ο χρήστης για ολοκλήρωση task να λειτουργούν άμεσα και σωστά . Μην αλλαξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της . Διόρθωσε μόνο στην λειτουργία mission τα κλικ του χρήστη σε mission να δουλεύουν σωστά με άμεση ενημέρωση ."
+          "Στα αρχεία που έχουν μεταφερθεί σε φακέλους στην λειτουργία folders ,όταν επιλέγουν για αποστολή σε mission ... να μεταφέρονται σωστά και άμεσα ... αν ο χρήστης μεταφέρει ένα αρχείο από φάκελο σε mission το αρχείο να εμφανιστεί στο mission ."
         ]
       },
       "acceptanceCriteria": [
-        "In the mission detail screen, clicking a task checkbox updates the checkbox state (checked/unchecked) immediately (optimistic UI).",
-        "After the backend mutation resolves, the task completion state remains correct (no reverting to the previous state).",
-        "Rapid successive toggles of the same task do not result in incorrect final state (the final UI state matches the last click).",
-        "No other screens/features are changed beyond what is necessary to make mission task completion clicks update immediately and correctly."
+        "Given a file currently visible inside a folder (Folders mode), when it is moved to a selected mission, the mission’s attached-files list (React Query key pattern ['files','mission',missionId]) shows the file immediately after the mutation resolves (no manual refresh required).",
+        "After moving a file from a folder to a mission, the source folder list (React Query key pattern ['files','folder',folderId]) no longer shows the file immediately.",
+        "The optimistic update does not rely on the file being present in the main/root query (['files','not-in-folder']) and works when the file originates from any folder query cache."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure React Query cache updates for task completion are applied immediately and correctly for missions by updating the relevant mission caches in useToggleTaskCompletion (at minimum the mission detail cache, and also the missions list cache if it displays task completion/progress), so progress/task counts stay in sync without waiting for invalidation/refetch.",
+      "text": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to another folder, the moved files appear immediately in the destination folder UI and are removed immediately from the source folder UI.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Διόρθωσε μόνο στην λειτουργία mission τα κλικ του χρήστη σε mission να δουλεύουν σωστά με άμεση ενημέρωση ."
+          "...σε άλλο φάκελο ... να μεταφέρονται σωστά και άμεσα..."
         ]
       },
       "acceptanceCriteria": [
-        "Toggling a task completion updates the React Query cache for ['missions','detail',<missionId>] immediately.",
-        "If the missions list UI depends on task completion/progress, it reflects the change immediately via an optimistic update to ['missions','list'] (not only after a refetch).",
-        "If the backend mutation fails, optimistic updates are rolled back and the UI returns to the prior correct state."
+        "Given a file currently visible inside Folder A, when it is moved to Folder B, Folder B’s list (React Query key pattern ['files','folder',folderBId]) shows the file immediately after the mutation resolves.",
+        "After moving a file from Folder A to Folder B, Folder A’s list (React Query key pattern ['files','folder',folderAId]) no longer shows the file immediately.",
+        "This works even if the file is not present in the main/root list cache (['files','not-in-folder'])."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Adjust mission autosave baseline synchronization in MissionDetailFullScreenView so that after task add/toggle mutations, the autosave baseline is synced using the latest task state (from the React Query cache or mutation result), avoiding stale closures that can cause incorrect follow-up saves or inconsistent UI behavior.",
+      "text": "Ensure the existing ‘return to main collection’ flow from a folder results in immediate, correct UI state: moved files must appear in the main/root gallery list and disappear from the folder list as soon as the operation completes.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "τα κλικ που κάνει ο χρήστης για ολοκλήρωση task να λειτουργούν άμεσα και σωστά"
+          "...ή στο main collection στην gallery να μεταφέρονται σωστά και άμεσα..."
         ]
       },
       "acceptanceCriteria": [
-        "After a task toggle completes, the autosave baseline is aligned with the latest tasks state so no unintended extra save occurs that could overwrite the user’s last click.",
-        "After adding a task completes, the autosave baseline is aligned with the latest tasks state.",
-        "No changes are made to autosave behavior outside missions/task completion correctness."
+        "Given a file currently visible inside a folder, when it is moved to Main Collection, the main/root list (React Query key ['files','not-in-folder']) shows the file immediately after the mutation resolves.",
+        "After moving a file from a folder to Main Collection, the source folder list no longer shows the file immediately.",
+        "No other gallery behaviors (selection, preview, delete, download) change as a side-effect of this fix."
       ]
     }
   ],
   "constraints": [
-    "Do not change anything outside the mission feature needed to make mission task-completion clicks update immediately and correctly.",
-    "Do not modify immutable frontend paths listed in SYSTEM_CONTEXT.",
-    "Do not introduce new features or UI flows; apply a minimal, targeted fix.",
-    "Backend logic should not be changed unless strictly required for this bug fix."
+    "Do not change any other application functionality or user flows beyond fixing the correctness/immediacy of UI updates for moving files out of folders.",
+    "Do not edit any files under frontend/src/components/ui or any other paths listed as immutable in SYSTEM_CONTEXT.",
+    "Backend behavior and data model must remain unchanged unless it is strictly required to fix this issue (prefer frontend cache/invalidations/optimistic updates)."
   ],
   "nonGoals": [
-    "Redesigning the Missions UI.",
-    "Changing mission creation/deletion behavior.",
-    "Adding new mission/task fields or changing backend data models.",
-    "Performance optimizations unrelated to the mission task completion click bug."
+    "Do not redesign the UI or change copy/text shown to users.",
+    "Do not add new features related to missions, folders, or gallery beyond the move/update correctness.",
+    "Do not introduce new authentication methods or external services."
   ],
   "imageRequirements": {
     "required": [],

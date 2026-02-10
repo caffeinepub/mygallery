@@ -1,54 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Mission task toggle: immediate optimistic UI, correct React Query cache sync, and autosave baseline alignment",
+  "title": "Immediate React Query cache updates when moving files out of folders (to mission, other folder, or main collection)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Make task checkbox toggles in MissionDetailFullScreenView update immediately and remain consistent without extra clicks/refetch reliance, including rapid toggles.",
+      "summary": "Update React Query optimistic cache logic so moving files from any folder to a mission immediately removes them from the folder UI and adds them to the mission UI without relying on the root list cache.",
       "acceptanceCriteria": [
-        "In the mission detail screen, clicking a task checkbox updates the checkbox state (checked/unchecked) immediately (optimistic UI).",
-        "After the backend mutation resolves, the task completion state remains correct (no reverting to the previous state).",
-        "Rapid successive toggles of the same task do not result in incorrect final state (the final UI state matches the last click).",
-        "No other screens/features are changed beyond what is necessary to make mission task completion clicks update immediately and correctly."
+        "Given a file currently visible inside a folder (Folders mode), when it is moved to a selected mission, the mission’s attached-files list (React Query key pattern ['files','mission',missionId]) shows the file immediately after the mutation resolves (no manual refresh required).",
+        "After moving a file from a folder to a mission, the source folder list (React Query key pattern ['files','folder',folderId]) no longer shows the file immediately.",
+        "The optimistic update does not rely on the file being present in the main/root query (['files','not-in-folder']) and works when the file originates from any folder query cache."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update task checkbox interaction to use the Checkbox's next checked value (from onCheckedChange) rather than inverting a potentially stale `task.completed` value; avoid globally disabling all task toggles while a toggle mutation is pending so rapid successive toggles are possible; keep behavior changes strictly scoped to mission task completion clicks."
+          "description": "Fix useMoveFilesToMission optimistic update: derive filesToMove by searching across all relevant cached sources (at minimum all ['files','folder',*] queries and also ['files','not-in-folder'] when present), then (1) remove moved IDs from every cached folder list and from the root list, and (2) insert the moved items into the destination mission cache (['files','mission',missionId]) with updated missionId and cleared folderId; ensure de-duplication so the file cannot appear twice in the mission list. Keep behavior limited to cache correctness/immediacy only."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Apply correct immediate React Query optimistic cache updates and robust rollback for mission task completion, syncing both mission detail and (if applicable) missions list caches.",
+      "summary": "Update React Query optimistic cache logic so moving files from one folder to another immediately removes them from the source folder UI and adds them to the destination folder UI, even if the file is not in the root list cache.",
       "acceptanceCriteria": [
-        "Toggling a task completion updates the React Query cache for ['missions','detail',<missionId>] immediately.",
-        "If the missions list UI depends on task completion/progress, it reflects the change immediately via an optimistic update to ['missions','list'] (not only after a refetch).",
-        "If the backend mutation fails, optimistic updates are rolled back and the UI returns to the prior correct state."
+        "Given a file currently visible inside Folder A, when it is moved to Folder B, Folder B’s list (React Query key pattern ['files','folder',folderBId]) shows the file immediately after the mutation resolves.",
+        "After moving a file from Folder A to Folder B, Folder A’s list (React Query key pattern ['files','folder',folderAId]) no longer shows the file immediately.",
+        "This works even if the file is not present in the main/root list cache (['files','not-in-folder'])."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Enhance `useToggleTaskCompletion` optimistic updates to (1) update ['missions','detail', missionId] immediately, (2) also update ['missions','list'] entries for the same mission so progress/task counts stay in sync, and (3) implement rollback that does not clobber newer rapid toggles (e.g., rollback only if the cache still reflects the optimistic value for that mutation). Reduce reliance on invalidate/refetch for correctness (keep minimal invalidation only if needed), ensuring UI does not revert after success."
+          "description": "Fix useMoveFilesToFolder optimistic update: stop assuming files originate from ['files','not-in-folder']; instead, collect filesToMove by scanning cached folder queries (and root cache if present), remove the moved IDs from all cached folder lists except the destination (including the inferred/passed source folder), and then add the moved items into the destination folder cache (['files','folder',folderId]) with updated folderId and cleared missionId; ensure de-duplication in the destination list."
+        },
+        {
+          "path": "frontend/src/components/SendToFolderDialog.tsx",
+          "operation": "modify",
+          "description": "When invoking the move-to-folder mutation from Folders mode, pass along the currentFolderId (when available) as additional mutation context so the cache update can target the correct source folder list immediately; ensure no UI/flow changes beyond improved immediacy."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Sync mission autosave baseline after add/toggle mutations using the latest tasks state (from cache/mutation), avoiding stale closures and unintended follow-up saves.",
+      "summary": "Ensure returning files from a folder to the main collection updates the root list and folder list immediately and does not affect other gallery behaviors.",
       "acceptanceCriteria": [
-        "After a task toggle completes, the autosave baseline is aligned with the latest tasks state so no unintended extra save occurs that could overwrite the user’s last click.",
-        "After adding a task completes, the autosave baseline is aligned with the latest tasks state.",
-        "No changes are made to autosave behavior outside missions/task completion correctness."
+        "Given a file currently visible inside a folder, when it is moved to Main Collection, the main/root list (React Query key ['files','not-in-folder']) shows the file immediately after the mutation resolves.",
+        "After moving a file from a folder to Main Collection, the source folder list no longer shows the file immediately.",
+        "No other gallery behaviors (selection, preview, delete, download) change as a side-effect of this fix."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "After `addTaskMutation` and `toggleTaskMutation` resolve, sync autosave baseline using the latest mission/tasks from the React Query cache (or mutation result) rather than the potentially stale `selectedMission` reference captured in the handler; keep autosave behavior otherwise unchanged and scoped to mission task correctness."
+          "description": "Harden useBatchRemoveFromFolder optimistic update for folder->main: ensure moved files are always sourced from the folder cache when present (and/or other cached lists if needed), inserted into ['files','not-in-folder'] without duplicates, and removed from the source folder cache immediately; keep all existing gallery interactions unchanged (only adjust cache update logic)."
         }
       ]
     }

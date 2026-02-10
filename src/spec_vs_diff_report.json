@@ -1,55 +1,84 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T11:08:15.336Z",
-  "summary": "The diff shows mission-related changes in MissionDetailFullScreenView (deriving tasks from the React Query mission cache and tweaking autosave enabling/hydration) and broader adjustments in useMissionsQueries. However, the provided truncation does not include clear evidence that task checkbox toggling now performs a correct optimistic update with rollback, nor that useToggleTaskCompletion updates the required React Query caches (detail and list) immediately and safely under rapid toggles.",
+  "generatedAt": "2026-02-10T14:34:05.339Z",
+  "summary": "Diff includes changes to folder move dialogs (passing sourceFolderId) and broad React Query hook edits, but the provided excerpts are truncated and do not show the specific cache-update logic required for immediate UI updates when moving files out of folders. Several unrelated UI/features (speech-to-text, progress tracking, styling, notes query behavior) appear to have been added/changed beyond the requested scope.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Fix the mission task completion interaction so that clicking a task checkbox updates immediately (optimistic UI), remains correct after mutation resolves, and rapid toggles end in the correct final state.",
-      "reason": "MissionDetailFullScreenView changes are shown, but the diff snippet is truncated before any task checkbox onClick/onCheckedChange handler logic and does not show an optimistic state update strategy or protection against rapid successive toggles producing an incorrect final state.",
+      "requirement": "Fix React Query cache update logic so moving files from a folder to a mission immediately removes them from the source folder list and adds them to the destination mission list (['files','mission',missionId]) without relying on ['files','not-in-folder'].",
+      "reason": "The diff excerpt for frontend/src/hooks/useQueries.ts is truncated before any move-to-mission mutation logic and does not show concrete cache updates (e.g., queryClient.setQueryData for ['files','mission',missionId] and ['files','folder',folderId]). The SendToFolderDialog change only shows passing sourceFolderId for folder moves/return-to-main, not mission moves.",
       "evidence": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated; does not show checkbox toggle handler / optimistic update logic)"
+        "frontend/src/hooks/useQueries.ts (truncated; no move-to-mission cache update shown)",
+        "frontend/src/components/SendToFolderDialog.tsx (only folder move + return-to-main flows shown)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Ensure React Query cache updates for task completion are applied immediately and correctly by updating the mission detail cache and (if needed) the missions list cache in useToggleTaskCompletion, with rollback on mutation failure.",
-      "reason": "The diff includes useMissionsQueries.ts but the shown portion does not include the implementation of useToggleTaskCompletion or any explicit onMutate optimistic cache updates for ['missions','detail',<missionId>] and ['missions','list'], nor rollback behavior on error.",
+      "requirement": "Fix React Query cache update logic so moving files from Folder A to Folder B immediately removes them from ['files','folder',folderAId] and adds them to ['files','folder',folderBId], even if not present in ['files','not-in-folder'].",
+      "reason": "Although SendToFolderDialog now passes sourceFolderId into useMoveFilesToFolder, the diff does not show the corresponding mutation implementation and cache writes in useMoveFilesToFolder (likely in frontend/src/hooks/useQueries.ts but truncated). بنابراین cannot verify immediate cache updates for both source and destination folder lists.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (truncated; useToggleTaskCompletion not visible)"
+        "frontend/src/components/SendToFolderDialog.tsx (passes sourceFolderId to moveFilesToFolder)",
+        "frontend/src/hooks/useQueries.ts (truncated; moveFilesToFolder implementation not shown)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Adjust mission autosave baseline synchronization so after task add/toggle mutations, the autosave baseline is synced using the latest task state (cache or mutation result), avoiding stale closures.",
-      "reason": "The diff shows an attempt to sync baseline after adding a task, but it uses a setTimeout and references `selectedMission` from the component scope in the truncated snippet; there is no visible evidence that baseline syncing uses the latest React Query cache state (e.g., via queryClient.getQueryData) after add/toggle completes, and no visible toggle-complete baseline sync.",
+      "requirement": "Ensure returning files from a folder to Main Collection immediately adds them to ['files','not-in-folder'] and removes them from the folder list after the operation completes, without side effects to other gallery behaviors.",
+      "reason": "SendToFolderDialog calls batchRemoveFromFolder with sourceFolderId, but the diff does not show the batch-remove mutation’s cache update logic (e.g., updating ['files','not-in-folder'] and ['files','folder',folderId]) in frontend/src/hooks/useQueries.ts (truncated). Also no evidence is shown to confirm no side-effects to selection/preview/delete/download behaviors.",
       "evidence": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated; shows add-task baseline sync attempt but not full/confirmed latest-state syncing or toggle baseline sync)"
+        "frontend/src/components/SendToFolderDialog.tsx (handleReturnToMain uses batchRemoveFromFolder)",
+        "frontend/src/hooks/useQueries.ts (truncated; batchRemoveFromFolder cache updates not shown)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changes to mission creation success behavior to invalidate both missions list and mission detail queries.",
-      "reason": "REQs focus on task completion click behavior, cache updates for toggles, and autosave baseline sync. Adjusting createMission invalidation behavior is mission-related but not requested as part of the minimal targeted fix for task completion clicks.",
+      "description": "Speech-to-text microphone dictation support added to the Add Note form in FileUploadSection.",
+      "reason": "Not requested by the BuildRequest; violates constraint to avoid changing other functionality beyond move/update correctness.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (useCreateMission onSuccess invalidates ['missions','list'] and ['missions','detail', missionId])"
+        "frontend/src/components/FileUploadSection.tsx (imports/useSpeechToText, mic icons, transcript handling)",
+        "frontend-file-summaries.txt (FileUploadSection description mentions speech-to-text)"
       ]
     },
     {
-      "description": "Changes to mission detail query refetch behavior (refetchOnMount: true) and other query policy settings not directly tied to the task completion click bug.",
-      "reason": "The request explicitly prefers a minimal, targeted fix and emphasizes optimistic cache updates rather than relying on refetch behavior; altering refetch policy may be unnecessary and is not explicitly requested.",
+      "description": "Unified progress tracking integration using ExternalBlob.withUploadProgress() and upload progress context changes in FileUploadSection.",
+      "reason": "Not requested; unrelated to fixing folder move cache updates.",
       "evidence": [
-        "frontend/src/hooks/useMissionsQueries.ts (useGetMission sets refetchOnMount: true)"
+        "frontend/src/components/FileUploadSection.tsx (ExternalBlob.withUploadProgress, updateProgress/completeUpload usage)",
+        "frontend-file-summaries.txt (FileUploadSection summary mentions unified progress bar integration)"
+      ]
+    },
+    {
+      "description": "React Query behavior changes for notes (new hooks/invalidations/concurrency limiter usage).",
+      "reason": "BuildRequest is about files moving out of folders; notes-related query changes are out of scope.",
+      "evidence": [
+        "frontend/src/hooks/useNotesQueries.ts (new/changed queries, invalidations, concurrency limiter)",
+        "frontend/src/components/SendToFolderDialog.tsx (note move/remove mutations included)"
+      ]
+    },
+    {
+      "description": "Global CSS/layout changes including mobile-only viewport constraints, OKLCH color system, new animations.",
+      "reason": "Not requested; explicitly constrained to avoid changing other user flows/functionality beyond move/update correctness.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/index.css description)"
+      ]
+    },
+    {
+      "description": "Z-index/overlay behavior changes for FoldersButton (behindOverlay prop).",
+      "reason": "Not requested; unrelated UI/interaction change beyond the move/update bugfix.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/components/FoldersButton.tsx description)"
       ]
     }
   ],
-  "confidence": 0.55,
+  "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/MissionDetailFullScreenView.tsx",
-    "frontend/src/hooks/useMissionsQueries.ts",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/SendToFolderDialog.tsx",
+    "frontend/src/hooks/useNotesQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
     "project_state.json"
   ]
 }

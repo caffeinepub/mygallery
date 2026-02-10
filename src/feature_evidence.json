@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-mission-task-completion-interaction-so-that-when-a-user-clicks-a-task-checkbox-in-missiondetailfullscreenview-the-ui-updates-immediately-and-consistently-reflects-the-new-completion-state-without-requiring-extra-clicks-or-waiting-for-a-refetch",
-      "featureTitle": "Fix the mission task completion interaction so that when a user clicks a task checkbox in MissionDetailFullScreenView, the UI updates immediately and consistently reflects the new completion state without requiring extra clicks or waiting for a refetch.",
+      "featureId": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-a-mission-the-moved-files-appear-immediately-in-the-destination-mission-ui-and-are-removed-immediately-from-the-source-folder-ui-without-waiting-for-a-refetch",
+      "featureTitle": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to a mission, the moved files appear immediately in the destination mission UI and are removed immediately from the source folder UI (without waiting for a refetch).",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,10 +22,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-react-query-cache-updates-for-task-completion-are-applied-immediately-and-correctly-for-missions-by-updating-the-relevant-mission-caches-in-usetoggletaskcompletion-at-minimum-the-mission-detail-cache-and-also-the-missions-list-cache-if-it-displays-task-completion-progress-so-progress-task-counts-stay-in-sync-without-waiting-for-invalidation-refetch",
-      "featureTitle": "Ensure React Query cache updates for task completion are applied immediately and correctly for missions by updating the relevant mission caches in useToggleTaskCompletion (at minimum the mission detail cache, and also the missions list cache if it displays task completion/progress), so progress/task counts stay in sync without waiting for invalidation/refetch.",
+      "featureId": "feature-fix-the-react-query-cache-update-logic-so-that-when-the-user-is-in-folders-mode-and-moves-one-or-more-files-from-a-folder-to-another-folder-the-moved-files-appear-immediately-in-the-destination-folder-ui-and-are-removed-immediately-from-the-source-folder-ui",
+      "featureTitle": "Fix the React Query cache update logic so that when the user is in Folders mode and moves one or more files from a folder to another folder, the moved files appear immediately in the destination folder UI and are removed immediately from the source folder UI.",
       "files": [
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/src/components/SendToFolderDialog.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -42,10 +43,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-adjust-mission-autosave-baseline-synchronization-in-missiondetailfullscreenview-so-that-after-task-add-toggle-mutations-the-autosave-baseline-is-synced-using-the-latest-task-state-from-the-react-query-cache-or-mutation-result-avoiding-stale-closures-that-can-cause-incorrect-follow-up-saves-or-inconsistent-ui-behavior",
-      "featureTitle": "Adjust mission autosave baseline synchronization in MissionDetailFullScreenView so that after task add/toggle mutations, the autosave baseline is synced using the latest task state (from the React Query cache or mutation result), avoiding stale closures that can cause incorrect follow-up saves or inconsistent UI behavior.",
+      "featureId": "feature-ensure-the-existing-return-to-main-collection-flow-from-a-folder-results-in-immediate-correct-ui-state-moved-files-must-appear-in-the-main-root-gallery-list-and-disappear-from-the-folder-list-as-soon-as-the-operation-completes",
+      "featureTitle": "Ensure the existing ‘return to main collection’ flow from a folder results in immediate, correct UI state: moved files must appear in the main/root gallery list and disappear from the folder list as soon as the operation completes.",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",

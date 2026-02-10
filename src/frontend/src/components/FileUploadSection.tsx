@@ -87,16 +87,17 @@ export default function FileUploadSection() {
         for (const file of fileArray) {
           const arrayBuffer = await file.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
-          const blob = ExternalBlob.fromBytes(uint8Array);
+          
+          // Use withUploadProgress to track upload progress
+          const blob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((progress) => {
+            updateProgress(uploadId, file.name, progress);
+          });
 
           await uploadFileMutation.mutateAsync({
             name: file.name,
             mimeType: file.type || 'application/octet-stream',
-            size: BigInt(file.size),
+            size: file.size,
             blob,
-            onProgress: (progress) => {
-              updateProgress(uploadId, file.name, progress);
-            },
           });
         }
 
