@@ -1,73 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Fix moving files/links/notes from folders to missions (immediate + correct transfer)",
+  "title": "Make mission task completion toggle update immediately",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "text": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
+          "Στην λειτουργία mission η επιλογή τικ ολοκληρωμένου task ή η επιλογή τικ από ολοκληρωμένο σε ανολοκλήρωτο να γίνεται άμεσα με άμεση ενημέρωση του mission. Μην αλλάξεις απολύτως τίποτα άλλο στην εφαρμογή και στις λειτουργίες της."
         ]
       },
       "acceptanceCriteria": [
-        "From a folder view, moving one or more files/links to a mission removes them from the folder list immediately after the action completes.",
-        "From a folder view, moving one or more files/links to a mission makes them appear in the mission’s file list immediately after the action completes.",
-        "The behavior works whether the moved files/links originated from the root list cache or from any folder list cache (i.e., optimistic updates must not rely only on the root list).",
-        "If the move fails, the UI rolls back to the pre-move state (items remain in their original folder/list)."
+        "In MissionDetailFullScreenView, clicking a task checkbox immediately updates the checkbox state, the task text styling (line-through), and the progress counters/bar in the same screen.",
+        "The immediate UI update works in both directions (complete ↔ incomplete).",
+        "The UI state does not “snap back” to the previous completion state after the mutation resolves (i.e., no visible revert caused by stale cache/baseline).",
+        "No other mission behaviors, screens, or features are changed."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "text": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
+          "...να γίνεται άμεσα με άμεση ενημέρωση του mission. Μην αλλάξεις απολύτως τίποτα άλλο..."
         ]
       },
       "acceptanceCriteria": [
-        "From a folder view, moving one or more notes to a mission removes them from the folder notes list immediately after the action completes.",
-        "From a folder view, moving one or more notes to a mission makes them appear in the mission’s notes list immediately after the action completes.",
-        "If the move fails, the UI rolls back to the pre-move state (notes remain in their original folder/list)."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
-        ]
-      },
-      "acceptanceCriteria": [
-        "After calling the backend move-to-mission method(s), moved files/links are no longer returned by folder-scoped queries and are returned by mission-scoped queries.",
-        "After calling the backend move-to-mission method(s), moved notes are no longer returned by folder-scoped queries and are returned by mission-scoped queries.",
-        "No changes are introduced to unrelated backend behaviors or APIs beyond what is necessary to make the move operation correct."
+        "After toggling a task, the mission tasks stored in React Query for the mission detail reflect the new completion value immediately and remain consistent after the backend call completes.",
+        "Autosave does not re-save an older tasks array that would undo the completion toggle.",
+        "No changes are made to backend APIs or mission/task schema."
       ]
     }
   ],
   "constraints": [
-    "Do not make any other changes to the application beyond fixing the incorrect/non-immediate transfer of files/links/notes from folders to missions.",
-    "Do not modify any files under frontend/src/components/ui (read-only components).",
-    "Keep the backend as a single Motoko actor (all logic in backend/main.mo); only add a migration file if strictly required by state changes (not expected for this bugfix)."
+    "Do not change any other functionality or UI beyond the minimum required to make mission task completion toggles update immediately.",
+    "Do not edit files under frontend/src/components/ui (read-only).",
+    "Keep backend as a single Motoko actor; do not introduce additional services or databases."
   ],
   "nonGoals": [
-    "Do not redesign UI, change styling, or add new UI features.",
-    "Do not add new mission/folder capabilities beyond fixing the move behavior.",
-    "Do not change upload/progress-bar behavior (this request is only about moving items from folders to missions)."
+    "Redesigning the Missions UI or changing styling.",
+    "Changing mission autosave debounce timing or introducing new autosave features beyond preventing the toggle from being overwritten.",
+    "Adding new mission/task capabilities (reordering tasks, editing task text, bulk actions, etc.)."
   ],
   "imageRequirements": {
     "required": [],

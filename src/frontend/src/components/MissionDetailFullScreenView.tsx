@@ -10,12 +10,13 @@ import { useGetFilesForMission } from '@/hooks/useQueries';
 import { useGetNotesForMission } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useMissionAutosave } from '@/hooks/useMissionAutosave';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import FullScreenViewer from './FullScreenViewer';
 import NoteViewerDialog from './NoteViewerDialog';
 import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
 import { openExternally } from '@/utils/externalOpen';
-import type { Task, FileMetadata, Note } from '@/backend';
+import type { Task, FileMetadata, Note, Mission } from '@/backend';
 
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
@@ -38,6 +39,7 @@ export default function MissionDetailFullScreenView({
   const [isHydrated, setIsHydrated] = useState(false);
 
   const { status } = useBackendActor();
+  const queryClient = useQueryClient();
   const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
   const { data: attachedFiles, isLoading: isLoadingFiles } = useGetFilesForMission(missionId);
   const { data: attachedNotes, isLoading: isLoadingNotes } = useGetNotesForMission(missionId);
@@ -91,7 +93,7 @@ export default function MissionDetailFullScreenView({
 
       // Sync autosave baseline after mutation settles using latest cache state
       setTimeout(() => {
-        const latestMission = selectedMission;
+        const latestMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
         if (latestMission) {
           syncBaseline(missionTitle, latestMission.tasks);
         }
@@ -115,7 +117,7 @@ export default function MissionDetailFullScreenView({
 
       // Sync autosave baseline after mutation settles using latest cache state
       setTimeout(() => {
-        const latestMission = selectedMission;
+        const latestMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
         if (latestMission) {
           syncBaseline(missionTitle, latestMission.tasks);
         }

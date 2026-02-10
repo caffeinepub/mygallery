@@ -1,70 +1,33 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T17:15:45.881Z",
-  "summary": "Diff shows changes to backend/main.mo plus several frontend hooks/components. Evidence indicates some work on React Query caching (including a stated fix to useMoveFilesToMission to source files from any folder cache), but the provided diff summary does not clearly show complete implementation of immediate UI updates/rollback for both files and notes, nor the backend detachment guarantees. Several unrelated UI/features (e.g., speech-to-text and upload behavior changes) appear to have been introduced despite scope constraints.",
+  "generatedAt": "2026-02-10T17:28:32.378Z",
+  "summary": "The diff shows some refactoring in MissionDetailFullScreenView to treat React Query mission detail as the source of truth for tasks and to gate autosave while mutations are pending, but the provided truncated snippets do not contain clear evidence of an optimistic task-toggle cache update or post-mutation baseline sync using the latest React Query cache state. Therefore, the core immediate-toggle behavior and stale-state avoidance requirements cannot be verified as implemented from the diff summary alone.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Ensure moved files/links from a folder are removed from the source folder list immediately and appear in the target mission immediately, working from any folder cache, with rollback on failure.",
-      "reason": "The diff summary only asserts (in a file summary) that useMoveFilesToMission sources files from any folder cache; it does not provide concrete evidence of (a) updating both source folder cache and target mission cache immediately, and (b) rollback behavior on failed move.",
+      "requirement": "Toggling a task checkbox in MissionDetailFullScreenView immediately updates checkbox state, line-through styling, and progress counters/bar in the same screen (both directions) without snapping back after mutation resolves.",
+      "reason": "MissionDetailFullScreenView now derives `tasks` from `selectedMission?.tasks`, but the diff excerpt does not show any optimistic update to the mission detail React Query cache on checkbox click, nor any local optimistic state that would guarantee immediate UI updates and prevent snap-back. The hook implementation for `useToggleTaskCompletion` is not shown in the truncated `useMissionsQueries.ts` excerpt.",
       "evidence": [
-        "frontend-file-summaries.txt",
-        "frontend/src/hooks/useQueries.ts (truncated)"
+        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated)",
+        "frontend/src/hooks/useMissionsQueries.ts (truncated)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Ensure moved notes from a folder are removed from the source folder notes list immediately and appear in the target mission notes list immediately, with rollback on failure.",
-      "reason": "No move-notes-to-mission hook or optimistic cache update/rollback logic is shown. The visible changes in useNotesQueries focus on fetching and note creation invalidation, not moving notes between folder and mission caches.",
+      "requirement": "After a task toggle completes, baseline/cache sync must use the latest mission tasks from the React Query cache (not stale component state), preventing autosave from re-saving an older tasks array that undoes the toggle.",
+      "reason": "The diff shows intent (\"Derive tasks directly from React Query cache\" and autosave disabled during pending mutations), but it does not show the specific post-toggle flow that re-syncs autosave baselines using the latest cached mission detail after `mutateAsync`. The shown post-mutation baseline sync comment appears in `handleAddTask` (and is truncated), and no corresponding confirmed implementation is visible for the task-toggle mutation path.",
       "evidence": [
-        "frontend/src/hooks/useNotesQueries.ts (truncated)",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Backend move-to-mission operations must clear folderId and set missionId for moved files/links and notes (and update location/fileLocation consistently if used), so folder-scoped queries stop returning them and mission-scoped queries start returning them.",
-      "reason": "backend/main.mo is truncated and does not show any move-to-mission method implementation or changes that demonstrate folderId clearing / missionId setting for files/links/notes or query behavior changes.",
-      "evidence": [
-        "backend/main.mo (truncated)"
+        "frontend/src/components/MissionDetailFullScreenView.tsx (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Added speech-to-text microphone dictation support in the Add Note form.",
-      "reason": "Not requested by any REQ; violates constraint to avoid other application changes beyond the move bugfix.",
-      "evidence": [
-        "frontend/src/components/FileUploadSection.tsx (truncated)",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Changes to upload/progress behavior (unified progress bar integration for uploads/links/notes; ExternalBlob.withUploadProgress usage).",
-      "reason": "Explicit non-goal/constraint: do not change upload/progress-bar behavior; request is only about moving items from folders to missions.",
-      "evidence": [
-        "frontend/src/components/FileUploadSection.tsx (truncated)",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Broad React Query behavior changes (increased staleTime/gcTime, refetch behavior, concurrency limiter usage for notes) beyond move-to-mission flow.",
-      "reason": "Not requested; scope constraint says no other changes beyond fixing incorrect/non-immediate transfer.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts (truncated)",
-        "frontend/src/hooks/useNotesQueries.ts (truncated)",
-        "frontend-file-summaries.txt"
-      ]
-    }
-  ],
-  "confidence": 0.62,
+  "hallucinated_features": [],
+  "confidence": 0.46,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/hooks/useNotesQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json"
   ]
 }

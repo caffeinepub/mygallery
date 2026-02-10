@@ -277,12 +277,19 @@ export function useToggleTaskCompletion() {
       
       throw new Error(`Failed to toggle task completion: ${errorMessage}`);
     },
-    onSettled: async (data) => {
-      // Minimal invalidation after success - only refetch to ensure sync with backend
-      if (data) {
-        await queryClient.invalidateQueries({ queryKey: ['missions', 'detail', data.missionId.toString()], exact: true });
-        await queryClient.invalidateQueries({ queryKey: ['missions', 'list'], exact: true });
-      }
+    onSuccess: async (data) => {
+      // Mark queries as stale without forcing immediate refetch
+      // This prevents snap-back while ensuring eventual consistency
+      queryClient.invalidateQueries({ 
+        queryKey: ['missions', 'detail', data.missionId.toString()], 
+        exact: true,
+        refetchType: 'none' // Don't refetch immediately, just mark stale
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['missions', 'list'], 
+        exact: true,
+        refetchType: 'none' // Don't refetch immediately, just mark stale
+      });
     },
   });
 }

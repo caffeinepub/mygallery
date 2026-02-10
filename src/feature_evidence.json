@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-items-from-a-folder-to-a-mission-the-moved-files-including-link-items-stored-as-filemetadata-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
-      "featureTitle": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "featureId": "feature-fix-the-mission-view-so-that-toggling-a-task-checkbox-incomplete-complete-and-complete-incomplete-updates-the-mission-ui-immediately-without-requiring-a-manual-refresh-or-waiting-for-a-later-mission-refetch",
+      "featureTitle": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/MissionDetailFullScreenView.tsx",
+        "frontend/src/hooks/useMissionsQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,10 +23,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-notes-from-a-folder-to-a-mission-the-moved-notes-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
-      "featureTitle": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "featureId": "feature-ensure-the-task-toggle-flow-does-not-depend-on-stale-component-state-when-syncing-post-mutation-mission-task-data-e-g-do-not-use-a-stale-selectedmission-reference-after-mutateasync-after-a-task-toggle-completes-any-baseline-cache-sync-must-use-the-latest-mission-tasks-from-the-react-query-cache-for-that-mission-so-that-subsequent-autosave-behavior-cannot-overwrite-the-toggled-completion-state",
+      "featureTitle": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
       "files": [
-        "frontend/src/hooks/useNotesQueries.ts"
+        "frontend/src/components/MissionDetailFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",

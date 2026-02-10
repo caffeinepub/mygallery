@@ -1,12 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Make “Move to mission” transfers from folders update immediately and correctly for files/links and notes, without requiring refresh or navigation.
+**Goal:** Make Mission task completion toggles update the Mission detail UI immediately and stay consistent after the mutation resolves.
 
 **Planned changes:**
-- Fix frontend “move to mission” for files/links so moved items are removed from the source folder list immediately and appear in the target mission list immediately (including items originating from folder-scoped caches, not only the root list).
-- Fix frontend “move to mission” for notes so moved notes are removed from the source folder notes list immediately and appear in the target mission notes list immediately.
-- Add proper optimistic update + rollback behavior for both flows so failed moves restore the pre-move UI state.
-- Fix backend move-to-mission operations so moved files/links and notes have `folderId` cleared and `missionId` set (and any related location fields updated consistently if used), ensuring folder-scoped queries no longer return moved items and mission-scoped queries do.
+- Update `MissionDetailFullScreenView` task checkbox handling to apply an immediate local/React Query cache update for the toggled task (complete ↔ incomplete), so the checkbox state, line-through styling, and progress counters/bar update instantly.
+- Ensure post-mutation syncing uses the latest mission detail data from the React Query cache (not a stale `selectedMission`/component reference) so autosave cannot overwrite the newly toggled completion state.
 
-**User-visible outcome:** When moving files/links/notes from a folder to a mission, the items disappear from the folder and show up in the mission immediately after the move completes, and if a move fails the UI returns to the original state.
+**User-visible outcome:** In the Mission detail screen, toggling any task’s checkbox immediately updates the UI (including progress) in both directions and does not revert after the backend call completes.

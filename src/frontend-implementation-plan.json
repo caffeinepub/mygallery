@@ -1,38 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix immediate UI updates when moving files/links/notes from folders to missions",
+  "title": "Mission task toggle: immediate UI + cache-consistent autosave",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure moving files/links from a folder to a mission updates React Query caches immediately (remove from source folder list and add to target mission list), with rollback on failure.",
+      "summary": "Ensure MissionDetailFullScreenView task checkbox toggles update UI immediately (checkbox, styling, progress) without refresh and without snapping back.",
       "acceptanceCriteria": [
-        "From a folder view, moving one or more files/links to a mission removes them from the folder list immediately after the action completes.",
-        "From a folder view, moving one or more files/links to a mission makes them appear in the mission’s file list immediately after the action completes.",
-        "The behavior works whether the moved files/links originated from the root list cache or from any folder list cache (i.e., optimistic updates must not rely only on the root list).",
-        "If the move fails, the UI rolls back to the pre-move state (items remain in their original folder/list)."
+        "In MissionDetailFullScreenView, clicking a task checkbox immediately updates the checkbox state, the task text styling (line-through), and the progress counters/bar in the same screen.",
+        "The immediate UI update works in both directions (complete ↔ incomplete).",
+        "The UI state does not “snap back” to the previous completion state after the mutation resolves (i.e., no visible revert caused by stale cache/baseline).",
+        "No other mission behaviors, screens, or features are changed."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
           "operation": "modify",
-          "description": "Fix optimistic cache update logic in useMoveFilesToMission so files/links moved from any folder-scoped cache (not only the root cache) are added to the target mission cache immediately; continue removing moved items from root and all folder caches immediately and preserve full rollback behavior on mutation failure."
+          "description": "Adjust the task-toggle mutation’s post-mutation React Query invalidation so it does not force an immediate refetch of the active mission-detail query (which can cause visible snap-back). Keep optimistic cache updates as the immediate source of truth, and mark data stale for later/background refresh using a non-active refetch mode where supported."
+        },
+        {
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Ensure the view renders directly from React Query mission detail data (already used) and remove any post-toggle logic that could overwrite the immediate optimistic state. Keep changes minimal and limited to task toggle/add flows only; do not alter unrelated UI or behaviors."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add optimistic cache updates for moving notes from a folder to a mission so notes appear/disappear immediately, with rollback on failure.",
+      "summary": "Prevent stale mission/task references after task-toggle mutation; sync autosave baseline from the latest React Query cache state to avoid autosave overwriting the toggle.",
       "acceptanceCriteria": [
-        "From a folder view, moving one or more notes to a mission removes them from the folder notes list immediately after the action completes.",
-        "From a folder view, moving one or more notes to a mission makes them appear in the mission’s notes list immediately after the action completes.",
-        "If the move fails, the UI rolls back to the pre-move state (notes remain in their original folder/list)."
+        "After toggling a task, the mission tasks stored in React Query for the mission detail reflect the new completion value immediately and remain consistent after the backend call completes.",
+        "Autosave does not re-save an older tasks array that would undo the completion toggle.",
+        "No changes are made to backend APIs or mission/task schema."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useNotesQueries.ts",
+          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
           "operation": "modify",
-          "description": "Implement onMutate/onError optimistic updates in useMoveNotesToMission: snapshot relevant notes caches, remove moved notes from root and all folder caches immediately, add moved notes to the target mission cache immediately (sourcing the moved Note objects from whichever cache currently contains them), and restore snapshots on failure; keep targeted invalidations after success to reconcile with backend state."
+          "description": "Replace any use of a potentially stale `selectedMission` reference after `mutateAsync` (e.g., in `setTimeout(...selectedMission...)`) with a read of the latest mission detail from the React Query cache via `useQueryClient().getQueryData(['missions','detail', missionId.toString()])`, then call `syncBaseline` with those latest tasks so autosave baseline cannot drift or revert the toggle."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionAutosave.ts",
+          "operation": "modify",
+          "description": "Harden autosave baseline syncing so that it cannot accidentally persist an older tasks array after external mutations: ensure baseline updates always deep-copy tasks as already done, and (if needed) add a small guard/utility to make it easy for callers to sync baseline from the latest cached mission state rather than from captured component variables. Keep behavior unchanged beyond preventing overwrite of the toggled completion state."
         }
       ]
     }

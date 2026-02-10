@@ -1,49 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project includes a targeted bugfix: ensure user files/links/notes in folders transfer correctly and immediately to a mission when the user chooses to move them from a folder, with no other app/functionality changes.",
-  "architectural_notes": [
-    "Scope constraint: apply only the folder→mission transfer fix; no other changes to app features/behavior."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [
-    "Bug: Files/links/notes stored in folders do not transfer correctly/immediately to a mission when moved from a folder."
+    "In mission view, toggling a task's completed checkbox (complete ↔ incomplete) does not update the mission immediately; requires immediate mission refresh/update."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-items-from-a-folder-to-a-mission-the-moved-files-including-link-items-stored-as-filemetadata-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
-      "title": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "id": "feature-fix-the-mission-view-so-that-toggling-a-task-checkbox-incomplete-complete-and-complete-incomplete-updates-the-mission-ui-immediately-without-requiring-a-manual-refresh-or-waiting-for-a-later-mission-refetch",
+      "title": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-notes-from-a-folder-to-a-mission-the-moved-notes-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
-      "title": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "id": "feature-ensure-the-task-toggle-flow-does-not-depend-on-stale-component-state-when-syncing-post-mutation-mission-task-data-e-g-do-not-use-a-stale-selectedmission-reference-after-mutateasync-after-a-task-toggle-completes-any-baseline-cache-sync-must-use-the-latest-mission-tasks-from-the-react-query-cache-for-that-mission-so-that-subsequent-autosave-behavior-cannot-overwrite-the-toggled-completion-state",
+      "title": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Fix: When user moves items (files, links, notes) from folders to a mission, they must transfer correctly and immediately; do not change any other app behavior.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Fix moving files/links/notes from folders to missions (immediate + correct transfer)",
+  "new_feature_requests": [],
+  "projectName": "Make mission task completion toggle update immediately",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,55 +1,49 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T17:15:45.884Z",
+  "generatedAt": "2026-02-10T17:28:32.381Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
+    "total": 2,
     "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+        "summary": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useMissionsQueries.ts",
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+        "summary": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useNotesQueries.ts"
+          "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "frontend/src/hooks/useMissionAutosave.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useNotesQueries.ts"
+          "frontend/src/components/MissionDetailFullScreenView.tsx"
         ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/hooks/useNotesQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/MissionDetailFullScreenView.tsx",
+    "frontend/src/hooks/useMissionsQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
