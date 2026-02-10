@@ -9,12 +9,12 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Delay before starting fade-out (~1000ms)
+    // Start fade-out immediately (will take 2000ms due to CSS transition)
     const fadeTimer = setTimeout(() => {
       setIsVisible(false);
-    }, 1000);
+    }, 0);
 
-    // Complete and call onComplete at ~2000ms (1s delay + 1s fade)
+    // Complete and call onComplete at exactly 2000ms (when fade completes)
     const completeTimer = setTimeout(() => {
       onComplete();
     }, 2000);
@@ -27,7 +27,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background transition-opacity duration-1000 pointer-events-none ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background intro-fade pointer-events-none ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >

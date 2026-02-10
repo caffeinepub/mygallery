@@ -149,6 +149,11 @@ img, video {
     @apply will-change-auto;
 }
 
+/* Intro screen fade - exactly 2000ms opacity transition */
+.intro-fade {
+    transition: opacity 2000ms ease-in-out;
+}
+
 /* Intro screen animation - smooth pulse effect */
 @keyframes intro-pulse {
     0% {

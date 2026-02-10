@@ -1,21 +1,38 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Adjust intro/splash overlay total duration to ~2 seconds",
+  "title": "Fix immediate UI updates when moving files/links/notes from folders to missions",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Increase the intro/splash overlay lifetime so it completes and dismisses at ~2000ms without altering any other behavior.",
+      "summary": "Ensure moving files/links from a folder to a mission updates React Query caches immediately (remove from source folder list and add to target mission list), with rollback on failure.",
       "acceptanceCriteria": [
-        "When the intro/splash overlay is shown, it takes approximately 2000ms from mount until it calls onComplete and is removed.",
-        "The fade/transition timing is consistent with the 2-second duration (no premature completion).",
-        "No other UI flows, authentication behavior, navigation, or data functionality changes."
+        "From a folder view, moving one or more files/links to a mission removes them from the folder list immediately after the action completes.",
+        "From a folder view, moving one or more files/links to a mission makes them appear in the mission’s file list immediately after the action completes.",
+        "The behavior works whether the moved files/links originated from the root list cache or from any folder list cache (i.e., optimistic updates must not rely only on the root list).",
+        "If the move fails, the UI rolls back to the pre-move state (items remain in their original folder/list)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/IntroScreen.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Adjust the IntroScreen timers so the overlay remains visible for ~2000ms total before calling onComplete; keep the existing fade animation behavior aligned with the new total duration (e.g., introduce a delay before starting the existing fade-out, and move onComplete to fire at ~2000ms). Do not change any other visuals, content, interaction behavior, or app logic."
+          "description": "Fix optimistic cache update logic in useMoveFilesToMission so files/links moved from any folder-scoped cache (not only the root cache) are added to the target mission cache immediately; continue removing moved items from root and all folder caches immediately and preserve full rollback behavior on mutation failure."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add optimistic cache updates for moving notes from a folder to a mission so notes appear/disappear immediately, with rollback on failure.",
+      "acceptanceCriteria": [
+        "From a folder view, moving one or more notes to a mission removes them from the folder notes list immediately after the action completes.",
+        "From a folder view, moving one or more notes to a mission makes them appear in the mission’s notes list immediately after the action completes.",
+        "If the move fails, the UI rolls back to the pre-move state (notes remain in their original folder/list)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useNotesQueries.ts",
+          "operation": "modify",
+          "description": "Implement onMutate/onError optimistic updates in useMoveNotesToMission: snapshot relevant notes caches, remove moved notes from root and all folder caches immediately, add moved notes to the target mission cache immediately (sourcing the moved Note objects from whichever cache currently contains them), and restore snapshots on failure; keep targeted invalidations after success to reconcile with backend state."
         }
       ]
     }

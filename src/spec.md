@@ -1,10 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Increase the intro/splash overlay total on-screen duration to approximately 2 seconds before it completes and dismisses.
+**Goal:** Make “Move to mission” transfers from folders update immediately and correctly for files/links and notes, without requiring refresh or navigation.
 
 **Planned changes:**
-- Adjust the intro/splash overlay timing so it waits ~2000ms from mount before calling `onComplete` and being removed.
-- Ensure any existing fade/transition timing aligns with the 2-second duration (no premature completion).
+- Fix frontend “move to mission” for files/links so moved items are removed from the source folder list immediately and appear in the target mission list immediately (including items originating from folder-scoped caches, not only the root list).
+- Fix frontend “move to mission” for notes so moved notes are removed from the source folder notes list immediately and appear in the target mission notes list immediately.
+- Add proper optimistic update + rollback behavior for both flows so failed moves restore the pre-move UI state.
+- Fix backend move-to-mission operations so moved files/links and notes have `folderId` cleared and `missionId` set (and any related location fields updated consistently if used), ensuring folder-scoped queries no longer return moved items and mission-scoped queries do.
 
-**User-visible outcome:** The splash/intro overlay remains visible for about 2 seconds before the app’s main screen appears, with no other behavior changes.
+**User-visible outcome:** When moving files/links/notes from a folder to a mission, the items disappear from the folder and show up in the mission immediately after the move completes, and if a move fails the UI returns to the original state.

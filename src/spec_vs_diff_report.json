@@ -1,29 +1,70 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T15:21:46.520Z",
-  "summary": "REQ-1 appears implemented by updating IntroScreen to delay fade-out and call onComplete at ~2000ms total (1000ms visible + 1000ms fade). However, there are additional non-requested file modifications (metadata/summaries) that go beyond the strictly requested timing-only change, though they likely do not affect runtime behavior.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-10T17:15:45.881Z",
+  "summary": "Diff shows changes to backend/main.mo plus several frontend hooks/components. Evidence indicates some work on React Query caching (including a stated fix to useMoveFilesToMission to source files from any folder cache), but the provided diff summary does not clearly show complete implementation of immediate UI updates/rollback for both files and notes, nor the backend detachment guarantees. Several unrelated UI/features (e.g., speech-to-text and upload behavior changes) appear to have been introduced despite scope constraints.",
+  "missing_requirements": [
     {
-      "description": "Updated/added project tracking metadata in project_state.json (e.g., new_feature_requests entries AR-1/AR-2, summary/notes) which was not requested as part of changing splash timing.",
-      "reason": "BuildRequest constraints say no other changes besides splash/intro overlay timing; project_state.json changes are unrelated to runtime timing implementation.",
+      "id": "REQ-1",
+      "requirement": "Ensure moved files/links from a folder are removed from the source folder list immediately and appear in the target mission immediately, working from any folder cache, with rollback on failure.",
+      "reason": "The diff summary only asserts (in a file summary) that useMoveFilesToMission sources files from any folder cache; it does not provide concrete evidence of (a) updating both source folder cache and target mission cache immediately, and (b) rollback behavior on failed move.",
       "evidence": [
-        "project_state.json"
+        "frontend-file-summaries.txt",
+        "frontend/src/hooks/useQueries.ts (truncated)"
       ]
     },
     {
-      "description": "Modified frontend-file-summaries.txt with extensive descriptions of multiple files/features unrelated to splash timing.",
-      "reason": "Not requested by REQ-1 and goes beyond changing only the intro/splash overlay timing.",
+      "id": "REQ-2",
+      "requirement": "Ensure moved notes from a folder are removed from the source folder notes list immediately and appear in the target mission notes list immediately, with rollback on failure.",
+      "reason": "No move-notes-to-mission hook or optimistic cache update/rollback logic is shown. The visible changes in useNotesQueries focus on fetching and note creation invalidation, not moving notes between folder and mission caches.",
       "evidence": [
+        "frontend/src/hooks/useNotesQueries.ts (truncated)",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Backend move-to-mission operations must clear folderId and set missionId for moved files/links and notes (and update location/fileLocation consistently if used), so folder-scoped queries stop returning them and mission-scoped queries start returning them.",
+      "reason": "backend/main.mo is truncated and does not show any move-to-mission method implementation or changes that demonstrate folderId clearing / missionId setting for files/links/notes or query behavior changes.",
+      "evidence": [
+        "backend/main.mo (truncated)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Added speech-to-text microphone dictation support in the Add Note form.",
+      "reason": "Not requested by any REQ; violates constraint to avoid other application changes beyond the move bugfix.",
+      "evidence": [
+        "frontend/src/components/FileUploadSection.tsx (truncated)",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Changes to upload/progress behavior (unified progress bar integration for uploads/links/notes; ExternalBlob.withUploadProgress usage).",
+      "reason": "Explicit non-goal/constraint: do not change upload/progress-bar behavior; request is only about moving items from folders to missions.",
+      "evidence": [
+        "frontend/src/components/FileUploadSection.tsx (truncated)",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "description": "Broad React Query behavior changes (increased staleTime/gcTime, refetch behavior, concurrency limiter usage for notes) beyond move-to-mission flow.",
+      "reason": "Not requested; scope constraint says no other changes beyond fixing incorrect/non-immediate transfer.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts (truncated)",
+        "frontend/src/hooks/useNotesQueries.ts (truncated)",
         "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/IntroScreen.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/hooks/useNotesQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
     "project_state.json"
   ]
 }

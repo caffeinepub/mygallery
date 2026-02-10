@@ -284,17 +284,34 @@ export function useMoveFilesToMission() {
         }
       }
       
+      // Remove from root cache
       queryClient.setQueryData<FileMetadata[]>(['files', 'not-in-folder'], (old = []) => 
         old.filter(f => !fileIds.includes(f.id))
       );
       
+      // Remove from all folder caches and collect files to move
+      let filesToMove: FileMetadata[] = [];
+      
+      // First try to get files from root cache
+      const rootFiles = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
+      filesToMove = [...rootFiles];
+      
+      // Then check all folder caches for any remaining files
       for (const [queryKey, files] of allFolderQueries) {
         if (files) {
+          const folderFiles = files.filter(f => fileIds.includes(f.id));
+          // Add any files we haven't already collected
+          for (const file of folderFiles) {
+            if (!filesToMove.some(f => f.id === file.id)) {
+              filesToMove.push(file);
+            }
+          }
+          // Remove from this folder cache
           queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => !fileIds.includes(f.id)));
         }
       }
       
-      const filesToMove = previousMainFiles?.filter(f => fileIds.includes(f.id)) ?? [];
+      // Add to mission cache with updated properties
       queryClient.setQueryData<FileMetadata[]>(['files', 'mission', missionId.toString()], (old = []) => 
         [...filesToMove.map(f => ({ ...f, missionId, folderId: undefined })), ...(old ?? [])]
       );
@@ -589,25 +606,23 @@ export function useUploadFile() {
       mimeType, 
       size, 
       blob, 
-      missionId,
-      onProgress 
+      missionId 
     }: { 
       name: string; 
       mimeType: string; 
       size: bigint; 
       blob: ExternalBlob; 
       missionId?: bigint | null;
-      onProgress?: (percentage: number) => void;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter to control parallel uploads
       return uploadLimiter.run(async () => {
-        const blobWithProgress = onProgress ? blob.withUploadProgress(onProgress) : blob;
-        const response = await actor.uploadFile(name, mimeType, size, blobWithProgress, missionId ?? null);
-        return response;
+        return timeOperation('uploadFile', async () => {
+          const response = await actor.uploadFile(name, mimeType, size, blob, missionId ?? null);
+          return response;
+        }, { fileName: name, fileSize: size.toString() });
       });
     },
     onSuccess: async (_, variables) => {
@@ -646,7 +661,6 @@ export function useCreateLink() {
         throw createActorNotReadyError();
       }
 
-      // Use concurrency limiter for consistency with file uploads
       return uploadLimiter.run(async () => {
         const response = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
         return response;

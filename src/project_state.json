@@ -1,18 +1,28 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Adjust splash screen display duration to 2 seconds before showing the main/home screen, with no other app or feature changes.",
+  "summary": "Project includes a targeted bugfix: ensure user files/links/notes in folders transfer correctly and immediately to a mission when the user chooses to move them from a folder, with no other app/functionality changes.",
   "architectural_notes": [
-    "Splash screen duration should be configurable; update to 2 seconds without altering other app behavior."
+    "Scope constraint: apply only the folder→mission transfer fix; no other changes to app features/behavior."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Bug: Files/links/notes stored in folders do not transfer correctly/immediately to a mission when moved from a folder."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-update-the-intro-splash-overlay-so-it-remains-on-screen-for-2-seconds-total-before-completing-and-dismissing-without-changing-any-other-app-behavior-or-features",
-      "title": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
+      "id": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-items-from-a-folder-to-a-mission-the-moved-files-including-link-items-stored-as-filemetadata-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
+      "title": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-notes-from-a-folder-to-a-mission-the-moved-notes-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
+      "title": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -20,12 +30,20 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Set splash screen to remain visible for 2 seconds before navigating to the main screen (no other changes).",
+      "summary": "Fix: When user moves items (files, links, notes) from folders to a mission, they must transfer correctly and immediately; do not change any other app behavior.",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Increase splash/intro overlay duration to 2 seconds (no other changes)",
+  "projectName": "Fix moving files/links/notes from folders to missions (immediate + correct transfer)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

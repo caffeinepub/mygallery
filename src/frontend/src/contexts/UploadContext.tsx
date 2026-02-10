@@ -30,6 +30,10 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const pendingUpdatesRef = useRef<Map<string, number>>(new Map());
   const rafIdRef = useRef<number | null>(null);
+  // Map uploadId to item IDs for batch uploads
+  const uploadMappingRef = useRef<Map<string, string[]>>(new Map());
+  // Store pending progress updates that arrive before items are added
+  const pendingProgressRef = useRef<Map<string, number>>(new Map());
 
   // Coalesce progress updates using requestAnimationFrame
   const flushPendingUpdates = useCallback(() => {
@@ -52,11 +56,21 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addUpload = useCallback((upload: UploadProgress) => {
-    setUploads(prev => [...prev, upload]);
+    setUploads(prev => {
+      // Check if there's a pending progress update for this item
+      const pendingProgress = pendingProgressRef.current.get(upload.id);
+      if (pendingProgress !== undefined) {
+        pendingProgressRef.current.delete(upload.id);
+        return [...prev, { ...upload, progress: pendingProgress }];
+      }
+      return [...prev, upload];
+    });
   }, []);
 
   const updateUpload = useCallback((id: string, progress: number) => {
-    pendingUpdatesRef.current.set(id, progress);
+    // Clamp progress to 0-100 range
+    const clampedProgress = Math.max(0, Math.min(100, progress));
+    pendingUpdatesRef.current.set(id, clampedProgress);
 
     if (rafIdRef.current === null) {
       rafIdRef.current = requestAnimationFrame(flushPendingUpdates);
@@ -65,6 +79,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 
   const removeUpload = useCallback((id: string) => {
     pendingUpdatesRef.current.delete(id);
+    pendingProgressRef.current.delete(id);
     setUploads(prev => prev.filter(u => u.id !== id));
   }, []);
 
@@ -75,14 +90,22 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   // Legacy API for compatibility with FileUploadSection
   const startUpload = useCallback((files: File[]): string => {
     const uploadId = `upload-${Date.now()}-${Math.random()}`;
+    const itemIds: string[] = [];
+    
     files.forEach((file, index) => {
+      const itemId = `${uploadId}-${index}`;
+      itemIds.push(itemId);
       addUpload({
-        id: `${uploadId}-${index}`,
+        id: itemId,
         name: file.name,
         progress: 0,
         type: 'file',
       });
     });
+    
+    // Store mapping for this batch upload
+    uploadMappingRef.current.set(uploadId, itemIds);
+    
     return uploadId;
   }, [addUpload]);
 
@@ -109,19 +132,55 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   }, [addUpload]);
 
   const updateProgress = useCallback((uploadId: string, itemName: string, progress: number) => {
-    // For batch uploads, update specific item
-    const matchingUpload = uploads.find(u => u.id.startsWith(uploadId) && u.name === itemName);
-    if (matchingUpload) {
-      updateUpload(matchingUpload.id, progress);
+    // Clamp progress to 0-100 range
+    const clampedProgress = Math.max(0, Math.min(100, progress));
+    
+    // Check if this is a batch upload
+    const batchItemIds = uploadMappingRef.current.get(uploadId);
+    
+    if (batchItemIds) {
+      // For batch uploads, find the specific item by name
+      // Use a ref-based approach to avoid stale closure
+      setUploads(prev => {
+        const matchingUpload = prev.find(u => batchItemIds.includes(u.id) && u.name === itemName);
+        if (matchingUpload) {
+          updateUpload(matchingUpload.id, clampedProgress);
+        } else {
+          // Item not found yet, store as pending
+          const potentialId = batchItemIds.find(id => {
+            // Try to match by checking if any batch item ID could match this name
+            return true; // We'll store it and apply when the item is added
+          });
+          if (potentialId) {
+            pendingProgressRef.current.set(potentialId, clampedProgress);
+          }
+        }
+        return prev;
+      });
     } else {
       // For single uploads (link, note), update by uploadId directly
-      updateUpload(uploadId, progress);
+      updateUpload(uploadId, clampedProgress);
     }
-  }, [uploads, updateUpload]);
+  }, [updateUpload]);
 
   const completeUpload = useCallback((uploadId: string) => {
+    // Clean up mapping
+    uploadMappingRef.current.delete(uploadId);
+    
     // Remove all uploads that match this uploadId (for batch uploads)
     setUploads(prev => prev.filter(u => !u.id.startsWith(uploadId)));
+    
+    // Clean up any pending progress for this upload
+    const batchItemIds = uploadMappingRef.current.get(uploadId);
+    if (batchItemIds) {
+      batchItemIds.forEach(id => {
+        pendingProgressRef.current.delete(id);
+        pendingUpdatesRef.current.delete(id);
+      });
+    } else {
+      pendingProgressRef.current.delete(uploadId);
+      pendingUpdatesRef.current.delete(uploadId);
+    }
   }, []);
 
   // Computed values for UnifiedProgressBar

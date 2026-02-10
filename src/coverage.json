@@ -1,34 +1,55 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T15:21:46.522Z",
+  "generatedAt": "2026-02-10T17:15:45.884Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 3,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
+        "summary": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/IntroScreen.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/IntroScreen.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useNotesQueries.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useNotesQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/IntroScreen.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/hooks/useNotesQueries.ts",
+    "frontend/src/hooks/useQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

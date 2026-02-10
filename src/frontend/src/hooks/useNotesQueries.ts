@@ -299,16 +299,81 @@ export function useMoveNotesToMission() {
       await actor.moveNotesToMission(noteIds, missionId);
       return { noteIds, missionId };
     },
+    onMutate: async ({ noteIds, missionId }) => {
+      await queryClient.cancelQueries({ queryKey: ['notes'] });
+      
+      const noteIdStrings = noteIds.map(id => id.toString());
+      const previousRootNotes = queryClient.getQueryData<Note[]>(['notes', 'root']);
+      const previousMissionNotes = queryClient.getQueryData<Note[]>(['notes', 'mission', missionId.toString()]);
+      
+      const allFolderQueries = queryClient.getQueriesData<Note[]>({ queryKey: ['notes', 'folder'] });
+      const previousFolderNotes: Map<string, Note[]> = new Map();
+      
+      for (const [queryKey, notes] of allFolderQueries) {
+        if (notes) {
+          const keyStr = JSON.stringify(queryKey);
+          previousFolderNotes.set(keyStr, notes);
+        }
+      }
+      
+      // Remove from root cache
+      queryClient.setQueryData<Note[]>(['notes', 'root'], (old = []) => 
+        old.filter(n => !noteIdStrings.includes(n.id))
+      );
+      
+      // Remove from all folder caches and collect notes to move
+      let notesToMove: Note[] = [];
+      
+      // First try to get notes from root cache
+      const rootNotes = previousRootNotes?.filter(n => noteIdStrings.includes(n.id)) ?? [];
+      notesToMove = [...rootNotes];
+      
+      // Then check all folder caches for any remaining notes
+      for (const [queryKey, notes] of allFolderQueries) {
+        if (notes) {
+          const folderNotes = notes.filter(n => noteIdStrings.includes(n.id));
+          // Add any notes we haven't already collected
+          for (const note of folderNotes) {
+            if (!notesToMove.some(n => n.id === note.id)) {
+              notesToMove.push(note);
+            }
+          }
+          // Remove from this folder cache
+          queryClient.setQueryData<Note[]>(queryKey, notes.filter(n => !noteIdStrings.includes(n.id)));
+        }
+      }
+      
+      // Add to mission cache with updated properties
+      queryClient.setQueryData<Note[]>(['notes', 'mission', missionId.toString()], (old = []) => 
+        [...notesToMove.map(n => ({ ...n, missionId, folderId: undefined })), ...(old ?? [])]
+      );
+      
+      return { previousRootNotes, previousMissionNotes, previousFolderNotes };
+    },
+    onError: (err, { missionId }, context) => {
+      const errorMessage = getActorErrorMessage(err);
+      console.error('Move notes to mission failed:', errorMessage);
+      
+      if (context?.previousRootNotes) {
+        queryClient.setQueryData(['notes', 'root'], context.previousRootNotes);
+      }
+      if (context?.previousMissionNotes) {
+        queryClient.setQueryData(['notes', 'mission', missionId.toString()], context.previousMissionNotes);
+      }
+      if (context?.previousFolderNotes) {
+        context.previousFolderNotes.forEach((notes, keyStr) => {
+          const queryKey = JSON.parse(keyStr);
+          queryClient.setQueryData(queryKey, notes);
+        });
+      }
+      
+      throw new Error(`Failed to move notes to mission: ${errorMessage}`);
+    },
     onSuccess: async ({ missionId }) => {
       // Targeted invalidations
       await queryClient.invalidateQueries({ queryKey: ['notes', 'root'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'mission', missionId.toString()], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['notes', 'folder'] });
-    },
-    onError: (error) => {
-      const errorMessage = getActorErrorMessage(error);
-      console.error('Move notes to mission failed:', errorMessage);
-      throw new Error(`Failed to move notes to mission: ${errorMessage}`);
     },
   });
 }

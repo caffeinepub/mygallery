@@ -1,36 +1,73 @@
 {
   "kind": "build_request",
-  "title": "Increase splash/intro overlay duration to 2 seconds (no other changes)",
+  "title": "Fix moving files/links/notes from folders to missions (immediate + correct transfer)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
+      "text": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "recent-messages"
         ],
         "quotes": [
-          "Refine it's duration a bit further to 2 sec . Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της απλά κάνε το splash να κρατάει λίγο παραπάνω πριν εμφανιστεί η κεντρική σελίδα της εφαρμογής ."
+          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
         ]
       },
       "acceptanceCriteria": [
-        "When the intro/splash overlay is shown, it takes approximately 2000ms from mount until it calls onComplete and is removed.",
-        "The fade/transition timing is consistent with the 2-second duration (no premature completion).",
-        "No other UI flows, authentication behavior, navigation, or data functionality changes."
+        "From a folder view, moving one or more files/links to a mission removes them from the folder list immediately after the action completes.",
+        "From a folder view, moving one or more files/links to a mission makes them appear in the mission’s file list immediately after the action completes.",
+        "The behavior works whether the moved files/links originated from the root list cache or from any folder list cache (i.e., optimistic updates must not rely only on the root list).",
+        "If the move fails, the UI rolls back to the pre-move state (items remain in their original folder/list)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
+        ]
+      },
+      "acceptanceCriteria": [
+        "From a folder view, moving one or more notes to a mission removes them from the folder notes list immediately after the action completes.",
+        "From a folder view, moving one or more notes to a mission makes them appear in the mission’s notes list immediately after the action completes.",
+        "If the move fails, the UI rolls back to the pre-move state (notes remain in their original folder/list)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Ensure backend move operations correctly detach moved items from folders when moving them to missions: (a) files/links moved to a mission must have folderId cleared and missionId set, and (b) notes moved to a mission must have folderId cleared and missionId set (and any location/fileLocation fields updated consistently if used by the app).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "Τα αρχεία ,links και notes που έχει ο χρήστης σε folders να μεταφέρονται σωστά και άμεσα σε mission εφόσον ο χρήστης επιλέξει από τα folder να τα μετακινήσει σε mission ."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After calling the backend move-to-mission method(s), moved files/links are no longer returned by folder-scoped queries and are returned by mission-scoped queries.",
+        "After calling the backend move-to-mission method(s), moved notes are no longer returned by folder-scoped queries and are returned by mission-scoped queries.",
+        "No changes are introduced to unrelated backend behaviors or APIs beyond what is necessary to make the move operation correct."
       ]
     }
   ],
   "constraints": [
-    "Do not modify backend code or data/state schemas.",
-    "Do not change any app functionality besides the splash/intro overlay timing.",
-    "Do not edit any files under frontend/src/components/ui or any frontend immutablePaths listed in SYSTEM_CONTEXT."
+    "Do not make any other changes to the application beyond fixing the incorrect/non-immediate transfer of files/links/notes from folders to missions.",
+    "Do not modify any files under frontend/src/components/ui (read-only components).",
+    "Keep the backend as a single Motoko actor (all logic in backend/main.mo); only add a migration file if strictly required by state changes (not expected for this bugfix)."
   ],
   "nonGoals": [
-    "Redesigning the splash screen visuals or changing its content.",
-    "Changing when the splash triggers (e.g., login/return behavior).",
-    "Blocking user interaction during the splash (keep existing interaction behavior unchanged unless already blocking)."
+    "Do not redesign UI, change styling, or add new UI features.",
+    "Do not add new mission/folder capabilities beyond fixing the move behavior.",
+    "Do not change upload/progress-bar behavior (this request is only about moving items from folders to missions)."
   ],
   "imageRequirements": {
     "required": [],

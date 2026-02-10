@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-intro-splash-overlay-so-it-remains-on-screen-for-2-seconds-total-before-completing-and-dismissing-without-changing-any-other-app-behavior-or-features",
-      "featureTitle": "Update the intro/splash overlay so it remains on screen for ~2 seconds total before completing and dismissing, without changing any other app behavior or features.",
+      "featureId": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-items-from-a-folder-to-a-mission-the-moved-files-including-link-items-stored-as-filemetadata-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
+      "featureTitle": "Fix the \"move to mission\" flow so that when a user moves items from a folder to a mission, the moved files (including link-items stored as FileMetadata) appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
       "files": [
-        "frontend/src/components/IntroScreen.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,6 +18,26 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-move-to-mission-flow-so-that-when-a-user-moves-notes-from-a-folder-to-a-mission-the-moved-notes-appear-in-the-target-mission-immediately-and-are-removed-from-the-source-folder-immediately-without-requiring-a-manual-refresh-or-navigation-away-back",
+      "featureTitle": "Fix the \"move to mission\" flow so that when a user moves notes from a folder to a mission, the moved notes appear in the target mission immediately and are removed from the source folder immediately, without requiring a manual refresh or navigation away/back.",
+      "files": [
+        "frontend/src/hooks/useNotesQueries.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }
