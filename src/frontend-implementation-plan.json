@@ -1,48 +1,87 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Mission task toggle: immediate UI + cache-consistent autosave",
+  "title": "Make MYL installable as an Android Chrome PWA (manifest + service worker + standalone)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure MissionDetailFullScreenView task checkbox toggles update UI immediately (checkbox, styling, progress) without refresh and without snapping back.",
+      "summary": "Update the web app manifest to MYL branding and include exactly 192x192 and 512x512 PNG icons using the generated bullseye assets.",
       "acceptanceCriteria": [
-        "In MissionDetailFullScreenView, clicking a task checkbox immediately updates the checkbox state, the task text styling (line-through), and the progress counters/bar in the same screen.",
-        "The immediate UI update works in both directions (complete ↔ incomplete).",
-        "The UI state does not “snap back” to the previous completion state after the mutation resolves (i.e., no visible revert caused by stale cache/baseline).",
-        "No other mission behaviors, screens, or features are changed."
+        "`/manifest.json` loads without errors in Chrome DevTools → Application → Manifest.",
+        "Manifest shows: Name=MYL, Short name=MYL, Background color=#ffffff, Theme color=#6A0DAD, Display=standalone.",
+        "Manifest includes at least one 192x192 PNG icon and one 512x512 PNG icon that load successfully (no 404)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "path": "frontend/public/manifest.json",
           "operation": "modify",
-          "description": "Adjust the task-toggle mutation’s post-mutation React Query invalidation so it does not force an immediate refetch of the active mission-detail query (which can cause visible snap-back). Keep optimistic cache updates as the immediate source of truth, and mark data stale for later/background refresh using a non-active refetch mode where supported."
+          "description": "Update manifest fields to MYL branding: set name/short_name to \"MYL\", background_color to \"#ffffff\", theme_color to \"#6A0DAD\", display to \"standalone\"; replace the icons array so it contains exactly two valid PNG entries (192x192 and 512x512) pointing to frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png and frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png."
         },
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Ensure the view renders directly from React Query mission detail data (already used) and remove any post-toggle logic that could overwrite the immediate optimistic state. Keep changes minimal and limited to task toggle/add flows only; do not alter unrelated UI or behaviors."
+          "path": "frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png",
+          "operation": "create",
+          "description": "Add the generated MYL bullseye icon asset (192x192) at this exact path so the manifest icon URL resolves successfully."
+        },
+        {
+          "path": "frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png",
+          "operation": "create",
+          "description": "Add the generated MYL bullseye icon asset (512x512) at this exact path so the manifest icon URL resolves successfully."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Prevent stale mission/task references after task-toggle mutation; sync autosave baseline from the latest React Query cache state to avoid autosave overwriting the toggle.",
+      "summary": "Align index.html PWA meta tags (theme color and app name) and ensure the manifest link remains correct.",
       "acceptanceCriteria": [
-        "After toggling a task, the mission tasks stored in React Query for the mission detail reflect the new completion value immediately and remain consistent after the backend call completes.",
-        "Autosave does not re-save an older tasks array that would undo the completion toggle.",
-        "No changes are made to backend APIs or mission/task schema."
+        "Chrome DevTools → Application → Manifest reflects the updated theme color and app name metadata without warnings caused by missing/invalid manifest linkage.",
+        "The HTML document contains a manifest link to `/manifest.json` and a theme-color meta tag set to `#6A0DAD`."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MissionDetailFullScreenView.tsx",
+          "path": "frontend/index.html",
           "operation": "modify",
-          "description": "Replace any use of a potentially stale `selectedMission` reference after `mutateAsync` (e.g., in `setTimeout(...selectedMission...)`) with a read of the latest mission detail from the React Query cache via `useQueryClient().getQueryData(['missions','detail', missionId.toString()])`, then call `syncBaseline` with those latest tasks so autosave baseline cannot drift or revert the toggle."
+          "description": "Update PWA-related tags for MYL: set <meta name=\"theme-color\"> content to \"#6A0DAD\"; set app-name meta tags (apple-mobile-web-app-title, application-name) to \"MYL\"; ensure <link rel=\"manifest\" href=\"/manifest.json\" /> remains present and correct."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Ensure the service worker registers and controls the page after reload, and that sw.js includes an active fetch handler for installability.",
+      "acceptanceCriteria": [
+        "In Chrome DevTools → Application → Service Workers, `/sw.js` shows as \"activated and is running\".",
+        "After a normal reload, `navigator.serviceWorker.controller` is non-null.",
+        "The service worker script contains a `self.addEventListener('fetch', ...)` handler."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Review and adjust the existing service worker registration to ensure it reliably registers `/sw.js` only in secure contexts (HTTPS/localhost) and results in the page being controlled after a normal reload (controller becomes non-null). Keep changes limited to installability/registration behavior."
         },
         {
-          "path": "frontend/src/hooks/useMissionAutosave.ts",
+          "path": "frontend/public/sw.js",
           "operation": "modify",
-          "description": "Harden autosave baseline syncing so that it cannot accidentally persist an older tasks array after external mutations: ensure baseline updates always deep-copy tasks as already done, and (if needed) add a small guard/utility to make it easy for callers to sync baseline from the latest cached mission state rather than from captured component variables. Keep behavior unchanged beyond preventing overwrite of the toggled completion state."
+          "description": "Confirm `/sw.js` retains an active `fetch` event handler and claims clients so it can control the page after reload. Keep changes limited to what is necessary for Chrome installability signals."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Ensure installed MYL launches in standalone mode and all Chrome installability signals are satisfied for Android Chrome.",
+      "acceptanceCriteria": [
+        "When installed on Android Chrome, launching MYL opens without the browser address bar (standalone).",
+        "On Android Chrome, the overflow menu includes an install option (e.g., \"Install app\") when visiting the site over HTTPS (or localhost during testing)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/manifest.json",
+          "operation": "modify",
+          "description": "Double-check manifest installability-critical fields are set for standalone install behavior (display=\"standalone\", start_url and scope appropriate for launching) while keeping the MYL branding values from REQ-1."
+        },
+        {
+          "path": "frontend/PWA_INSTALLABILITY_NOTES.md",
+          "operation": "modify",
+          "description": "Update the installability verification notes to reference MYL (name/theme color) and the new icon asset paths (frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png and frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png), focusing on Android Chrome standalone/install menu checks."
         }
       ]
     }

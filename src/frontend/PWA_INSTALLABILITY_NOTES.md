@@ -1,109 +1,119 @@
-# PWA Installability Verification Guide
+# MYL PWA Installability Verification
 
-This document provides a checklist for verifying that MyGallery meets Chrome's PWA installability criteria.
+This document provides a comprehensive checklist for verifying that MYL meets all Chrome PWA installability criteria for Android.
 
-## Chrome PWA Installability Requirements
+## Prerequisites
 
-For Chrome to show the Install button (in the omnibox or menu), the following criteria must be met:
+- **Secure Context**: The app must be served over HTTPS (or localhost for testing)
+- **Service Worker**: Must be registered and active with a fetch event handler
+- **Web App Manifest**: Must be valid and include required fields
+- **Icons**: Must include at least one icon of 192x192 or larger
 
-### 1. Secure Context ✅
-- **Requirement**: App must be served over HTTPS or localhost
-- **Verification**: Check the URL protocol in the browser address bar
-- **Status**: Automatically satisfied on localhost during development and on HTTPS in production
+## Chrome DevTools Verification Steps
 
-### 2. Valid Web App Manifest ✅
-- **Requirement**: A valid `manifest.json` with required fields
-- **Verification Steps**:
-  1. Open Chrome DevTools (F12)
-  2. Go to **Application** tab → **Manifest** section
-  3. Verify all fields are present and valid:
-     - ✅ `name`: "MyGallery"
-     - ✅ `short_name`: "MyGallery"
-     - ✅ `start_url`: "/"
-     - ✅ `display`: "standalone"
-     - ✅ `icons`: Array with 192x192 and 512x512 PNG icons
-     - ✅ `theme_color`: "#3b82f6"
-     - ✅ `background_color`: "#ffffff"
-  4. Check for any errors or warnings in the Manifest section
+### 1. Check Manifest (Application → Manifest)
 
-### 3. Valid Icons ✅
-- **Requirement**: At least one icon of 192x192 pixels and one of 512x512 pixels
-- **Icon Paths**:
-  - 192x192: `/assets/generated/mygallery-mission-icon-192.dim_192x192.png`
-  - 512x512: `/assets/generated/mygallery-mission-icon-512.dim_512x512.png`
-- **Verification Steps**:
-  1. In DevTools → **Application** → **Manifest**, check the Icons section
-  2. Verify both icons load without errors (no red X or broken image)
-  3. Click on each icon to preview it
-  4. Ensure icons are valid PNG files at the stated dimensions
+Open Chrome DevTools → Application → Manifest and verify:
 
-### 4. Service Worker ✅
-- **Requirement**: A registered and active service worker with a fetch handler
-- **Verification Steps**:
-  1. Open Chrome DevTools → **Application** tab → **Service Workers** section
-  2. Verify `/sw.js` is listed
-  3. Check status shows: **"activated and is running"**
-  4. Verify the service worker has a fetch event handler (present in `/sw.js`)
-  5. After page reload, check that `navigator.serviceWorker.controller` is not null:
-     ```javascript
-     // Run in Console:
-     navigator.serviceWorker.controller
-     // Should return: ServiceWorker object (not null)
-     ```
+- ✅ **Name**: "MYL"
+- ✅ **Short Name**: "MYL"
+- ✅ **Start URL**: "/"
+- ✅ **Display Mode**: "standalone"
+- ✅ **Theme Color**: "#6A0DAD" (purple)
+- ✅ **Background Color**: "#ffffff" (white)
+- ✅ **Icons**: At least one 192x192 and one 512x512 icon
+  - `/assets/generated/myl-bullseye-icon.dim_192x192.png`
+  - `/assets/generated/myl-bullseye-icon.dim_512x512.png`
+- ✅ No errors or warnings displayed
 
-### 5. Start URL Loads Successfully ✅
-- **Requirement**: The `start_url` specified in manifest must load without errors
-- **Verification**: Navigate to the root path `/` and verify the app loads correctly
+### 2. Check Service Worker (Application → Service Workers)
 
-## How to Test Installability
+Open Chrome DevTools → Application → Service Workers and verify:
 
-### Desktop Chrome
-1. Open the app in Chrome (HTTPS or localhost)
-2. Look for the **Install** icon in the omnibox (address bar) - typically a ⊕ or 💻 icon
-3. Alternatively, click the three-dot menu → **Install MyGallery...**
-4. If the Install option appears, the PWA is installable ✅
+- ✅ Service Worker status: "activated and is running"
+- ✅ Source: `/sw.js`
+- ✅ After reload: `navigator.serviceWorker.controller` is non-null (check in Console)
 
-### Mobile Chrome (Android)
-1. Open the app in Chrome on Android
-2. Look for the **Add to Home Screen** banner or prompt
-3. Alternatively, tap the three-dot menu → **Add to Home Screen** or **Install app**
-4. If the option appears, the PWA is installable ✅
+### 3. Check Installability (Application → Manifest)
 
-### Installed App Behavior
-Once installed, verify:
-- ✅ App opens in a **standalone window** (no browser UI/address bar)
-- ✅ App icon appears on desktop/home screen
-- ✅ App name is "MyGallery"
-- ✅ Theme color matches the app design
+In the Manifest pane, look for:
 
-## Troubleshooting
+- ✅ "Add to home screen" or "Install" link is available
+- ✅ No installability errors listed
 
-### Install Button Not Showing
-1. **Check DevTools Console** for errors during service worker registration
-2. **Verify Manifest** in DevTools → Application → Manifest (no errors/warnings)
-3. **Check Service Worker** status in DevTools → Application → Service Workers
-4. **Verify Icons** load correctly in DevTools → Application → Manifest → Icons
-5. **Clear Cache** and reload: DevTools → Application → Clear storage → Clear site data
-6. **Hard Reload**: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+### 4. Test Installation on Android Chrome
 
-### Service Worker Not Activating
-1. Check DevTools → Application → Service Workers
-2. If stuck in "waiting" state, click **skipWaiting** button
-3. Verify no console errors during registration
-4. Try unregistering and re-registering:
-   ```javascript
-   // In Console:
-   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
-   // Then reload the page
-   ```
+On an Android device with Chrome:
 
-### Icons Not Loading
-1. Verify icon files exist at the specified paths
-2. Check Network tab in DevTools for 404 errors on icon requests
-3. Ensure icon files are valid PNG format
-4. Verify icon dimensions match the manifest declarations
+1. Navigate to your app URL (must be HTTPS)
+2. Open Chrome menu (three dots)
+3. ✅ Verify "Install app" or "Add to Home screen" option appears
+4. Tap to install
+5. ✅ App icon appears on home screen with the purple bullseye icon
+6. Launch the installed app
+7. ✅ App opens in standalone mode (no browser address bar)
+8. ✅ Status bar color matches theme color (#6A0DAD)
+
+## Common Issues and Solutions
+
+### Issue: "Install app" option not appearing
+
+**Possible causes:**
+- Not served over HTTPS (localhost is OK for testing)
+- Service Worker not registered or not active
+- Manifest missing or invalid
+- Icons missing or wrong size
+- Already installed (uninstall first to test again)
+
+**Solutions:**
+1. Check DevTools Console for service worker registration errors
+2. Verify manifest loads without 404 errors
+3. Ensure icon files exist at specified paths
+4. Clear site data and reload (DevTools → Application → Clear storage)
+
+### Issue: Service Worker not activating
+
+**Solutions:**
+1. Check Console for registration errors
+2. Verify `/sw.js` file exists and is accessible
+3. Check for syntax errors in service worker code
+4. Try "Update on reload" in DevTools → Application → Service Workers
+5. Clear all caches and reload
+
+### Issue: Icons not loading
+
+**Solutions:**
+1. Verify icon files exist at:
+   - `/assets/generated/myl-bullseye-icon.dim_192x192.png`
+   - `/assets/generated/myl-bullseye-icon.dim_512x512.png`
+2. Check Network tab for 404 errors
+3. Ensure paths in manifest.json match actual file locations
+4. Clear cache and reload
+
+### Issue: App opens in browser instead of standalone
+
+**Solutions:**
+1. Verify `"display": "standalone"` in manifest.json
+2. Uninstall and reinstall the app
+3. Check that manifest is properly linked in index.html
+
+## Testing Checklist
+
+Before deploying, verify:
+
+- [ ] App loads over HTTPS (or localhost)
+- [ ] Manifest loads without errors
+- [ ] Both icon files (192x192 and 512x512) load successfully
+- [ ] Service Worker registers and activates
+- [ ] `navigator.serviceWorker.controller` is non-null after reload
+- [ ] "Install app" appears in Chrome menu on Android
+- [ ] App installs successfully
+- [ ] Installed app opens in standalone mode
+- [ ] App icon displays correctly on home screen
+- [ ] Theme color (#6A0DAD) applies to status bar
 
 ## Additional Resources
+
 - [Chrome PWA Installability Criteria](https://web.dev/install-criteria/)
-- [PWA Checklist](https://web.dev/pwa-checklist/)
-- [Service Worker Lifecycle](https://web.dev/service-worker-lifecycle/)
+- [Web App Manifest Specification](https://www.w3.org/TR/appmanifest/)
+- [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)

@@ -1,6 +1,6 @@
-// Service Worker for MyGallery PWA - Optimized for performance and installability
-const CACHE_NAME = 'mygallery-v1';
-const RUNTIME_CACHE = 'mygallery-runtime';
+// Service Worker for MYL PWA - Optimized for performance and installability
+const CACHE_NAME = 'myl-v1';
+const RUNTIME_CACHE = 'myl-runtime';
 const MAX_RUNTIME_CACHE_SIZE = 50; // Limit runtime cache entries
 const MAX_CACHE_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

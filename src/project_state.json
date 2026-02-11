@@ -1,32 +1,57 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [
-    "In mission view, toggling a task's completed checkbox (complete ↔ incomplete) does not update the mission immediately; requires immediate mission refresh/update."
+  "summary": "Configure the MYL app to be a fully installable Progressive Web App (PWA) on Android Chrome (manifest + service worker + standalone install experience) without changing any other app functionality.",
+  "architectural_notes": [
+    "Add and link a valid manifest.json (name/short_name MYL, background white, theme_color #6A0DAD, display standalone, icons 192x192 and 512x512).",
+    "Register a service worker so Chrome PWA installability criteria are met and the Android Chrome 'Install app' option appears."
   ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
+  "imageRequirements": "## Required Images\n- Minimalist purple bullseye/target icon on white background, flat geometric lines, no shadows or gradients, centered (myl-bullseye-icon.dim_192x192.png)\n- Minimalist purple bullseye/target icon on white background, flat geometric lines, no shadows or gradients, centered (myl-bullseye-icon.dim_512x512.png)",
   "existing_features": [
     {
-      "id": "feature-fix-the-mission-view-so-that-toggling-a-task-checkbox-incomplete-complete-and-complete-incomplete-updates-the-mission-ui-immediately-without-requiring-a-manual-refresh-or-waiting-for-a-later-mission-refetch",
-      "title": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
+      "id": "feature-update-the-web-app-manifest-at-frontend-public-manifest-json-to-match-the-myl-branding-and-chrome-installability-requirements-set-name-to-myl-short-name-to-myl-background-color-to-ffffff-theme-color-to-6a0dad-display-to-standalone-and-ensure-the-icons-array-includes-valid-png-entries-for-exactly-192x192-and-512x512-using-the-generated-myl-bullseye-icon-files",
+      "title": "Update the web app manifest at `frontend/public/manifest.json` to match the MYL branding and Chrome installability requirements: set `name` to \"MYL\", `short_name` to \"MYL\", `background_color` to \"#ffffff\", `theme_color` to \"#6A0DAD\", `display` to \"standalone\", and ensure the `icons` array includes valid PNG entries for exactly 192x192 and 512x512 using the generated MYL bullseye icon files.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-task-toggle-flow-does-not-depend-on-stale-component-state-when-syncing-post-mutation-mission-task-data-e-g-do-not-use-a-stale-selectedmission-reference-after-mutateasync-after-a-task-toggle-completes-any-baseline-cache-sync-must-use-the-latest-mission-tasks-from-the-react-query-cache-for-that-mission-so-that-subsequent-autosave-behavior-cannot-overwrite-the-toggled-completion-state",
-      "title": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
+      "id": "feature-update-frontend-index-html-pwa-related-tags-to-align-with-the-myl-pwa-configuration-set-meta-name-theme-color-to-6a0dad-update-any-pwa-app-name-meta-tags-e-g-apple-mobile-web-app-title-application-name-to-myl-and-ensure-the-manifest-link-remains-present-and-correct-link-rel-manifest-href-manifest-json",
+      "title": "Update `frontend/index.html` PWA-related tags to align with the MYL PWA configuration: set `<meta name=\"theme-color\">` to `#6A0DAD`; update any PWA app-name meta tags (e.g., `apple-mobile-web-app-title`, `application-name`) to \"MYL\"; and ensure the manifest link remains present and correct (`<link rel=\"manifest\" href=\"/manifest.json\" />`).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-ensure-the-service-worker-is-enabled-and-registered-so-that-chrome-android-considers-the-app-installable-keep-or-adjust-the-existing-service-worker-registration-in-frontend-index-html-so-it-registers-sw-js-in-secure-contexts-and-ensure-frontend-public-sw-js-includes-an-active-fetch-handler-and-successfully-controls-the-page-after-reload",
+      "title": "Ensure the service worker is enabled and registered so that Chrome (Android) considers the app installable: keep or adjust the existing service worker registration in `frontend/index.html` so it registers `/sw.js` in secure contexts, and ensure `frontend/public/sw.js` includes an active `fetch` handler and successfully controls the page after reload.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-configure-the-app-so-that-when-installed-from-chrome-on-android-it-launches-in-standalone-mode-no-browser-ui-and-verify-installability-signals-are-satisfied-so-chrome-shows-an-installation-entry-e-g-install-app-in-the-android-chrome-menu",
+      "title": "Configure the app so that when installed from Chrome on Android it launches in standalone mode (no browser UI), and verify installability signals are satisfied so Chrome shows an installation entry (e.g., \"Install app\") in the Android Chrome menu.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Make mission task completion toggle update immediately",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Make app a fully installable PWA on Android Chrome (manifest.json, registered service worker, standalone display, and 'Install app' prompt) with MYL branding and required icons.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "MYL",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

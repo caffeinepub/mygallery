@@ -1,58 +1,108 @@
 {
   "kind": "build_request",
-  "title": "Make mission task completion toggle update immediately",
+  "title": "Make MYL fully installable as an Android Chrome PWA (manifest + service worker + standalone)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
+      "text": "Update the web app manifest at `frontend/public/manifest.json` to match the MYL branding and Chrome installability requirements: set `name` to \"MYL\", `short_name` to \"MYL\", `background_color` to \"#ffffff\", `theme_color` to \"#6A0DAD\", `display` to \"standalone\", and ensure the `icons` array includes valid PNG entries for exactly 192x192 and 512x512 using the generated MYL bullseye icon files.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-8"
         ],
         "quotes": [
-          "Στην λειτουργία mission η επιλογή τικ ολοκληρωμένου task ή η επιλογή τικ από ολοκληρωμένο σε ανολοκλήρωτο να γίνεται άμεσα με άμεση ενημέρωση του mission. Μην αλλάξεις απολύτως τίποτα άλλο στην εφαρμογή και στις λειτουργίες της."
+          "Create and connect a proper manifest.json.",
+          "App settings: Name: MYL; Short name: MYL; Background: white; Theme color: purple (#6A0DAD)",
+          "Make sure icons 192x192 and 512x512 are created and the app passes Chrome PWA install criteria."
         ]
       },
       "acceptanceCriteria": [
-        "In MissionDetailFullScreenView, clicking a task checkbox immediately updates the checkbox state, the task text styling (line-through), and the progress counters/bar in the same screen.",
-        "The immediate UI update works in both directions (complete ↔ incomplete).",
-        "The UI state does not “snap back” to the previous completion state after the mutation resolves (i.e., no visible revert caused by stale cache/baseline).",
-        "No other mission behaviors, screens, or features are changed."
+        "`/manifest.json` loads without errors in Chrome DevTools → Application → Manifest.",
+        "Manifest shows: Name=MYL, Short name=MYL, Background color=#ffffff, Theme color=#6A0DAD, Display=standalone.",
+        "Manifest includes at least one 192x192 PNG icon and one 512x512 PNG icon that load successfully (no 404)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
+      "text": "Update `frontend/index.html` PWA-related tags to align with the MYL PWA configuration: set `<meta name=\"theme-color\">` to `#6A0DAD`; update any PWA app-name meta tags (e.g., `apple-mobile-web-app-title`, `application-name`) to \"MYL\"; and ensure the manifest link remains present and correct (`<link rel=\"manifest\" href=\"/manifest.json\" />`).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-8"
         ],
         "quotes": [
-          "...να γίνεται άμεσα με άμεση ενημέρωση του mission. Μην αλλάξεις απολύτως τίποτα άλλο..."
+          "Create and connect a proper manifest.json.",
+          "Theme color: purple (#6A0DAD)",
+          "App Name: MYL"
         ]
       },
       "acceptanceCriteria": [
-        "After toggling a task, the mission tasks stored in React Query for the mission detail reflect the new completion value immediately and remain consistent after the backend call completes.",
-        "Autosave does not re-save an older tasks array that would undo the completion toggle.",
-        "No changes are made to backend APIs or mission/task schema."
+        "Chrome DevTools → Application → Manifest reflects the updated theme color and app name metadata without warnings caused by missing/invalid manifest linkage.",
+        "The HTML document contains a manifest link to `/manifest.json` and a theme-color meta tag set to `#6A0DAD`."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Ensure the service worker is enabled and registered so that Chrome (Android) considers the app installable: keep or adjust the existing service worker registration in `frontend/index.html` so it registers `/sw.js` in secure contexts, and ensure `frontend/public/sw.js` includes an active `fetch` handler and successfully controls the page after reload.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Enable and register a service worker so the app meets Chrome installation criteria.",
+          "Make sure the “Install app” option appears in Chrome on Android."
+        ]
+      },
+      "acceptanceCriteria": [
+        "In Chrome DevTools → Application → Service Workers, `/sw.js` shows as \"activated and is running\".",
+        "After a normal reload, `navigator.serviceWorker.controller` is non-null.",
+        "The service worker script contains a `self.addEventListener('fetch', ...)` handler."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Configure the app so that when installed from Chrome on Android it launches in standalone mode (no browser UI), and verify installability signals are satisfied so Chrome shows an installation entry (e.g., \"Install app\") in the Android Chrome menu.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Configure the app so when installed it opens in standalone mode, without the browser bar.",
+          "Make sure the “Install app” option appears in Chrome on Android."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When installed on Android Chrome, launching MYL opens without the browser address bar (standalone).",
+        "On Android Chrome, the overflow menu includes an install option (e.g., \"Install app\") when visiting the site over HTTPS (or localhost during testing)."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other functionality or UI beyond the minimum required to make mission task completion toggles update immediately.",
-    "Do not edit files under frontend/src/components/ui (read-only).",
-    "Keep backend as a single Motoko actor; do not introduce additional services or databases."
+    "Do not change any other application behavior or features beyond PWA installability/branding changes.",
+    "Do not modify files under `frontend/src/components/ui` or any paths listed as immutable by the system context."
   ],
   "nonGoals": [
-    "Redesigning the Missions UI or changing styling.",
-    "Changing mission autosave debounce timing or introducing new autosave features beyond preventing the toggle from being overwritten.",
-    "Adding new mission/task capabilities (reordering tasks, editing task text, bulk actions, etc.)."
+    "Adding new non-PWA features, screens, flows, or backend changes.",
+    "Implementing push notifications, background sync, or offline-first product changes beyond what is required for Chrome PWA installability."
   ],
   "imageRequirements": {
-    "required": [],
+    "required": [
+      "Minimalist purple bullseye/target icon on white background, flat geometric lines, no shadows or gradients, centered (myl-bullseye-icon.dim_192x192.png)",
+      "Minimalist purple bullseye/target icon on white background, flat geometric lines, no shadows or gradients, centered (myl-bullseye-icon.dim_512x512.png)"
+    ],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

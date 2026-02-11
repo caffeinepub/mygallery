@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-mission-view-so-that-toggling-a-task-checkbox-incomplete-complete-and-complete-incomplete-updates-the-mission-ui-immediately-without-requiring-a-manual-refresh-or-waiting-for-a-later-mission-refetch",
-      "featureTitle": "Fix the Mission view so that toggling a task checkbox (incomplete → complete and complete → incomplete) updates the mission UI immediately, without requiring a manual refresh or waiting for a later mission refetch.",
+      "featureId": "feature-update-the-web-app-manifest-at-frontend-public-manifest-json-to-match-the-myl-branding-and-chrome-installability-requirements-set-name-to-myl-short-name-to-myl-background-color-to-ffffff-theme-color-to-6a0dad-display-to-standalone-and-ensure-the-icons-array-includes-valid-png-entries-for-exactly-192x192-and-512x512-using-the-generated-myl-bullseye-icon-files",
+      "featureTitle": "Update the web app manifest at `frontend/public/manifest.json` to match the MYL branding and Chrome installability requirements: set `name` to \"MYL\", `short_name` to \"MYL\", `background_color` to \"#ffffff\", `theme_color` to \"#6A0DAD\", `display` to \"standalone\", and ensure the `icons` array includes valid PNG entries for exactly 192x192 and 512x512 using the generated MYL bullseye icon files.",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx",
-        "frontend/src/hooks/useMissionsQueries.ts"
+        "frontend/public/manifest.json"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -23,10 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-task-toggle-flow-does-not-depend-on-stale-component-state-when-syncing-post-mutation-mission-task-data-e-g-do-not-use-a-stale-selectedmission-reference-after-mutateasync-after-a-task-toggle-completes-any-baseline-cache-sync-must-use-the-latest-mission-tasks-from-the-react-query-cache-for-that-mission-so-that-subsequent-autosave-behavior-cannot-overwrite-the-toggled-completion-state",
-      "featureTitle": "Ensure the task-toggle flow does not depend on stale component state when syncing post-mutation mission/task data (e.g., do not use a stale `selectedMission` reference after `mutateAsync`). After a task toggle completes, any baseline/cache sync must use the latest mission tasks from the React Query cache for that mission so that subsequent autosave behavior cannot overwrite the toggled completion state.",
+      "featureId": "feature-update-frontend-index-html-pwa-related-tags-to-align-with-the-myl-pwa-configuration-set-meta-name-theme-color-to-6a0dad-update-any-pwa-app-name-meta-tags-e-g-apple-mobile-web-app-title-application-name-to-myl-and-ensure-the-manifest-link-remains-present-and-correct-link-rel-manifest-href-manifest-json",
+      "featureTitle": "Update `frontend/index.html` PWA-related tags to align with the MYL PWA configuration: set `<meta name=\"theme-color\">` to `#6A0DAD`; update any PWA app-name meta tags (e.g., `apple-mobile-web-app-title`, `application-name`) to \"MYL\"; and ensure the manifest link remains present and correct (`<link rel=\"manifest\" href=\"/manifest.json\" />`).",
       "files": [
-        "frontend/src/components/MissionDetailFullScreenView.tsx"
+        "frontend/index.html"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -39,6 +38,48 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-service-worker-is-enabled-and-registered-so-that-chrome-android-considers-the-app-installable-keep-or-adjust-the-existing-service-worker-registration-in-frontend-index-html-so-it-registers-sw-js-in-secure-contexts-and-ensure-frontend-public-sw-js-includes-an-active-fetch-handler-and-successfully-controls-the-page-after-reload",
+      "featureTitle": "Ensure the service worker is enabled and registered so that Chrome (Android) considers the app installable: keep or adjust the existing service worker registration in `frontend/index.html` so it registers `/sw.js` in secure contexts, and ensure `frontend/public/sw.js` includes an active `fetch` handler and successfully controls the page after reload.",
+      "files": [
+        "frontend/index.html",
+        "frontend/public/sw.js"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-configure-the-app-so-that-when-installed-from-chrome-on-android-it-launches-in-standalone-mode-no-browser-ui-and-verify-installability-signals-are-satisfied-so-chrome-shows-an-installation-entry-e-g-install-app-in-the-android-chrome-menu",
+      "featureTitle": "Configure the app so that when installed from Chrome on Android it launches in standalone mode (no browser UI), and verify installability signals are satisfied so Chrome shows an installation entry (e.g., \"Install app\") in the Android Chrome menu.",
+      "files": [
+        "frontend/PWA_INSTALLABILITY_NOTES.md",
+        "frontend/public/manifest.json"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }
