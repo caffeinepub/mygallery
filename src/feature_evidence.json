@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-web-app-manifest-at-frontend-public-manifest-json-to-match-the-myl-branding-and-chrome-installability-requirements-set-name-to-myl-short-name-to-myl-background-color-to-ffffff-theme-color-to-6a0dad-display-to-standalone-and-ensure-the-icons-array-includes-valid-png-entries-for-exactly-192x192-and-512x512-using-the-generated-myl-bullseye-icon-files",
-      "featureTitle": "Update the web app manifest at `frontend/public/manifest.json` to match the MYL branding and Chrome installability requirements: set `name` to \"MYL\", `short_name` to \"MYL\", `background_color` to \"#ffffff\", `theme_color` to \"#6A0DAD\", `display` to \"standalone\", and ensure the `icons` array includes valid PNG entries for exactly 192x192 and 512x512 using the generated MYL bullseye icon files.",
+      "featureId": "feature-ensure-multi-file-uploads-from-the-gallery-run-in-the-background-non-blocking-so-the-user-can-navigate-to-other-screens-and-use-other-features-while-uploads-continue-without-freezes-or-ui-slowdowns-caused-by-file-processing-on-the-main-thread",
+      "featureTitle": "Ensure multi-file uploads from the Gallery run in the background (non-blocking) so the user can navigate to other screens and use other features while uploads continue, without freezes or UI slowdowns caused by file processing on the main thread.",
       "files": [
-        "frontend/public/manifest.json"
+        "frontend/src/components/FileUploadSection.tsx",
+        "frontend/src/contexts/UploadContext.tsx",
+        "frontend/src/workers/fileBytes.worker.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,10 +24,13 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-frontend-index-html-pwa-related-tags-to-align-with-the-myl-pwa-configuration-set-meta-name-theme-color-to-6a0dad-update-any-pwa-app-name-meta-tags-e-g-apple-mobile-web-app-title-application-name-to-myl-and-ensure-the-manifest-link-remains-present-and-correct-link-rel-manifest-href-manifest-json",
-      "featureTitle": "Update `frontend/index.html` PWA-related tags to align with the MYL PWA configuration: set `<meta name=\"theme-color\">` to `#6A0DAD`; update any PWA app-name meta tags (e.g., `apple-mobile-web-app-title`, `application-name`) to \"MYL\"; and ensure the manifest link remains present and correct (`<link rel=\"manifest\" href=\"/manifest.json\" />`).",
+      "featureId": "feature-fix-upload-progress-tracking-so-the-global-progress-bar-accurately-reflects-real-progress-for-multi-file-uploads-including-correct-per-file-association-even-when-multiple-files-share-the-same-name-and-remains-visible-updating-until-all-selected-files-finish-success-or-failure",
+      "featureTitle": "Fix upload progress tracking so the global progress bar accurately reflects real progress for multi-file uploads, including correct per-file association even when multiple files share the same name, and remains visible/updating until all selected files finish (success or failure).",
       "files": [
-        "frontend/index.html"
+        "frontend/src/components/FileUploadSection.tsx",
+        "frontend/src/components/UnifiedProgressBar.tsx",
+        "frontend/src/components/UploadQueueRunner.tsx",
+        "frontend/src/contexts/UploadContext.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -42,11 +47,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-service-worker-is-enabled-and-registered-so-that-chrome-android-considers-the-app-installable-keep-or-adjust-the-existing-service-worker-registration-in-frontend-index-html-so-it-registers-sw-js-in-secure-contexts-and-ensure-frontend-public-sw-js-includes-an-active-fetch-handler-and-successfully-controls-the-page-after-reload",
-      "featureTitle": "Ensure the service worker is enabled and registered so that Chrome (Android) considers the app installable: keep or adjust the existing service worker registration in `frontend/index.html` so it registers `/sw.js` in secure contexts, and ensure `frontend/public/sw.js` includes an active `fetch` handler and successfully controls the page after reload.",
+      "featureId": "feature-maximize-upload-speed-for-multi-file-uploads-by-using-controlled-parallelism-limited-concurrency-end-to-end-and-avoid-redundant-expensive-work-e-g-reading-the-same-file-bytes-multiple-times-while-preserving-existing-validation-error-handling-and-user-feedback-toasts",
+      "featureTitle": "Maximize upload speed for multi-file uploads by using controlled parallelism (limited concurrency) end-to-end, and avoid redundant expensive work (e.g., reading the same file bytes multiple times) while preserving existing validation, error handling, and user feedback (toasts).",
       "files": [
-        "frontend/index.html",
-        "frontend/public/sw.js"
+        "frontend/src/components/FileUploadSection.tsx",
+        "frontend/src/components/UploadQueueRunner.tsx",
+        "frontend/src/utils/persistedUploadQueue.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -63,11 +69,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-configure-the-app-so-that-when-installed-from-chrome-on-android-it-launches-in-standalone-mode-no-browser-ui-and-verify-installability-signals-are-satisfied-so-chrome-shows-an-installation-entry-e-g-install-app-in-the-android-chrome-menu",
-      "featureTitle": "Configure the app so that when installed from Chrome on Android it launches in standalone mode (no browser UI), and verify installability signals are satisfied so Chrome shows an installation entry (e.g., \"Install app\") in the Android Chrome menu.",
+      "featureId": "feature-make-background-resumable-uploads-reliable-if-the-app-is-reloaded-closed-during-a-multi-file-upload-persist-in-progress-items-best-effort-and-automatically-resume-them-on-next-app-start-with-progress-correctly-restored-and-updated-during-the-resume-process",
+      "featureTitle": "Make background/resumable uploads reliable: if the app is reloaded/closed during a multi-file upload, persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during the resume process.",
       "files": [
-        "frontend/PWA_INSTALLABILITY_NOTES.md",
-        "frontend/public/manifest.json"
+        "frontend/src/components/UploadQueueRunner.tsx",
+        "frontend/src/contexts/UploadContext.tsx",
+        "frontend/src/utils/persistedUploadQueue.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -80,6 +87,28 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-do-not-change-any-other-application-functionality-or-ui-beyond-what-is-required-to-a-keep-multi-file-gallery-uploads-non-blocking-background-b-improve-upload-speed-c-fix-progress-reporting-and-d-ensure-resumable-behavior",
+      "featureTitle": "Do not change any other application functionality or UI beyond what is required to: (a) keep multi-file gallery uploads non-blocking/background, (b) improve upload speed, (c) fix progress reporting, and (d) ensure resumable behavior.",
+      "files": [
+        "frontend/src/components/FileUploadSection.tsx",
+        "frontend/src/components/UploadQueueRunner.tsx",
+        "frontend/src/contexts/UploadContext.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

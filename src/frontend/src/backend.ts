@@ -89,6 +89,17 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface UserProfile {
+    name: string;
+}
+export interface UploadResponse {
+    id: string;
+}
+export interface PaginatedFiles {
+    files: Array<FileMetadata>;
+    hasMore: boolean;
+}
+export type Time = bigint;
 export interface Note {
     id: string;
     title: string;
@@ -99,16 +110,14 @@ export interface Note {
     folderId?: bigint;
     location?: string;
 }
-export interface PaginatedFiles {
-    files: Array<FileMetadata>;
-    hasMore: boolean;
+export interface UploadStatus {
+    files: Array<UploadFileStatus>;
+    totalFiles: bigint;
+    hasPendingUploads: boolean;
+    completedFiles: bigint;
 }
-export interface UserProfile {
-    name: string;
-}
-export type Time = bigint;
-export interface UploadResponse {
-    id: string;
+export interface _CaffeineStorageRefillInformation {
+    proposed_top_up_amount?: bigint;
 }
 export interface Mission {
     id: bigint;
@@ -117,8 +126,10 @@ export interface Mission {
     created: bigint;
     owner: Principal;
 }
-export interface _CaffeineStorageRefillInformation {
-    proposed_top_up_amount?: bigint;
+export interface Task {
+    task: string;
+    completed: boolean;
+    taskId: bigint;
 }
 export interface FileMetadata {
     id: string;
@@ -133,14 +144,19 @@ export interface FileMetadata {
     missionId?: bigint;
     folderId?: bigint;
 }
-export interface Task {
-    task: string;
-    completed: boolean;
-    taskId: bigint;
-}
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
+}
+export interface UploadFileStatus {
+    id: string;
+    startTime: Time;
+    status: UploadFileState;
+    endTime?: Time;
+    name: string;
+    fileSize: bigint;
+    progress: bigint;
+    uploadSpeed?: bigint;
 }
 export interface HealthResult {
     time: bigint;
@@ -165,6 +181,19 @@ export interface TaskView {
     completed: boolean;
     taskId: bigint;
 }
+export type UploadFileState = {
+    __kind__: "completed";
+    completed: null;
+} | {
+    __kind__: "queued";
+    queued: null;
+} | {
+    __kind__: "inProgress";
+    inProgress: null;
+} | {
+    __kind__: "failed";
+    failed: string;
+};
 export interface PaginatedNotes {
     hasMore: boolean;
     notes: Array<Note>;
@@ -232,6 +261,7 @@ export interface backendInterface {
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
     getPaginatedNotes(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedNotes>;
     getTasks(missionId: bigint): Promise<Array<TaskView>>;
+    getUploadStatus(): Promise<UploadStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;
@@ -249,7 +279,7 @@ export interface backendInterface {
     updateMission(missionId: bigint, newTitle: string, newTasks: Array<Task>): Promise<void>;
     uploadFile(name: string, mimeType: string, size: bigint, blob: ExternalBlob, missionId: bigint | null): Promise<UploadResponse>;
 }
-import type { ExternalBlob as _ExternalBlob, FileMetadata as _FileMetadata, Mission as _Mission, Note as _Note, PaginatedFiles as _PaginatedFiles, PaginatedNotes as _PaginatedNotes, SortDirection as _SortDirection, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { ExternalBlob as _ExternalBlob, FileMetadata as _FileMetadata, Mission as _Mission, Note as _Note, PaginatedFiles as _PaginatedFiles, PaginatedNotes as _PaginatedNotes, SortDirection as _SortDirection, Time as _Time, UploadFileState as _UploadFileState, UploadFileStatus as _UploadFileStatus, UploadStatus as _UploadStatus, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -812,6 +842,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getUploadStatus(): Promise<UploadStatus> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUploadStatus();
+                return from_candid_UploadStatus_n32(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUploadStatus();
+            return from_candid_UploadStatus_n32(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -1025,14 +1069,14 @@ export class Backend implements backendInterface {
     async uploadFile(arg0: string, arg1: string, arg2: bigint, arg3: ExternalBlob, arg4: bigint | null): Promise<UploadResponse> {
         if (this.processError) {
             try {
-                const result = await this.actor.uploadFile(arg0, arg1, arg2, await to_candid_ExternalBlob_n32(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n11(this._uploadFile, this._downloadFile, arg4));
+                const result = await this.actor.uploadFile(arg0, arg1, arg2, await to_candid_ExternalBlob_n40(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n11(this._uploadFile, this._downloadFile, arg4));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.uploadFile(arg0, arg1, arg2, await to_candid_ExternalBlob_n32(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n11(this._uploadFile, this._downloadFile, arg4));
+            const result = await this.actor.uploadFile(arg0, arg1, arg2, await to_candid_ExternalBlob_n40(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n11(this._uploadFile, this._downloadFile, arg4));
             return result;
         }
     }
@@ -1051,6 +1095,15 @@ async function from_candid_PaginatedFiles_n24(_uploadFile: (file: ExternalBlob) 
 }
 function from_candid_PaginatedNotes_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PaginatedNotes): PaginatedNotes {
     return from_candid_record_n29(_uploadFile, _downloadFile, value);
+}
+function from_candid_UploadFileState_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UploadFileState): UploadFileState {
+    return from_candid_variant_n38(_uploadFile, _downloadFile, value);
+}
+function from_candid_UploadFileStatus_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UploadFileStatus): UploadFileStatus {
+    return from_candid_record_n36(_uploadFile, _downloadFile, value);
+}
+function from_candid_UploadStatus_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UploadStatus): UploadStatus {
+    return from_candid_record_n33(_uploadFile, _downloadFile, value);
 }
 function from_candid_UserRole_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
     return from_candid_variant_n22(_uploadFile, _downloadFile, value);
@@ -1075,6 +1128,9 @@ function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 }
 function from_candid_opt_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Note]): Note | null {
     return value.length === 0 ? null : from_candid_Note_n18(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Time]): Time | null {
+    return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [boolean]): boolean | null {
     return value.length === 0 ? null : value[0];
@@ -1175,6 +1231,54 @@ function from_candid_record_n29(_uploadFile: (file: ExternalBlob) => Promise<Uin
         notes: from_candid_vec_n17(_uploadFile, _downloadFile, value.notes)
     };
 }
+function from_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    files: Array<_UploadFileStatus>;
+    totalFiles: bigint;
+    hasPendingUploads: boolean;
+    completedFiles: bigint;
+}): {
+    files: Array<UploadFileStatus>;
+    totalFiles: bigint;
+    hasPendingUploads: boolean;
+    completedFiles: bigint;
+} {
+    return {
+        files: from_candid_vec_n34(_uploadFile, _downloadFile, value.files),
+        totalFiles: value.totalFiles,
+        hasPendingUploads: value.hasPendingUploads,
+        completedFiles: value.completedFiles
+    };
+}
+function from_candid_record_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    startTime: _Time;
+    status: _UploadFileState;
+    endTime: [] | [_Time];
+    name: string;
+    fileSize: bigint;
+    progress: bigint;
+    uploadSpeed: [] | [bigint];
+}): {
+    id: string;
+    startTime: Time;
+    status: UploadFileState;
+    endTime?: Time;
+    name: string;
+    fileSize: bigint;
+    progress: bigint;
+    uploadSpeed?: bigint;
+} {
+    return {
+        id: value.id,
+        startTime: value.startTime,
+        status: from_candid_UploadFileState_n37(_uploadFile, _downloadFile, value.status),
+        endTime: record_opt_to_undefined(from_candid_opt_n39(_uploadFile, _downloadFile, value.endTime)),
+        name: value.name,
+        fileSize: value.fileSize,
+        progress: value.progress,
+        uploadSpeed: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.uploadSpeed))
+    };
+}
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     success: [] | [boolean];
     topped_up_amount: [] | [bigint];
@@ -1196,13 +1300,51 @@ function from_candid_variant_n22(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
+function from_candid_variant_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    completed: null;
+} | {
+    queued: null;
+} | {
+    inProgress: null;
+} | {
+    failed: string;
+}): {
+    __kind__: "completed";
+    completed: null;
+} | {
+    __kind__: "queued";
+    queued: null;
+} | {
+    __kind__: "inProgress";
+    inProgress: null;
+} | {
+    __kind__: "failed";
+    failed: string;
+} {
+    return "completed" in value ? {
+        __kind__: "completed",
+        completed: value.completed
+    } : "queued" in value ? {
+        __kind__: "queued",
+        queued: value.queued
+    } : "inProgress" in value ? {
+        __kind__: "inProgress",
+        inProgress: value.inProgress
+    } : "failed" in value ? {
+        __kind__: "failed",
+        failed: value.failed
+    } : value;
+}
 async function from_candid_vec_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FileMetadata>): Promise<Array<FileMetadata>> {
     return await Promise.all(value.map(async (x)=>await from_candid_FileMetadata_n13(_uploadFile, _downloadFile, x)));
 }
 function from_candid_vec_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Note>): Array<Note> {
     return value.map((x)=>from_candid_Note_n18(_uploadFile, _downloadFile, x));
 }
-async function to_candid_ExternalBlob_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ExternalBlob): Promise<_ExternalBlob> {
+function from_candid_vec_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_UploadFileStatus>): Array<UploadFileStatus> {
+    return value.map((x)=>from_candid_UploadFileStatus_n35(_uploadFile, _downloadFile, x));
+}
+async function to_candid_ExternalBlob_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: ExternalBlob): Promise<_ExternalBlob> {
     return await _uploadFile(value);
 }
 function to_candid_SortDirection_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SortDirection): _SortDirection {

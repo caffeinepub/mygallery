@@ -1,54 +1,40 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
-import { useState, useEffect, useCallback } from 'react';
-import HomePage from './pages/HomePage';
-import IntroScreen from './components/IntroScreen';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useIntroOnAppResume } from './hooks/useIntroOnAppResume';
-import { UploadProvider } from './contexts/UploadContext';
-import { ActorProvider } from './contexts/ActorContext';
+import HomePage from '@/pages/HomePage';
+import { ActorProvider } from '@/contexts/ActorContext';
+import { UploadProvider } from '@/contexts/UploadContext';
+import IntroScreen from '@/components/IntroScreen';
+import { useIntroOnAppResume } from '@/hooks/useIntroOnAppResume';
+import { useState } from 'react';
+import { useInternetIdentity } from '@/hooks/useInternetIdentity';
+import UploadQueueRunner from '@/components/UploadQueueRunner';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AppContent() {
-  const { identity, isInitializing } = useInternetIdentity();
   const [showIntro, setShowIntro] = useState(false);
-  const [hasShownIntroOnLogin, setHasShownIntroOnLogin] = useState(false);
+  const { identity, isInitializing } = useInternetIdentity();
 
-  // Show intro screen when user first logs in (identity becomes available)
-  useEffect(() => {
-    // Only show intro if:
-    // 1. User has identity (authenticated)
-    // 2. Not initializing (Internet Identity has finished loading)
-    // 3. Haven't shown intro for this login yet
-    if (identity && !isInitializing && !hasShownIntroOnLogin) {
+  useIntroOnAppResume(() => {
+    if (identity && !isInitializing) {
       setShowIntro(true);
-      setHasShownIntroOnLogin(true);
+      setTimeout(() => setShowIntro(false), 2000);
     }
-  }, [identity, isInitializing, hasShownIntroOnLogin]);
-
-  // Show intro screen when authenticated user returns to the app
-  const handleAppResume = useCallback(() => {
-    setShowIntro(true);
-  }, []);
-
-  useIntroOnAppResume(handleAppResume);
-
-  const handleIntroComplete = () => {
-    setShowIntro(false);
-  };
-
-  // Reset splash flag when identity is cleared (logout)
-  useEffect(() => {
-    if (!identity) {
-      setHasShownIntroOnLogin(false);
-    }
-  }, [identity]);
+  });
 
   return (
     <>
-      {/* Always render HomePage immediately when authenticated */}
       <HomePage />
-      
-      {/* Show intro as non-blocking overlay */}
-      {showIntro && <IntroScreen onComplete={handleIntroComplete} />}
+      {showIntro && <IntroScreen onComplete={() => setShowIntro(false)} />}
+      <UploadQueueRunner />
     </>
   );
 }
@@ -56,11 +42,14 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <ActorProvider>
-        <UploadProvider>
-          <AppContent />
-        </UploadProvider>
-      </ActorProvider>
+      <QueryClientProvider client={queryClient}>
+        <ActorProvider>
+          <UploadProvider>
+            <AppContent />
+            <Toaster />
+          </UploadProvider>
+        </ActorProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

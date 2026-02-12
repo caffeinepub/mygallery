@@ -12,7 +12,9 @@ import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 import Cycles "mo:core/Cycles";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -65,6 +67,31 @@ actor {
   public type SortDirection = {
     #asc;
     #desc;
+  };
+
+  public type UploadStatus = {
+    files : [UploadFileStatus];
+    totalFiles : Nat;
+    completedFiles : Nat;
+    hasPendingUploads : Bool;
+  };
+
+  public type UploadFileStatus = {
+    id : Text;
+    name : Text;
+    status : UploadFileState;
+    progress : Nat; // 0-100 percentage
+    startTime : Time.Time;
+    endTime : ?Time.Time; // Optional, only for completed uploads
+    fileSize : Nat;
+    uploadSpeed : ?Nat; // bytes/sec, only for completed uploads
+  };
+
+  public type UploadFileState = {
+    #queued;
+    #inProgress;
+    #completed;
+    #failed : Text; // Error message
   };
 
   public type UserProfile = {
@@ -152,6 +179,15 @@ actor {
   var deleteFolderTime = 0;
   var deleteFilesLowLevelTime = 0;
 
+  //// Upload Tracking
+  // Upload Status
+  var uploadStatus : UploadStatus = {
+    files = [];
+    totalFiles = 0;
+    completedFiles = 0;
+    hasPendingUploads = false;
+  };
+
   // Helper: Find file by string id
   private func findFileByTextId(id : Int) : ?(Nat, FileMetadata) {
     files.toArray().find(func((_, file)) { file.id == id.toText() });
@@ -210,6 +246,13 @@ actor {
     userProfiles.add(caller, profile);
   };
 
+  public query ({ caller }) func getUploadStatus() : async UploadStatus {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access upload status");
+    };
+    uploadStatus;
+  };
+
   // Mission Management
   public shared ({ caller }) func createMission(title : Text, tasks : [Task]) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -244,6 +287,9 @@ actor {
   };
 
   public query ({ caller }) func getMission(missionId : Nat) : async ?Mission {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access missions");
+    };
     switch (persistentMissions.map.get(caller)) {
       case (null) { null };
       case (?userMissions) { userMissions.data.get(missionId) };
@@ -347,6 +393,9 @@ actor {
 
   // Returns a snapshot for frontend with identical structure (convert persistent Map to array)
   public query ({ caller }) func getTasks(missionId : Nat) : async [TaskView] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access tasks");
+    };
     switch (persistentMissions.map.get(caller)) {
       case (null) {
         [];
@@ -389,6 +438,9 @@ actor {
   };
 
   public query ({ caller }) func listMissions() : async [Mission] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access missions");
+    };
     switch (persistentMissions.map.get(caller)) {
       case (null) { [] };
       case (?userMissions) {

@@ -80,7 +80,27 @@ export interface TaskView {
   'taskId' : bigint,
 }
 export type Time = bigint;
+export type UploadFileState = { 'completed' : null } |
+  { 'queued' : null } |
+  { 'inProgress' : null } |
+  { 'failed' : string };
+export interface UploadFileStatus {
+  'id' : string,
+  'startTime' : Time,
+  'status' : UploadFileState,
+  'endTime' : [] | [Time],
+  'name' : string,
+  'fileSize' : bigint,
+  'progress' : bigint,
+  'uploadSpeed' : [] | [bigint],
+}
 export interface UploadResponse { 'id' : string }
+export interface UploadStatus {
+  'files' : Array<UploadFileStatus>,
+  'totalFiles' : bigint,
+  'hasPendingUploads' : boolean,
+  'completedFiles' : bigint,
+}
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -161,6 +181,7 @@ export interface _SERVICE {
     PaginatedNotes
   >,
   'getTasks' : ActorMethod<[bigint], Array<TaskView>>,
+  'getUploadStatus' : ActorMethod<[], UploadStatus>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listMissions' : ActorMethod<[], Array<Mission>>,

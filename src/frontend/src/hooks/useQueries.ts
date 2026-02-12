@@ -460,50 +460,14 @@ export function useDeleteFile() {
         old.filter(f => f.id !== fileId)
       );
       
-      const allFolderQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'folder'] });
-      const previousFolderFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allFolderQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousFolderFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => f.id !== fileId));
-        }
-      }
-      
-      const allMissionQueries = queryClient.getQueriesData<FileMetadata[]>({ queryKey: ['files', 'mission'] });
-      const previousMissionFiles: Map<string, FileMetadata[]> = new Map();
-      
-      for (const [queryKey, files] of allMissionQueries) {
-        if (files) {
-          const keyStr = JSON.stringify(queryKey);
-          previousMissionFiles.set(keyStr, files);
-          queryClient.setQueryData<FileMetadata[]>(queryKey, files.filter(f => f.id !== fileId));
-        }
-      }
-      
-      return { previousMainFiles, previousFolderFiles, previousMissionFiles };
+      return { previousMainFiles };
     },
     onError: (err, _, context) => {
       const errorMessage = getActorErrorMessage(err);
       console.error('File deletion failed:', errorMessage);
-      
       if (context?.previousMainFiles) {
         queryClient.setQueryData(['files', 'not-in-folder'], context.previousMainFiles);
       }
-      if (context?.previousFolderFiles) {
-        context.previousFolderFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      if (context?.previousMissionFiles) {
-        context.previousMissionFiles.forEach((files, keyStr) => {
-          const queryKey = JSON.parse(keyStr);
-          queryClient.setQueryData(queryKey, files);
-        });
-      }
-      
       throw new Error(`Failed to delete file: ${errorMessage}`);
     },
     onSuccess: async () => {
@@ -524,13 +488,10 @@ export function useDeleteFiles() {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
-      
-      return timeOperation('deleteFiles', async () => {
-        // Convert string IDs to bigint for backend
-        const bigintIds = fileIds.map(id => BigInt(id));
-        await actor.deleteFiles(bigintIds);
-        return fileIds;
-      }, { fileCount: fileIds.length });
+      // Convert string IDs to bigint for backend
+      const bigintIds = fileIds.map(id => BigInt(id));
+      await actor.deleteFiles(bigintIds);
+      return fileIds;
     },
     onMutate: async (fileIds) => {
       await queryClient.cancelQueries({ queryKey: ['files'] });
@@ -601,34 +562,45 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      mimeType, 
-      size, 
-      blob, 
-      missionId 
-    }: { 
-      name: string; 
-      mimeType: string; 
-      size: bigint; 
-      blob: ExternalBlob; 
+    mutationFn: async ({
+      name,
+      mimeType,
+      size,
+      blob,
+      folderId,
+      missionId,
+    }: {
+      name: string;
+      mimeType: string;
+      size: bigint;
+      blob: ExternalBlob;
+      folderId?: bigint | null;
       missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      return uploadLimiter.run(async () => {
-        return timeOperation('uploadFile', async () => {
+      // Use concurrency limiter for controlled parallel uploads
+      return uploadLimiter(async () => {
+        perfDiag.startTiming(`upload-${name}`, 'Upload file', { fileName: name, size: size.toString() });
+        
+        try {
           const response = await actor.uploadFile(name, mimeType, size, blob, missionId ?? null);
+          perfDiag.endTiming(`upload-${name}`, { success: true });
           return response;
-        }, { fileName: name, fileSize: size.toString() });
+        } catch (error) {
+          perfDiag.endTiming(`upload-${name}`, { success: false });
+          throw error;
+        }
       });
     },
     onSuccess: async (_, variables) => {
       // Targeted invalidations based on where file was uploaded
       if (variables.missionId) {
         await queryClient.invalidateQueries({ queryKey: ['files', 'mission', variables.missionId.toString()], exact: true });
+      } else if (variables.folderId) {
+        await queryClient.invalidateQueries({ queryKey: ['files', 'folder', variables.folderId.toString()], exact: true });
       } else {
         await queryClient.invalidateQueries({ queryKey: ['files', 'not-in-folder'], exact: true });
       }
@@ -646,22 +618,23 @@ export function useCreateLink() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      name, 
-      url, 
-      folderId, 
-      missionId 
-    }: { 
-      name: string; 
-      url: string; 
-      folderId?: bigint | null; 
+    mutationFn: async ({
+      name,
+      url,
+      folderId,
+      missionId,
+    }: {
+      name: string;
+      url: string;
+      folderId?: bigint | null;
       missionId?: bigint | null;
     }) => {
       if (!actor || status !== 'ready') {
         throw createActorNotReadyError();
       }
 
-      return uploadLimiter.run(async () => {
+      // Use concurrency limiter for consistency with file uploads
+      return uploadLimiter(async () => {
         const response = await actor.createLink(name, url, folderId ?? null, missionId ?? null);
         return response;
       });

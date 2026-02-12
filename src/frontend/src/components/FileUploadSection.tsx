@@ -1,9 +1,10 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { Upload, Link as LinkIcon, Plus, FileText, Mic, MicOff } from 'lucide-react';
 import { useUploadFile, useCreateLink } from '@/hooks/useQueries';
 import { useCreateNote } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
+import { persistedQueue } from '@/utils/persistedUploadQueue';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import {
 import { perfDiag } from '@/utils/performanceDiagnostics';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { ExternalBlob } from '@/backend';
+import type { FileBytesRequest, FileBytesResponse } from '@/workers/fileBytes.worker';
 
 export default function FileUploadSection() {
   const uploadFileMutation = useUploadFile();
@@ -31,11 +33,11 @@ export default function FileUploadSection() {
   const [linkName, setLinkName] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
+  const workerRef = useRef<Worker | null>(null);
 
   const { isListening, isSupported, startListening, stopListening } = useSpeechToText({
     onTranscript: (transcript, isFinal) => {
       if (isFinal && transcript) {
-        // Append final transcript to existing text with proper spacing
         setNoteBody((prev) => {
           if (!prev.trim()) {
             return transcript;
@@ -47,15 +49,25 @@ export default function FileUploadSection() {
     onError: (error) => {
       toast.error(error);
     },
-    // No lang parameter - use browser/OS default language
   });
 
-  // Stop listening when note form is closed or submitted
   useEffect(() => {
     if (!showNoteForm && isListening) {
       stopListening();
     }
   }, [showNoteForm, isListening, stopListening]);
+
+  // Initialize Web Worker
+  useEffect(() => {
+    workerRef.current = new Worker(
+      new URL('../workers/fileBytes.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -77,38 +89,87 @@ export default function FileUploadSection() {
       }
 
       const fileArray = Array.from(files);
-      const uploadId = startUpload(fileArray);
+      const batchId = startUpload(fileArray);
 
       const operationId = `upload-files-${Date.now()}`;
       perfDiag.startTiming(operationId, 'Upload files (UI)', { fileCount: fileArray.length });
 
-      try {
-        // Upload files sequentially with progress tracking
-        for (const file of fileArray) {
-          const arrayBuffer = await file.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          const blobWithProgress = ExternalBlob.fromBytes(uint8Array).withUploadProgress((progress) => {
-            updateProgress(uploadId, file.name, progress);
-          });
+      // Process files in background using Web Worker and upload with concurrency
+      const uploadPromises = fileArray.map(async (file, index) => {
+        const itemId = `${batchId}-${index}`;
 
-          await uploadFileMutation.mutateAsync({
-            name: file.name,
-            mimeType: file.type || 'application/octet-stream',
-            size: BigInt(file.size),
-            blob: blobWithProgress,
-          });
+        return new Promise<void>((resolve, reject) => {
+          if (!workerRef.current) {
+            reject(new Error('Worker not initialized'));
+            return;
+          }
+
+          const handleMessage = async (e: MessageEvent<FileBytesResponse>) => {
+            if (e.data.itemId !== itemId) return;
+
+            workerRef.current?.removeEventListener('message', handleMessage);
+
+            if (e.data.error) {
+              reject(new Error(e.data.error));
+              return;
+            }
+
+            try {
+              // Persist to IndexedDB (best-effort, non-blocking)
+              persistedQueue.enqueue(file, itemId, 0).catch(err => {
+                console.warn('Failed to persist upload:', err);
+              });
+
+              // Create a new ArrayBuffer copy to ensure proper type
+              const buffer = new ArrayBuffer(e.data.bytes.byteLength);
+              const standardBytes = new Uint8Array(buffer);
+              standardBytes.set(new Uint8Array(e.data.bytes.buffer));
+
+              // Upload with progress tracking
+              const blobWithProgress = ExternalBlob.fromBytes(standardBytes).withUploadProgress((progress) => {
+                updateProgress(batchId, itemId, progress);
+                persistedQueue.updateProgress(itemId, progress).catch(() => {});
+              });
+
+              await uploadFileMutation.mutateAsync({
+                name: e.data.name,
+                mimeType: e.data.mimeType,
+                size: BigInt(e.data.size),
+                blob: blobWithProgress,
+              });
+
+              // Remove from persisted queue on success
+              await persistedQueue.dequeue(itemId).catch(() => {});
+              completeUpload(itemId);
+              resolve();
+            } catch (error) {
+              console.error(`Upload error for ${e.data.name}:`, error);
+              reject(error);
+            }
+          };
+
+          workerRef.current.addEventListener('message', handleMessage);
+
+          // Send file to worker for byte reading
+          const request: FileBytesRequest = { file, itemId };
+          workerRef.current.postMessage(request);
+        });
+      });
+
+      // Don't await - let uploads continue in background
+      Promise.allSettled(uploadPromises).then((results) => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        const failCount = results.filter(r => r.status === 'rejected').length;
+
+        perfDiag.endTiming(operationId, { success: failCount === 0 });
+
+        if (successCount > 0) {
+          toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}`);
         }
-
-        perfDiag.endTiming(operationId, { success: true });
-        completeUpload(uploadId);
-        toast.success(`Successfully uploaded ${fileArray.length} file${fileArray.length > 1 ? 's' : ''}`);
-      } catch (error) {
-        perfDiag.endTiming(operationId, { success: false });
-        completeUpload(uploadId);
-        console.error('Upload error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Upload failed. Please try again.';
-        toast.error(errorMessage);
-      }
+        if (failCount > 0) {
+          toast.error(`Failed to upload ${failCount} file${failCount > 1 ? 's' : ''}`);
+        }
+      });
 
       event.target.value = '';
     },
@@ -136,15 +197,14 @@ export default function FileUploadSection() {
 
       const displayName = linkName.trim() || new URL(linkUrl).hostname;
       
-      // Start tracked link upload
-      const uploadId = startLinkUpload(displayName);
+      const batchId = startLinkUpload(displayName);
+      const itemId = `${batchId}-0`;
       let currentProgress = 0;
 
       try {
-        // Simulate progress during the backend call
         const progressInterval = setInterval(() => {
           currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(uploadId, displayName, currentProgress);
+          updateProgress(batchId, itemId, currentProgress);
         }, 200);
 
         await createLinkMutation.mutateAsync({
@@ -154,20 +214,15 @@ export default function FileUploadSection() {
 
         clearInterval(progressInterval);
         
-        // Complete to 100% before clearing
-        updateProgress(uploadId, displayName, 100);
-        
-        // Small delay to show 100% before clearing
-        setTimeout(() => {
-          completeUpload(uploadId);
-        }, 300);
+        updateProgress(batchId, itemId, 100);
+        completeUpload(itemId);
 
         toast.success('Link added successfully');
         setLinkUrl('');
         setLinkName('');
         setShowLinkForm(false);
       } catch (error) {
-        completeUpload(uploadId);
+        completeUpload(itemId);
         console.error('Create link error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to add link. Please try again.';
         toast.error(errorMessage);
@@ -180,7 +235,6 @@ export default function FileUploadSection() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // Stop listening before submitting
       if (isListening) {
         stopListening();
       }
@@ -197,16 +251,15 @@ export default function FileUploadSection() {
 
       const displayTitle = noteTitle.trim();
       
-      // Start tracked note upload
-      const uploadId = startNoteUpload(displayTitle);
+      const batchId = startNoteUpload(displayTitle);
+      const itemId = `${batchId}-0`;
       let currentProgress = 0;
       let progressInterval: NodeJS.Timeout | null = null;
 
       try {
-        // Simulate progress during the backend call
         progressInterval = setInterval(() => {
           currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(uploadId, displayTitle, currentProgress);
+          updateProgress(batchId, itemId, currentProgress);
         }, 200);
 
         await createNoteMutation.mutateAsync({
@@ -217,13 +270,8 @@ export default function FileUploadSection() {
         clearInterval(progressInterval);
         progressInterval = null;
         
-        // Complete to 100% before clearing
-        updateProgress(uploadId, displayTitle, 100);
-        
-        // Small delay to show 100% before clearing
-        setTimeout(() => {
-          completeUpload(uploadId);
-        }, 300);
+        updateProgress(batchId, itemId, 100);
+        completeUpload(itemId);
 
         toast.success('Note added successfully');
         setNoteTitle('');
@@ -233,7 +281,7 @@ export default function FileUploadSection() {
         if (progressInterval) {
           clearInterval(progressInterval);
         }
-        completeUpload(uploadId);
+        completeUpload(itemId);
         console.error('Create note error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to add note. Please try again.';
         toast.error(errorMessage);

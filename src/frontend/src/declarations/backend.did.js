@@ -100,6 +100,28 @@ export const TaskView = IDL.Record({
   'completed' : IDL.Bool,
   'taskId' : IDL.Nat,
 });
+export const UploadFileState = IDL.Variant({
+  'completed' : IDL.Null,
+  'queued' : IDL.Null,
+  'inProgress' : IDL.Null,
+  'failed' : IDL.Text,
+});
+export const UploadFileStatus = IDL.Record({
+  'id' : IDL.Text,
+  'startTime' : Time,
+  'status' : UploadFileState,
+  'endTime' : IDL.Opt(Time),
+  'name' : IDL.Text,
+  'fileSize' : IDL.Nat,
+  'progress' : IDL.Nat,
+  'uploadSpeed' : IDL.Opt(IDL.Nat),
+});
+export const UploadStatus = IDL.Record({
+  'files' : IDL.Vec(UploadFileStatus),
+  'totalFiles' : IDL.Nat,
+  'hasPendingUploads' : IDL.Bool,
+  'completedFiles' : IDL.Nat,
+});
 export const TaskStatusUpdate = IDL.Record({
   'completed' : IDL.Bool,
   'taskId' : IDL.Nat,
@@ -202,6 +224,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getTasks' : IDL.Func([IDL.Nat], [IDL.Vec(TaskView)], ['query']),
+  'getUploadStatus' : IDL.Func([], [UploadStatus], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -320,6 +343,28 @@ export const idlFactory = ({ IDL }) => {
     'completed' : IDL.Bool,
     'taskId' : IDL.Nat,
   });
+  const UploadFileState = IDL.Variant({
+    'completed' : IDL.Null,
+    'queued' : IDL.Null,
+    'inProgress' : IDL.Null,
+    'failed' : IDL.Text,
+  });
+  const UploadFileStatus = IDL.Record({
+    'id' : IDL.Text,
+    'startTime' : Time,
+    'status' : UploadFileState,
+    'endTime' : IDL.Opt(Time),
+    'name' : IDL.Text,
+    'fileSize' : IDL.Nat,
+    'progress' : IDL.Nat,
+    'uploadSpeed' : IDL.Opt(IDL.Nat),
+  });
+  const UploadStatus = IDL.Record({
+    'files' : IDL.Vec(UploadFileStatus),
+    'totalFiles' : IDL.Nat,
+    'hasPendingUploads' : IDL.Bool,
+    'completedFiles' : IDL.Nat,
+  });
   const TaskStatusUpdate = IDL.Record({
     'completed' : IDL.Bool,
     'taskId' : IDL.Nat,
@@ -422,6 +467,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getTasks' : IDL.Func([IDL.Nat], [IDL.Vec(TaskView)], ['query']),
+    'getUploadStatus' : IDL.Func([], [UploadStatus], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

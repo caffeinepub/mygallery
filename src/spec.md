@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Make MYL fully installable as an Android Chrome PWA with correct branding, manifest configuration, and service worker setup so it launches in standalone mode.
+**Goal:** Make multi-file gallery uploads run non-blocking in the background with accurate, reliable progress reporting and improved throughput, without changing unrelated app behavior.
 
 **Planned changes:**
-- Update `frontend/public/manifest.json` to set MYL name/short name, colors, `display: "standalone"`, and include exactly 192x192 and 512x512 PNG icons using the generated MYL bullseye icon files.
-- Update `frontend/index.html` PWA-related metadata to use MYL app name, set `theme-color` to `#6A0DAD`, and ensure the manifest link points to `/manifest.json`.
-- Ensure service worker registration remains enabled in `frontend/index.html` and that `frontend/public/sw.js` includes an active `fetch` handler and controls the page after reload.
-- Verify installability signals so Android Chrome shows an install option and the installed app opens without browser UI (standalone).
+- Move multi-file upload file-processing work off the main UI thread so the app remains responsive while uploads run.
+- Keep uploads running and tracked even when the user navigates away from the gallery/upload UI within the SPA.
+- Fix progress tracking to deterministically associate progress with the correct file items (including same-name files) and keep the global progress bar visible/updating until the whole batch completes (success or failure).
+- Increase multi-file upload speed using controlled parallelism (limited concurrency) and reduce redundant expensive work such as duplicate file reads/byte conversions.
+- Persist in-progress multi-file uploads best-effort and automatically resume them after reload/close, restoring progress correctly and avoiding duplicate uploads for already-completed items.
 
-**User-visible outcome:** On Android Chrome, MYL can be installed from the browser menu and launches as a standalone app (no address bar) with MYL name, purple theme color, and correct icons.
+**User-visible outcome:** Users can select many (including large) gallery files and continue using other parts of the app while uploads proceed at maximum practical speed, with a global progress bar that stays accurate and resumes correctly after reload.

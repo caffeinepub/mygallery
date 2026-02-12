@@ -14,6 +14,17 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
+export interface UserProfile {
+    name: string;
+}
+export interface UploadResponse {
+    id: string;
+}
+export interface PaginatedFiles {
+    files: Array<FileMetadata>;
+    hasMore: boolean;
+}
+export type Time = bigint;
 export interface Note {
     id: string;
     title: string;
@@ -24,16 +35,11 @@ export interface Note {
     folderId?: bigint;
     location?: string;
 }
-export interface PaginatedFiles {
-    files: Array<FileMetadata>;
-    hasMore: boolean;
-}
-export interface UserProfile {
-    name: string;
-}
-export type Time = bigint;
-export interface UploadResponse {
-    id: string;
+export interface UploadStatus {
+    files: Array<UploadFileStatus>;
+    totalFiles: bigint;
+    hasPendingUploads: boolean;
+    completedFiles: bigint;
 }
 export interface Mission {
     id: bigint;
@@ -41,6 +47,11 @@ export interface Mission {
     title: string;
     created: bigint;
     owner: Principal;
+}
+export interface Task {
+    task: string;
+    completed: boolean;
+    taskId: bigint;
 }
 export interface FileMetadata {
     id: string;
@@ -55,10 +66,15 @@ export interface FileMetadata {
     missionId?: bigint;
     folderId?: bigint;
 }
-export interface Task {
-    task: string;
-    completed: boolean;
-    taskId: bigint;
+export interface UploadFileStatus {
+    id: string;
+    startTime: Time;
+    status: UploadFileState;
+    endTime?: Time;
+    name: string;
+    fileSize: bigint;
+    progress: bigint;
+    uploadSpeed?: bigint;
 }
 export interface HealthResult {
     time: bigint;
@@ -83,6 +99,19 @@ export interface TaskView {
     completed: boolean;
     taskId: bigint;
 }
+export type UploadFileState = {
+    __kind__: "completed";
+    completed: null;
+} | {
+    __kind__: "queued";
+    queued: null;
+} | {
+    __kind__: "inProgress";
+    inProgress: null;
+} | {
+    __kind__: "failed";
+    failed: string;
+};
 export interface PaginatedNotes {
     hasMore: boolean;
     notes: Array<Note>;
@@ -139,6 +168,7 @@ export interface backendInterface {
     getPaginatedFiles(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedFiles>;
     getPaginatedNotes(sortDirection: SortDirection, offset: bigint, limit: bigint): Promise<PaginatedNotes>;
     getTasks(missionId: bigint): Promise<Array<TaskView>>;
+    getUploadStatus(): Promise<UploadStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     listMissions(): Promise<Array<Mission>>;

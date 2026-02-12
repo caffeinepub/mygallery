@@ -1,57 +1,71 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-11T13:56:15.237Z",
-  "summary": "REQ-1/REQ-2/REQ-3 appear implemented at the configuration level (manifest, HTML meta/manifest link, SW registration and fetch handler). However, the required icon image files are not present in the diff, and the diff shows many non-PWA application changes that violate the stated constraint/non-goals.",
+  "generatedAt": "2026-02-12T08:43:23.320Z",
+  "summary": "Diff implements key upload-related mechanisms (Web Worker off-main-thread byte reading, persisted IndexedDB queue, resume runner with concurrency limiting, and a unified progress bar). However, the change set also includes many non-upload-related UI/feature modifications that violate the strict scope/REQ-5 constraint. Additionally, evidence suggests REQ-3’s “avoid redundant expensive work” and “consistent concurrency limit for selection + resume” may be incomplete for the initial multi-file selection flow, and persistence currently re-reads file bytes on the main thread.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Provide the generated MYL bullseye PNG icon files (192x192 and 512x512) at the paths referenced by the manifest so they load successfully (no 404).",
-      "reason": "The manifest and index.html reference `/assets/generated/myl-bullseye-icon.dim_192x192.png` and `/assets/generated/myl-bullseye-icon.dim_512x512.png`, but the diff shows no added image files. Without the actual PNGs, the AC about icons loading successfully cannot be satisfied.",
+      "id": "REQ-3",
+      "requirement": "Avoid redundant expensive work (e.g., do not read the same file bytes multiple times for persistence + upload) and apply limited concurrency consistently for both multi-file selection and resume flows.",
+      "reason": "The persisted queue implementation reads the file bytes via file.arrayBuffer() (main thread) for enqueue, while the new Web Worker also reads file.arrayBuffer() to produce bytes for upload. This indicates duplicate reads/byte conversions are still present. Also, the resume flow clearly uses a concurrency limiter (3), but the multi-file selection flow’s limiter usage is not evidenced in the provided truncated FileUploadSection diff.",
       "evidence": [
-        "frontend/public/manifest.json",
-        "frontend/index.html",
-        "<file-diff>: ADDED FILES: none"
+        "frontend/src/utils/persistedUploadQueue.ts (enqueue uses file.arrayBuffer() and Array.from(new Uint8Array(arrayBuffer)))",
+        "frontend/src/workers/fileBytes.worker.ts (worker reads file.arrayBuffer() to bytes)",
+        "frontend/src/components/UploadQueueRunner.tsx (createConcurrencyLimiter(3) used for resume uploads)",
+        "frontend/src/components/FileUploadSection.tsx (mentions concurrency but limiter usage not shown in truncated diff)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during resume; no duplicate uploads for already completed items.",
+      "reason": "Resume logic is present, but the persistence implementation shown is truncated and does not provide evidence of: (a) items being enqueued during the initial upload flow, and (b) explicit deduplication safeguards beyond dequeue-on-success. Because the diff is truncated, the enqueue step and duplicate-prevention for already-completed items cannot be confirmed from the provided evidence.",
+      "evidence": [
+        "frontend/src/components/UploadQueueRunner.tsx (restores from persistedQueue.getAll(), resumes, dequeue on success)",
+        "frontend/src/utils/persistedUploadQueue.ts (enqueue/updateProgress/dequeue exist; getAll truncated)",
+        "frontend/src/components/FileUploadSection.tsx (imports persistedQueue but enqueue behavior not visible in truncated section)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Large set of non-PWA UI/feature changes across multiple React components (intro overlay behavior, upload dropdown actions, speech-to-text dictation, gallery selection/move/delete for notes, sign-out/cache clearing, etc.).",
-      "reason": "BuildRequest explicitly constrains changes to PWA installability/branding only and lists non-goals as adding new non-PWA features/flows. The diff summary indicates substantial unrelated feature work.",
+      "description": "Broad UI/theme/layout and unrelated app behavior changes beyond upload/progress messaging (violates strict scope/REQ-5).",
+      "reason": "Multiple components are described as having significant changes unrelated to multi-file gallery upload backgrounding/progress/speed/resume (e.g., theme system changes, header sign-out dropdown changes, footer attribution, gallery visual distinctions/viewers, folder dialog behavior). These exceed the BuildRequest’s 'keep scope strictly limited' constraint.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions modifications to many files under frontend/src/* including App.tsx, HomePage.tsx, Header.tsx, FileUploadSection.tsx, GallerySection.tsx, etc.)"
+        "frontend-file-summaries.txt (frontend/src/index.css: OKLCH color system, animations, touch interactions)",
+        "frontend-file-summaries.txt (frontend/src/components/Header.tsx: animated icon, sign-out dropdown, theme toggle integration)",
+        "frontend-file-summaries.txt (frontend/src/components/Footer.tsx: attribution/copyright changes)",
+        "frontend-file-summaries.txt (frontend/src/components/GallerySection.tsx: notes visual distinction, separate viewers, selection/delete/move support changes)",
+        "frontend-file-summaries.txt (frontend/src/components/FoldersDialog.tsx: swipe actions, confirmation modal copy changes, deprecated note)",
+        "frontend-file-summaries.txt (frontend/src/pages/HomePage.tsx: lazy-loaded views, dev-only utilities, re-render stabilization)",
+        "frontend-file-summaries.txt (frontend/src/hooks/useQueries.ts: cache staleTime changes, optimistic update fixes for move-to-mission)"
       ]
     },
     {
-      "description": "Service worker implements runtime caching, precaching, offline navigation fallback, cache trimming, and skip-waiting/update messaging logic beyond the minimal installability requirements.",
-      "reason": "Non-goals disallow offline-first product changes beyond what is required for Chrome PWA installability. The sw.js description shows a fairly involved caching/offline strategy rather than a minimal fetch handler for installability.",
+      "description": "Upload tracking/status types added to backend actor without clear necessity for frontend-only upload performance/progress fixes.",
+      "reason": "backend/main.mo shows introduction of multiple upload-tracking related types (UploadStatus, UploadFileStatus, UploadFileState) and an 'Upload Tracking' section start, but the BuildRequest prefers frontend-only changes unless strictly required. The diff summary does not show any frontend consuming these new backend types/APIs, so this appears unrequested/unused within the provided evidence.",
       "evidence": [
-        "frontend/public/sw.js"
+        "backend/main.mo (defines UploadStatus/UploadFileStatus/UploadFileState; '//// Upload Tracking' section begins)"
       ]
     },
     {
-      "description": "Added/modified an installability verification document (PWA_INSTALLABILITY_NOTES.md).",
-      "reason": "Not requested by any REQ; BuildRequest focuses on manifest/index.html/sw.js and icon assets.",
+      "description": "Speech-to-text behavior integrated into upload section (note creation) beyond the upload performance/progress scope.",
+      "reason": "FileUploadSection includes useSpeechToText integration and microphone UI elements; this is not requested by any REQ and expands functionality beyond multi-file upload performance/progress/resume.",
       "evidence": [
-        "frontend/PWA_INSTALLABILITY_NOTES.md"
-      ]
-    },
-    {
-      "description": "Updated project_state.json to track AR items/status.",
-      "reason": "Not part of requested PWA installability implementation requirements; no REQ mentions project_state.json.",
-      "evidence": [
-        "project_state.json"
+        "frontend/src/components/FileUploadSection.tsx (imports/useSpeechToText; Mic/MicOff icons; transcript handling)"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.68,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/PWA_INSTALLABILITY_NOTES.md",
-    "frontend/index.html",
-    "frontend/public/manifest.json",
-    "frontend/public/sw.js",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/components/UploadQueueRunner.tsx",
+    "frontend/src/contexts/UploadContext.tsx",
+    "frontend/src/utils/persistedUploadQueue.ts",
+    "frontend/src/workers/fileBytes.worker.ts",
     "project_state.json"
   ]
 }

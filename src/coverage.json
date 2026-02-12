@@ -1,80 +1,112 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-11T13:56:15.240Z",
+  "generatedAt": "2026-02-12T08:43:23.323Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 5,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Update the web app manifest at `frontend/public/manifest.json` to match the MYL branding and Chrome installability requirements: set `name` to \"MYL\", `short_name` to \"MYL\", `background_color` to \"#ffffff\", `theme_color` to \"#6A0DAD\", `display` to \"standalone\", and ensure the `icons` array includes valid PNG entries for exactly 192x192 and 512x512 using the generated MYL bullseye icon files.",
+        "summary": "Ensure multi-file uploads from the Gallery run in the background (non-blocking) so the user can navigate to other screens and use other features while uploads continue, without freezes or UI slowdowns caused by file processing on the main thread.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png",
-          "frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png"
+          "frontend/src/workers/fileBytes.worker.ts",
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/FileUploadSection.tsx"
         ],
         "matchedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png",
-          "frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png"
+          "frontend/src/workers/fileBytes.worker.ts",
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/FileUploadSection.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Update `frontend/index.html` PWA-related tags to align with the MYL PWA configuration: set `<meta name=\"theme-color\">` to `#6A0DAD`; update any PWA app-name meta tags (e.g., `apple-mobile-web-app-title`, `application-name`) to \"MYL\"; and ensure the manifest link remains present and correct (`<link rel=\"manifest\" href=\"/manifest.json\" />`).",
+        "summary": "Fix upload progress tracking so the global progress bar accurately reflects real progress for multi-file uploads, including correct per-file association even when multiple files share the same name, and remains visible/updating until all selected files finish (success or failure).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html"
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/UnifiedProgressBar.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx"
         ],
         "matchedFiles": [
-          "frontend/index.html"
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/UnifiedProgressBar.tsx",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Ensure the service worker is enabled and registered so that Chrome (Android) considers the app installable: keep or adjust the existing service worker registration in `frontend/index.html` so it registers `/sw.js` in secure contexts, and ensure `frontend/public/sw.js` includes an active `fetch` handler and successfully controls the page after reload.",
+        "summary": "Maximize upload speed for multi-file uploads by using controlled parallelism (limited concurrency) end-to-end, and avoid redundant expensive work (e.g., reading the same file bytes multiple times) while preserving existing validation, error handling, and user feedback (toasts).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/index.html",
-          "frontend/public/sw.js"
+          "frontend/src/utils/uploadConcurrency.ts",
+          "frontend/src/utils/persistedUploadQueue.ts",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx"
         ],
         "matchedFiles": [
-          "frontend/index.html",
-          "frontend/public/sw.js"
+          "frontend/src/utils/persistedUploadQueue.ts",
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Configure the app so that when installed from Chrome on Android it launches in standalone mode (no browser UI), and verify installability signals are satisfied so Chrome shows an installation entry (e.g., \"Install app\") in the Android Chrome menu.",
+        "summary": "Make background/resumable uploads reliable: if the app is reloaded/closed during a multi-file upload, persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during the resume process.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/PWA_INSTALLABILITY_NOTES.md"
+          "frontend/src/utils/persistedUploadQueue.ts",
+          "frontend/src/components/UploadQueueRunner.tsx",
+          "frontend/src/contexts/UploadContext.tsx"
         ],
         "matchedFiles": [
-          "frontend/public/manifest.json",
-          "frontend/PWA_INSTALLABILITY_NOTES.md"
+          "frontend/src/utils/persistedUploadQueue.ts",
+          "frontend/src/components/UploadQueueRunner.tsx",
+          "frontend/src/contexts/UploadContext.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Do not change any other application functionality or UI beyond what is required to: (a) keep multi-file gallery uploads non-blocking/background, (b) improve upload speed, (c) fix progress reporting, and (d) ensure resumable behavior.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx",
+          "frontend/src/contexts/UploadContext.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/FileUploadSection.tsx",
+          "frontend/src/components/UploadQueueRunner.tsx",
+          "frontend/src/contexts/UploadContext.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/PWA_INSTALLABILITY_NOTES.md",
-    "frontend/index.html",
-    "frontend/public/assets/generated/myl-bullseye-icon.dim_192x192.png",
-    "frontend/public/assets/generated/myl-bullseye-icon.dim_512x512.png",
-    "frontend/public/manifest.json",
-    "frontend/public/sw.js",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/UnifiedProgressBar.tsx",
+    "frontend/src/components/UploadQueueRunner.tsx",
+    "frontend/src/contexts/UploadContext.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/utils/persistedUploadQueue.ts",
+    "frontend/src/workers/fileBytes.worker.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

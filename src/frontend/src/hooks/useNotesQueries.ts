@@ -86,7 +86,7 @@ export function useCreateNote() {
       }
 
       // Use concurrency limiter for consistency with file uploads
-      return noteLimiter.run(async () => {
+      return noteLimiter(async () => {
         const response = await actor.createNote(title, body, folderId ?? null, missionId ?? null);
         return response;
       });
