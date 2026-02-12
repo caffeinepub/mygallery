@@ -1,145 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Non-blocking, fast, resumable multi-file gallery uploads with correct progress",
+  "title": "Remove all Sonner toast popups while preserving existing app behavior",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Move multi-file gallery upload preparation off the main thread and decouple upload execution from the upload UI so navigation remains smooth while uploads continue.",
+      "summary": "Disable all automated in-app toast notifications by removing the global Sonner Toaster and replacing all toast calls with a no-op notifier, without altering underlying flows.",
       "acceptanceCriteria": [
-        "Selecting many files (including large files) does not freeze the UI; the user can open/close dialogs, switch between gallery/folders/missions, and continue interacting while uploads are running.",
-        "Uploads continue even if the file upload UI component is not currently visible (e.g., user navigates away within the SPA).",
-        "No other behaviors outside the upload flow are changed."
+        "Creating a mission does not display a success toast (e.g., “Mission created successfully”).",
+        "Deleting a mission does not display a success toast (e.g., “Mission deleted successfully”).",
+        "No other toast popups appear for any app actions (success, info, or error toasts).",
+        "All existing CRUD and upload flows continue to function as before (no behavior changes besides the absence of toast popups).",
+        "The frontend builds cleanly without TypeScript errors (e.g., no unused imports after toast/Toaster removal)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/workers/fileBytes.worker.ts",
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Remove Sonner Toaster wiring (import and rendered <Toaster />) so the app no longer mounts a toast container; ensure no unused imports remain. (Do not edit files under frontend/src/components/ui.)"
+        },
+        {
+          "path": "frontend/src/utils/noopToast.ts",
           "operation": "create",
-          "description": "Add a Web Worker that reads File objects into bytes (and any required lightweight metadata) to keep expensive file processing off the main thread and support non-blocking multi-file selections."
-        },
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Refactor the upload runtime to be app-global (not tied to the FileUploadSection lifecycle): maintain an in-memory upload queue, start uploads asynchronously, and keep running across SPA navigation without relying on the upload UI being mounted."
+          "description": "Add a tiny no-op toast implementation that matches the Sonner API surface used in the app (e.g., success/error/info) so existing control flow can remain unchanged while producing no UI popups."
         },
         {
           "path": "frontend/src/components/FileUploadSection.tsx",
           "operation": "modify",
-          "description": "Update the gallery multi-file selection flow to enqueue files for background uploading without awaiting the whole batch in the event handler; offload byte reading to the Web Worker and hand work to the global upload runtime so the UI stays responsive. Use the blob-storage ExternalBlob.withUploadProgress capability for progress callbacks. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Make progress tracking deterministic per-file (even with duplicate names) and keep the global progress bar visible/updating until all items in the batch reach terminal state.",
-      "acceptanceCriteria": [
-        "Progress updates map to the correct file item deterministically (no reliance on substring matching of file names).",
-        "If two files have the same filename, their progress is tracked independently and correctly.",
-        "The global progress value monotonically increases (except for minor rounding) and reaches 100% only when all items in the batch are done (success or failure).",
-        "The progress bar does not disappear early while uploads are still in-flight."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Replace name-based progress routing with stable per-item IDs (e.g., UUIDs) and batch-to-item mappings; update APIs so progress updates are keyed by itemId, not by filename substring matching, and ensure items remain tracked until success/failure completion is recorded."
+          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility and keep all validations/returns and upload/link/note flows unchanged; ensure no toasts are emitted (including speech-to-text error handling)."
         },
         {
-          "path": "frontend/src/components/UnifiedProgressBar.tsx",
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Ensure the global progress bar derives visibility and completion strictly from the tracked upload items’ terminal states (success/failure) so it remains visible/updating until all items finish and reaches 100% only when all are done."
+          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility and keep mission delete flows, optimistic updates, and guards unchanged while preventing all success/error toast popups."
         },
         {
-          "path": "frontend/src/components/FileUploadSection.tsx",
+          "path": "frontend/src/components/MissionEditorDialog.tsx",
           "operation": "modify",
-          "description": "Update file upload progress callbacks to report progress using the stable itemId for each selected file (not file.name), including when multiple files share the same name. Use the blob-storage ExternalBlob.withUploadProgress capability for progress callbacks. Verify the component's usage instructions before implementing."
+          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility; keep mission creation validation and mutation flow unchanged while removing all toast popups."
         },
         {
-          "path": "frontend/src/components/UploadQueueRunner.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Fix resume-time progress wiring to register resumed items with their persisted itemIds and restore their last-known progress before resuming, ensuring progress updates map deterministically to the correct items."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Increase multi-file upload throughput with consistent limited concurrency and eliminate redundant file reads/byte conversions while preserving validation, errors, and toasts.",
-      "acceptanceCriteria": [
-        "Uploads are performed with limited parallelism (not purely sequential), and the concurrency limit is applied consistently for multi-file selection and resume flows.",
-        "The implementation avoids duplicate file reads/byte conversions where possible (e.g., do not read the same file into memory twice for persistence + upload).",
-        "Success/failure toasts still appear with accurate counts as today."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/uploadConcurrency.ts",
-          "operation": "modify",
-          "description": "Enhance the concurrency limiter (or add a thin wrapper) to support batch-oriented scheduling with consistent max concurrency across both fresh multi-file selection and resume flows, without changing unrelated call sites."
-        },
-        {
-          "path": "frontend/src/utils/persistedUploadQueue.ts",
-          "operation": "modify",
-          "description": "Allow enqueueing persisted items using already-produced bytes (so the same file isn’t read twice for persistence + upload) and persist the stable itemId, name, size, mimeType, and last-known progress for accurate restoration."
-        },
-        {
-          "path": "frontend/src/components/FileUploadSection.tsx",
-          "operation": "modify",
-          "description": "Adopt a single-read pipeline (worker-produced bytes) that feeds both persistence and upload; schedule uploads through the shared concurrency-limited runner and keep existing validation/error handling and success/failure toast behavior unchanged. Use the blob-storage ExternalBlob.fromBytes + withUploadProgress capabilities for fast uploads with progress reporting. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/UploadQueueRunner.tsx",
-          "operation": "modify",
-          "description": "Ensure resumed uploads use the same concurrency-limited runner as fresh selections and do not perform redundant byte conversions beyond what is necessary to create the upload blob. Use the blob-storage ExternalBlob.fromBytes + withUploadProgress capabilities. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Make resumable uploads robust by persisting in-progress items best-effort and resuming automatically on next app start with correct restored progress and no duplicate completion.",
-      "acceptanceCriteria": [
-        "If the page is reloaded mid-upload, any persisted pending items are detected on next load and resumed automatically once the backend actor is ready and the user is authenticated.",
-        "Resumed uploads correctly drive the global progress bar (no 'stuck at 0%' or missing progress).",
-        "No duplicate uploads occur for items that already completed and were dequeued from persistence."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/persistedUploadQueue.ts",
-          "operation": "modify",
-          "description": "Persist enough per-item state to resume reliably (stable itemId, metadata, bytes when available/eligible, last progress, and a terminal marker or best-effort inference) and ensure successful uploads are dequeued so they are not re-uploaded after reload."
-        },
-        {
-          "path": "frontend/src/components/UploadQueueRunner.tsx",
-          "operation": "modify",
-          "description": "On app start (actor ready + authenticated), load persisted pending items, restore them into UploadContext with their stored progress, and resume via the shared concurrency-limited runner; fix any duplicated Promise.allSettled usage and ensure completion/toast counts are computed once per run."
-        },
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Add explicit support for 'restored/resuming' items so the global progress bar includes them immediately on startup; keep items tracked until they reach terminal state and are dequeued from persistence."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Keep scope strictly limited to upload backgrounding, speed, progress correctness, and resumability without altering other app behavior or UI.",
-      "acceptanceCriteria": [
-        "All non-upload flows (missions, folders, notes, file viewing/moving/deleting, authentication, theming) behave exactly as before.",
-        "No backend API changes are introduced unless strictly required for the upload/background/progress behavior (prefer frontend-only changes)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/FileUploadSection.tsx",
-          "operation": "modify",
-          "description": "Constrain changes to the multi-file upload codepath only (no UI/theme/copy changes beyond what is necessary for correct progress/background behavior) and keep existing validation/error handling/toasts consistent."
-        },
-        {
-          "path": "frontend/src/components/UploadQueueRunner.tsx",
-          "operation": "modify",
-          "description": "Limit modifications to restoring/resuming uploads and progress wiring only; avoid changes to unrelated startup flows."
-        },
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Keep UploadContext changes narrowly focused on deterministic progress mapping, background queue execution, and resumable tracking; do not refactor unrelated app state management."
+          "description": "Remove dev-only dynamic import and usage of Sonner toast in the smoke-test runner (keep smoke test capability and console logging intact) so no toasts can appear even in development."
         }
       ]
     }

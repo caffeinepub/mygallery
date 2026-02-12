@@ -5,7 +5,7 @@ import { useCreateNote } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
 import { persistedQueue } from '@/utils/persistedUploadQueue';
-import { toast } from 'sonner';
+import { toast } from '@/utils/noopToast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

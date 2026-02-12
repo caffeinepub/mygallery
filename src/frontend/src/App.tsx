@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
 import HomePage from '@/pages/HomePage';
 import { ActorProvider } from '@/contexts/ActorContext';
@@ -46,7 +45,6 @@ export default function App() {
         <ActorProvider>
           <UploadProvider>
             <AppContent />
-            <Toaster />
           </UploadProvider>
         </ActorProvider>
       </QueryClientProvider>

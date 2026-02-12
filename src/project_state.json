@@ -1,54 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Improve gallery multi-file uploads to run in the background without blocking app usage, with accurate progress updates and maximum possible speed (no other app changes).",
+  "summary": "New project",
   "architectural_notes": [
-    "Multi-file gallery uploads must be non-blocking (background/back-end processing) so navigation and other app functions remain usable during upload.",
-    "Upload progress reporting must remain accurate while uploads continue in the background.",
-    "Optimize upload throughput/speed while maintaining current app behavior elsewhere."
+    "Remove/disable automated success/info toast messages (e.g., \"mission created successfully\") while keeping all other functionality unchanged."
   ],
-  "known_issues": [
-    "Build/deploy process hit an internal configuration issue (requires platform/Caffeine team)."
-  ],
+  "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-ensure-multi-file-uploads-from-the-gallery-run-in-the-background-non-blocking-so-the-user-can-navigate-to-other-screens-and-use-other-features-while-uploads-continue-without-freezes-or-ui-slowdowns-caused-by-file-processing-on-the-main-thread",
-      "title": "Ensure multi-file uploads from the Gallery run in the background (non-blocking) so the user can navigate to other screens and use other features while uploads continue, without freezes or UI slowdowns caused by file processing on the main thread.",
+      "id": "feature-disable-all-automated-in-app-toast-notification-popups-e-g-mission-created-successfully-so-that-no-sonner-toast-messages-are-shown-anywhere-in-the-app-while-keeping-all-underlying-app-logic-and-flows-unchanged",
+      "title": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-fix-upload-progress-tracking-so-the-global-progress-bar-accurately-reflects-real-progress-for-multi-file-uploads-including-correct-per-file-association-even-when-multiple-files-share-the-same-name-and-remains-visible-updating-until-all-selected-files-finish-success-or-failure",
-      "title": "Fix upload progress tracking so the global progress bar accurately reflects real progress for multi-file uploads, including correct per-file association even when multiple files share the same name, and remains visible/updating until all selected files finish (success or failure).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-maximize-upload-speed-for-multi-file-uploads-by-using-controlled-parallelism-limited-concurrency-end-to-end-and-avoid-redundant-expensive-work-e-g-reading-the-same-file-bytes-multiple-times-while-preserving-existing-validation-error-handling-and-user-feedback-toasts",
-      "title": "Maximize upload speed for multi-file uploads by using controlled parallelism (limited concurrency) end-to-end, and avoid redundant expensive work (e.g., reading the same file bytes multiple times) while preserving existing validation, error handling, and user feedback (toasts).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-background-resumable-uploads-reliable-if-the-app-is-reloaded-closed-during-a-multi-file-upload-persist-in-progress-items-best-effort-and-automatically-resume-them-on-next-app-start-with-progress-correctly-restored-and-updated-during-the-resume-process",
-      "title": "Make background/resumable uploads reliable: if the app is reloaded/closed during a multi-file upload, persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during the resume process.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-do-not-change-any-other-application-functionality-or-ui-beyond-what-is-required-to-a-keep-multi-file-gallery-uploads-non-blocking-background-b-improve-upload-speed-c-fix-progress-reporting-and-d-ensure-resumable-behavior",
-      "title": "Do not change any other application functionality or UI beyond what is required to: (a) keep multi-file gallery uploads non-blocking/background, (b) improve upload speed, (c) fix progress reporting, and (d) ensure resumable behavior.",
-      "reqIds": [
-        "REQ-5"
       ],
       "version": 1
     }
@@ -56,12 +20,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Run gallery multi-file uploads in the background/back-end so users can continue using the app without interruption, with correct progress bar updates and максимально fast uploading; do not change other app functionality.",
+      "summary": "Disable automated in-app messages/notifications (e.g., \"mission created successfully\") without changing any other app functionality",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Make multi-file gallery uploads non-blocking with accurate progress and max speed",
+  "projectName": "Disable automated in-app toast messages (e.g., “Mission created successfully”) without changing app functionality",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

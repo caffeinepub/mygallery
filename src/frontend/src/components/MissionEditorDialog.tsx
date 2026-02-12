@@ -1,230 +1,180 @@
-import { useState, useEffect } from 'react';
-import { Plus, Save, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Plus, X } from 'lucide-react';
 import { useCreateMission } from '@/hooks/useMissionsQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import { toast } from 'sonner';
+import { toast } from '@/utils/noopToast';
 import type { Task } from '@/backend';
 
 interface MissionEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  missionId: bigint | null;
-  isCreating: boolean;
 }
 
 export default function MissionEditorDialog({
   open,
   onOpenChange,
-  missionId,
-  isCreating,
 }: MissionEditorDialogProps) {
-  const [missionTitle, setMissionTitle] = useState('');
+  const [title, setTitle] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskText, setNewTaskText] = useState('');
+  const [currentTask, setCurrentTask] = useState('');
+  const createMission = useCreateMission();
 
-  const { status } = useBackendActor();
-  const createMissionMutation = useCreateMission();
+  const handleAddTask = () => {
+    if (!currentTask.trim()) return;
 
-  const isActorReady = status === 'ready';
+    const newTask: Task = {
+      taskId: BigInt(Date.now() + Math.floor(Math.random() * 1000)),
+      task: currentTask.trim(),
+      completed: false,
+    };
 
-  // Reset form when dialog opens for creation
-  useEffect(() => {
-    if (isCreating && open) {
-      setMissionTitle('');
-      setTasks([]);
-      setNewTaskText('');
-    }
-  }, [isCreating, open]);
+    setTasks([...tasks, newTask]);
+    setCurrentTask('');
+  };
 
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setMissionTitle('');
-      setTasks([]);
-      setNewTaskText('');
-    }
-  }, [open]);
+  const handleRemoveTask = (taskId: bigint) => {
+    setTasks(tasks.filter(t => t.taskId !== taskId));
+  };
 
-  const handleCreateMission = async () => {
-    if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    if (!missionTitle.trim()) {
+    if (!title.trim()) {
       toast.error('Please enter a mission title');
       return;
     }
 
     try {
-      // Create a defensive deep copy of tasks to avoid reference issues
-      const tasksCopy: Task[] = tasks.map(t => ({
-        taskId: t.taskId,
-        task: t.task,
-        completed: t.completed,
-      }));
-
-      await createMissionMutation.mutateAsync({
-        title: missionTitle.trim(),
-        tasks: tasksCopy,
+      await createMission.mutateAsync({
+        title: title.trim(),
+        tasks,
       });
-      
+
       toast.success('Mission created successfully');
+      setTitle('');
+      setTasks([]);
+      setCurrentTask('');
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to create mission:', error);
+      console.error('Create mission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create mission';
       toast.error(errorMessage);
     }
   };
 
-  const handleAddTask = () => {
-    if (!newTaskText.trim()) return;
-    
-    // Generate collision-resistant taskId using timestamp + random component
-    // This matches the strategy used in useAddTaskToMission for optimistic tasks
-    const collisionResistantId = BigInt(`${Date.now()}${Math.random().toString().slice(2, 8)}`);
-    
-    const newTask: Task = {
-      taskId: collisionResistantId,
-      task: newTaskText.trim(),
-      completed: false,
-    };
-    
-    setTasks([...tasks, newTask]);
-    setNewTaskText('');
-  };
-
-  const handleToggleTask = (taskId: bigint) => {
-    setTasks(tasks.map(t => 
-      t.taskId.toString() === taskId.toString() ? { ...t, completed: !t.completed } : t
-    ));
-  };
-
-  const handleRemoveTask = (taskId: bigint) => {
-    setTasks(tasks.filter(t => t.taskId.toString() !== taskId.toString()));
+  const handleCancel = () => {
+    setTitle('');
+    setTasks([]);
+    setCurrentTask('');
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[85dvh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 pt-4 pb-3 border-b shrink-0">
-          <DialogTitle className="sr-only">Create New Mission</DialogTitle>
-          <Input
-            placeholder="Mission title..."
-            value={missionTitle}
-            onChange={(e) => setMissionTitle(e.target.value)}
-            disabled={!isActorReady}
-            className="text-xl font-bold border-0 focus-visible:ring-1 shadow-none px-0"
-            autoFocus
-          />
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
+          <DialogTitle>Create mission</DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 pt-3 pb-2 border-b shrink-0 bg-background">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Add a new task..."
-              value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAddTask();
-                }
-              }}
-              disabled={!isActorReady}
-            />
-            <Button
-              onClick={handleAddTask}
-              disabled={!isActorReady || !newTaskText.trim()}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-hidden px-6 min-h-0">
-          <ScrollArea className="h-full pr-4">
-            <div className="space-y-2 py-3">
-              {tasks.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p className="text-sm">No tasks yet. Add tasks above to get started!</p>
-                </div>
-              ) : (
-                tasks.map((task, index) => (
-                  <div
-                    key={task.taskId.toString()}
-                    className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
-                  >
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={() => handleToggleTask(task.taskId)}
-                      disabled={!isActorReady}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium">
-                        {index + 1}.
-                      </span>
-                      <span className={`ml-2 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                        {task.task}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleRemoveTask(task.taskId)}
-                      disabled={!isActorReady}
-                    >
-                      <X className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))
-              )}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-auto px-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mission-title">Mission title *</Label>
+              <Input
+                id="mission-title"
+                type="text"
+                placeholder="Enter mission title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={createMission.isPending}
+                className="w-full"
+              />
             </div>
-          </ScrollArea>
-        </div>
 
-        <div className="px-6 pb-4 pt-3 border-t shrink-0 bg-background">
-          <div className="flex justify-end gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="task-input">Add task</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="task-input"
+                  type="text"
+                  placeholder="Enter task"
+                  value={currentTask}
+                  onChange={(e) => setCurrentTask(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTask();
+                    }
+                  }}
+                  disabled={createMission.isPending}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={handleAddTask}
+                  disabled={!currentTask.trim() || createMission.isPending}
+                  size="icon"
+                  className="shrink-0"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {tasks.length > 0 && (
+              <div className="space-y-2">
+                <Label>Tasks ({tasks.length})</Label>
+                <div className="space-y-2 max-h-[200px] overflow-auto">
+                  {tasks.map((task) => (
+                    <div
+                      key={task.taskId.toString()}
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted"
+                    >
+                      <span className="flex-1 text-sm">{task.task}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => handleRemoveTask(task.taskId)}
+                        disabled={createMission.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 p-6 border-t bg-background">
             <Button
+              type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={createMissionMutation.isPending}
+              onClick={handleCancel}
+              disabled={createMission.isPending}
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleCreateMission}
-              disabled={!isActorReady || !missionTitle.trim() || createMissionMutation.isPending}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white"
+              type="submit"
+              disabled={createMission.isPending || !title.trim()}
+              className="flex-1 bg-missions-accent hover:bg-missions-accent-hover text-white"
             >
-              {createMissionMutation.isPending ? (
-                <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Mission
-                </>
-              )}
+              {createMission.isPending ? 'Creating...' : 'Create'}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

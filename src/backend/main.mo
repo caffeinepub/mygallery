@@ -12,9 +12,9 @@ import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 import Cycles "mo:core/Cycles";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   include MixinStorage();
 

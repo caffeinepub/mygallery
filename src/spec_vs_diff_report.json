@@ -1,71 +1,37 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T08:43:23.320Z",
-  "summary": "Diff implements key upload-related mechanisms (Web Worker off-main-thread byte reading, persisted IndexedDB queue, resume runner with concurrency limiting, and a unified progress bar). However, the change set also includes many non-upload-related UI/feature modifications that violate the strict scope/REQ-5 constraint. Additionally, evidence suggests REQ-3’s “avoid redundant expensive work” and “consistent concurrency limit for selection + resume” may be incomplete for the initial multi-file selection flow, and persistence currently re-reads file bytes on the main thread.",
+  "generatedAt": "2026-02-12T09:30:13.350Z",
+  "summary": "Toast popups appear to be mostly disabled by swapping Sonner toast calls to a no-op toast utility, but there is still at least one code path that imports and uses Sonner toasts directly (dev-only smoke test), which can still display toasts and violates the “no Sonner toast messages anywhere” requirement.",
   "missing_requirements": [
     {
-      "id": "REQ-3",
-      "requirement": "Avoid redundant expensive work (e.g., do not read the same file bytes multiple times for persistence + upload) and apply limited concurrency consistently for both multi-file selection and resume flows.",
-      "reason": "The persisted queue implementation reads the file bytes via file.arrayBuffer() (main thread) for enqueue, while the new Web Worker also reads file.arrayBuffer() to produce bytes for upload. This indicates duplicate reads/byte conversions are still present. Also, the resume flow clearly uses a concurrency limiter (3), but the multi-file selection flow’s limiter usage is not evidenced in the provided truncated FileUploadSection diff.",
+      "id": "REQ-1",
+      "requirement": "Disable all automated in-app toast/notification popups so that no Sonner toast messages are shown anywhere in the app (success/info/error), while keeping underlying logic unchanged.",
+      "reason": "The diff shows a direct dynamic import and usage of `toast` from `sonner` in HomePage (DEV smoke test). This path can still display Sonner toast popups, contradicting the requirement that no Sonner toast messages are shown anywhere in the app.",
       "evidence": [
-        "frontend/src/utils/persistedUploadQueue.ts (enqueue uses file.arrayBuffer() and Array.from(new Uint8Array(arrayBuffer)))",
-        "frontend/src/workers/fileBytes.worker.ts (worker reads file.arrayBuffer() to bytes)",
-        "frontend/src/components/UploadQueueRunner.tsx (createConcurrencyLimiter(3) used for resume uploads)",
-        "frontend/src/components/FileUploadSection.tsx (mentions concurrency but limiter usage not shown in truncated diff)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during resume; no duplicate uploads for already completed items.",
-      "reason": "Resume logic is present, but the persistence implementation shown is truncated and does not provide evidence of: (a) items being enqueued during the initial upload flow, and (b) explicit deduplication safeguards beyond dequeue-on-success. Because the diff is truncated, the enqueue step and duplicate-prevention for already-completed items cannot be confirmed from the provided evidence.",
-      "evidence": [
-        "frontend/src/components/UploadQueueRunner.tsx (restores from persistedQueue.getAll(), resumes, dequeue on success)",
-        "frontend/src/utils/persistedUploadQueue.ts (enqueue/updateProgress/dequeue exist; getAll truncated)",
-        "frontend/src/components/FileUploadSection.tsx (imports persistedQueue but enqueue behavior not visible in truncated section)"
+        "frontend/src/pages/HomePage.tsx (dynamic import: `const { toast } = await import('sonner');` and calls to `toast.info(...)`, `toast.success(...)`, `toast.error(...)`)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Broad UI/theme/layout and unrelated app behavior changes beyond upload/progress messaging (violates strict scope/REQ-5).",
-      "reason": "Multiple components are described as having significant changes unrelated to multi-file gallery upload backgrounding/progress/speed/resume (e.g., theme system changes, header sign-out dropdown changes, footer attribution, gallery visual distinctions/viewers, folder dialog behavior). These exceed the BuildRequest’s 'keep scope strictly limited' constraint.",
+      "description": "DEV-only smoke test runner that triggers Sonner toast notifications via a `?smokeTest=true` URL param.",
+      "reason": "Not requested by the BuildRequest; it also conflicts with the goal of removing automated toast messages (it explicitly shows toast.info/success/error).",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css: OKLCH color system, animations, touch interactions)",
-        "frontend-file-summaries.txt (frontend/src/components/Header.tsx: animated icon, sign-out dropdown, theme toggle integration)",
-        "frontend-file-summaries.txt (frontend/src/components/Footer.tsx: attribution/copyright changes)",
-        "frontend-file-summaries.txt (frontend/src/components/GallerySection.tsx: notes visual distinction, separate viewers, selection/delete/move support changes)",
-        "frontend-file-summaries.txt (frontend/src/components/FoldersDialog.tsx: swipe actions, confirmation modal copy changes, deprecated note)",
-        "frontend-file-summaries.txt (frontend/src/pages/HomePage.tsx: lazy-loaded views, dev-only utilities, re-render stabilization)",
-        "frontend-file-summaries.txt (frontend/src/hooks/useQueries.ts: cache staleTime changes, optimistic update fixes for move-to-mission)"
-      ]
-    },
-    {
-      "description": "Upload tracking/status types added to backend actor without clear necessity for frontend-only upload performance/progress fixes.",
-      "reason": "backend/main.mo shows introduction of multiple upload-tracking related types (UploadStatus, UploadFileStatus, UploadFileState) and an 'Upload Tracking' section start, but the BuildRequest prefers frontend-only changes unless strictly required. The diff summary does not show any frontend consuming these new backend types/APIs, so this appears unrequested/unused within the provided evidence.",
-      "evidence": [
-        "backend/main.mo (defines UploadStatus/UploadFileStatus/UploadFileState; '//// Upload Tracking' section begins)"
-      ]
-    },
-    {
-      "description": "Speech-to-text behavior integrated into upload section (note creation) beyond the upload performance/progress scope.",
-      "reason": "FileUploadSection includes useSpeechToText integration and microphone UI elements; this is not requested by any REQ and expands functionality beyond multi-file upload performance/progress/resume.",
-      "evidence": [
-        "frontend/src/components/FileUploadSection.tsx (imports/useSpeechToText; Mic/MicOff icons; transcript handling)"
+        "frontend/src/pages/HomePage.tsx (adds smoke test URL param handling and Sonner toast usage)"
       ]
     }
   ],
-  "confidence": 0.68,
+  "confidence": 0.72,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
     "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/UnifiedProgressBar.tsx",
-    "frontend/src/components/UploadQueueRunner.tsx",
-    "frontend/src/contexts/UploadContext.tsx",
-    "frontend/src/utils/persistedUploadQueue.ts",
-    "frontend/src/workers/fileBytes.worker.ts",
+    "frontend/src/components/MissionEditorDialog.tsx",
+    "frontend/src/components/MissionsFullScreenView.tsx",
+    "frontend/src/components/MoveToMissionDialog.tsx",
+    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/utils/noopToast.ts",
     "project_state.json"
   ]
 }

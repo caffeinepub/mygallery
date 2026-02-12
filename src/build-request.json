@@ -1,108 +1,38 @@
 {
   "kind": "build_request",
-  "title": "Make multi-file gallery uploads non-blocking with accurate progress and max speed",
+  "title": "Disable automated in-app toast messages (e.g., “Mission created successfully”) without changing app functionality",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure multi-file uploads from the Gallery run in the background (non-blocking) so the user can navigate to other screens and use other features while uploads continue, without freezes or UI slowdowns caused by file processing on the main thread.",
+      "text": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-8"
         ],
         "quotes": [
-          "When the user uploads multiple files in the gallery, uploading should work in the background without affecting other app functions, so the user can continue using the app without interrupting uploading. The progress bar should update correctly and uploading should be as fast as possible. Do not change anything else."
+          "Να μην εμφανίζονται αυτοματοποιημένα μηνύματα στην εφαρμογή , για παράδειγμα \"mission created successfully \" κλπ.\nΜην αλλάξεις απολύτως τίποτα άλλο στην εφαρμογή και στις λειτουργίες της"
         ]
       },
       "acceptanceCriteria": [
-        "Selecting many files (including large files) does not freeze the UI; the user can open/close dialogs, switch between gallery/folders/missions, and continue interacting while uploads are running.",
-        "Uploads continue even if the file upload UI component is not currently visible (e.g., user navigates away within the SPA).",
-        "No other behaviors outside the upload flow are changed."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix upload progress tracking so the global progress bar accurately reflects real progress for multi-file uploads, including correct per-file association even when multiple files share the same name, and remains visible/updating until all selected files finish (success or failure).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "The progress bar should update correctly."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Progress updates map to the correct file item deterministically (no reliance on substring matching of file names).",
-        "If two files have the same filename, their progress is tracked independently and correctly.",
-        "The global progress value monotonically increases (except for minor rounding) and reaches 100% only when all items in the batch are done (success or failure).",
-        "The progress bar does not disappear early while uploads are still in-flight."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Maximize upload speed for multi-file uploads by using controlled parallelism (limited concurrency) end-to-end, and avoid redundant expensive work (e.g., reading the same file bytes multiple times) while preserving existing validation, error handling, and user feedback (toasts).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Uploading files should be as fast as possible."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Uploads are performed with limited parallelism (not purely sequential), and the concurrency limit is applied consistently for multi-file selection and resume flows.",
-        "The implementation avoids duplicate file reads/byte conversions where possible (e.g., do not read the same file into memory twice for persistence + upload).",
-        "Success/failure toasts still appear with accurate counts as today."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Make background/resumable uploads reliable: if the app is reloaded/closed during a multi-file upload, persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during the resume process.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Uploading should work in the background so the user can continue using the app without interrupting uploading."
-        ]
-      },
-      "acceptanceCriteria": [
-        "If the page is reloaded mid-upload, any persisted pending items are detected on next load and resumed automatically once the backend actor is ready and the user is authenticated.",
-        "Resumed uploads correctly drive the global progress bar (no 'stuck at 0%' or missing progress).",
-        "No duplicate uploads occur for items that already completed and were dequeued from persistence."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Do not change any other application functionality or UI beyond what is required to: (a) keep multi-file gallery uploads non-blocking/background, (b) improve upload speed, (c) fix progress reporting, and (d) ensure resumable behavior.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Do not change anything else in the app and its functions."
-        ]
-      },
-      "acceptanceCriteria": [
-        "All non-upload flows (missions, folders, notes, file viewing/moving/deleting, authentication, theming) behave exactly as before.",
-        "No backend API changes are introduced unless strictly required for the upload/background/progress behavior (prefer frontend-only changes)."
+        "Creating a mission does not display a success toast (e.g., “Mission created successfully”).",
+        "Deleting a mission does not display a success toast (e.g., “Mission deleted successfully”).",
+        "No other toast popups appear for any app actions (success, info, or error toasts).",
+        "All existing CRUD and upload flows continue to function as before (no behavior changes besides the absence of toast popups).",
+        "The frontend builds cleanly without TypeScript errors (e.g., no unused imports after toast/Toaster removal)."
       ]
     }
   ],
   "constraints": [
-    "Frontend immutable paths must not be edited: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui/*.",
-    "Backend must remain a single Motoko actor in backend/main.mo; only add a migration file if a stable-state change is unavoidable.",
-    "Keep scope strictly limited to multi-file gallery uploading performance/background continuity and progress correctness; do not refactor unrelated code."
+    "Do not change any backend behavior, data models, or persistence.",
+    "Do not change any app functionality or user flows other than removing automated in-app toast messages.",
+    "Do not edit files under frontend/src/components/ui (compose existing UI components only)."
   ],
   "nonGoals": [
-    "Adding new app features unrelated to uploads (e.g., new gallery capabilities, new navigation, new file types).",
-    "Introducing external services, databases, or real-time sockets for upload orchestration.",
-    "Changing the overall visual theme, layout, or copy outside upload/progress messaging."
+    "Redesigning dialogs, confirmations, or other non-toast UI.",
+    "Changing copy/text elsewhere in the UI beyond removing toast messages.",
+    "Adding new notification systems as a replacement for toasts."
   ],
   "imageRequirements": {
     "required": [],

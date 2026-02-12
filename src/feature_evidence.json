@@ -2,12 +2,15 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-multi-file-uploads-from-the-gallery-run-in-the-background-non-blocking-so-the-user-can-navigate-to-other-screens-and-use-other-features-while-uploads-continue-without-freezes-or-ui-slowdowns-caused-by-file-processing-on-the-main-thread",
-      "featureTitle": "Ensure multi-file uploads from the Gallery run in the background (non-blocking) so the user can navigate to other screens and use other features while uploads continue, without freezes or UI slowdowns caused by file processing on the main thread.",
+      "featureId": "feature-disable-all-automated-in-app-toast-notification-popups-e-g-mission-created-successfully-so-that-no-sonner-toast-messages-are-shown-anywhere-in-the-app-while-keeping-all-underlying-app-logic-and-flows-unchanged",
+      "featureTitle": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
       "files": [
+        "frontend/src/App.tsx",
         "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/contexts/UploadContext.tsx",
-        "frontend/src/workers/fileBytes.worker.ts"
+        "frontend/src/components/MissionEditorDialog.tsx",
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "frontend/src/pages/HomePage.tsx",
+        "frontend/src/utils/noopToast.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -20,95 +23,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-upload-progress-tracking-so-the-global-progress-bar-accurately-reflects-real-progress-for-multi-file-uploads-including-correct-per-file-association-even-when-multiple-files-share-the-same-name-and-remains-visible-updating-until-all-selected-files-finish-success-or-failure",
-      "featureTitle": "Fix upload progress tracking so the global progress bar accurately reflects real progress for multi-file uploads, including correct per-file association even when multiple files share the same name, and remains visible/updating until all selected files finish (success or failure).",
-      "files": [
-        "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/components/UnifiedProgressBar.tsx",
-        "frontend/src/components/UploadQueueRunner.tsx",
-        "frontend/src/contexts/UploadContext.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-maximize-upload-speed-for-multi-file-uploads-by-using-controlled-parallelism-limited-concurrency-end-to-end-and-avoid-redundant-expensive-work-e-g-reading-the-same-file-bytes-multiple-times-while-preserving-existing-validation-error-handling-and-user-feedback-toasts",
-      "featureTitle": "Maximize upload speed for multi-file uploads by using controlled parallelism (limited concurrency) end-to-end, and avoid redundant expensive work (e.g., reading the same file bytes multiple times) while preserving existing validation, error handling, and user feedback (toasts).",
-      "files": [
-        "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/components/UploadQueueRunner.tsx",
-        "frontend/src/utils/persistedUploadQueue.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-make-background-resumable-uploads-reliable-if-the-app-is-reloaded-closed-during-a-multi-file-upload-persist-in-progress-items-best-effort-and-automatically-resume-them-on-next-app-start-with-progress-correctly-restored-and-updated-during-the-resume-process",
-      "featureTitle": "Make background/resumable uploads reliable: if the app is reloaded/closed during a multi-file upload, persist in-progress items best-effort and automatically resume them on next app start, with progress correctly restored and updated during the resume process.",
-      "files": [
-        "frontend/src/components/UploadQueueRunner.tsx",
-        "frontend/src/contexts/UploadContext.tsx",
-        "frontend/src/utils/persistedUploadQueue.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-do-not-change-any-other-application-functionality-or-ui-beyond-what-is-required-to-a-keep-multi-file-gallery-uploads-non-blocking-background-b-improve-upload-speed-c-fix-progress-reporting-and-d-ensure-resumable-behavior",
-      "featureTitle": "Do not change any other application functionality or UI beyond what is required to: (a) keep multi-file gallery uploads non-blocking/background, (b) improve upload speed, (c) fix progress reporting, and (d) ensure resumable behavior.",
-      "files": [
-        "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/components/UploadQueueRunner.tsx",
-        "frontend/src/contexts/UploadContext.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }
