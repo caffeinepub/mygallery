@@ -2,15 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-disable-all-automated-in-app-toast-notification-popups-e-g-mission-created-successfully-so-that-no-sonner-toast-messages-are-shown-anywhere-in-the-app-while-keeping-all-underlying-app-logic-and-flows-unchanged",
-      "featureTitle": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
+      "featureId": "feature-suppress-hide-all-automated-in-app-system-toast-notifications-e-g-sonner-toasts-such-as-mission-created-successfully-so-they-do-not-render-anywhere-in-the-ui",
+      "featureTitle": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/FileUploadSection.tsx",
-        "frontend/src/components/MissionEditorDialog.tsx",
-        "frontend/src/components/MissionsFullScreenView.tsx",
-        "frontend/src/pages/HomePage.tsx",
-        "frontend/src/utils/noopToast.ts"
+        "frontend/src/App.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",

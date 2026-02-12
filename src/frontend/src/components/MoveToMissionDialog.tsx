@@ -10,7 +10,7 @@ import { Target } from 'lucide-react';
 import { useListMissions } from '@/hooks/useMissionsQueries';
 import { useMoveFilesToMission } from '@/hooks/useQueries';
 import { useMoveNotesToMission } from '@/hooks/useNotesQueries';
-import { toast } from '@/utils/noopToast';
+import { toast } from 'sonner';
 
 interface MoveToMissionDialogProps {
   open: boolean;

@@ -1,38 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Disable automated in-app toast messages (e.g., “Mission created successfully”) without changing app functionality",
+  "title": "Hide automated in-app system toast messages",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
+      "text": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-8"
+          "msg-6"
         ],
         "quotes": [
-          "Να μην εμφανίζονται αυτοματοποιημένα μηνύματα στην εφαρμογή , για παράδειγμα \"mission created successfully \" κλπ.\nΜην αλλάξεις απολύτως τίποτα άλλο στην εφαρμογή και στις λειτουργίες της"
+          "The automated messages in the app, e.g. \"mission created successfully\" etc., should be hidden and not shown in the app. Don't change absolutely anything else in the app and its functionality, only hide the automated messages."
         ]
       },
       "acceptanceCriteria": [
-        "Creating a mission does not display a success toast (e.g., “Mission created successfully”).",
-        "Deleting a mission does not display a success toast (e.g., “Mission deleted successfully”).",
-        "No other toast popups appear for any app actions (success, info, or error toasts).",
-        "All existing CRUD and upload flows continue to function as before (no behavior changes besides the absence of toast popups).",
-        "The frontend builds cleanly without TypeScript errors (e.g., no unused imports after toast/Toaster removal)."
+        "After actions that previously showed success/error/info toasts (e.g., creating a mission), no toast notification is displayed to the user.",
+        "No other UI/UX, layout, navigation, or business logic changes occur aside from removing/hiding the automated toast messages.",
+        "The app compiles and runs without requiring any changes to immutable Shadcn UI component source files (frontend/src/components/ui)."
       ]
     }
   ],
   "constraints": [
-    "Do not change any backend behavior, data models, or persistence.",
-    "Do not change any app functionality or user flows other than removing automated in-app toast messages.",
-    "Do not edit files under frontend/src/components/ui (compose existing UI components only)."
+    "Do not change any application behavior or features other than hiding automated in-app messages/toasts.",
+    "Do not edit files under frontend/src/components/ui (immutable).",
+    "No backend changes or state migrations are allowed/needed for this request."
   ],
   "nonGoals": [
-    "Redesigning dialogs, confirmations, or other non-toast UI.",
-    "Changing copy/text elsewhere in the UI beyond removing toast messages.",
-    "Adding new notification systems as a replacement for toasts."
+    "Adding a new notification system.",
+    "Changing validation logic, mission creation/deletion flows, or error handling behavior beyond hiding the UI notifications.",
+    "Translating or rewriting the toast message strings (they should simply not appear)."
   ],
   "imageRequirements": {
     "required": [],

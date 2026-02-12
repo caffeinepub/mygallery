@@ -1,11 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Disable all automated in-app toast/notification popups (Sonner toasts) across the app without changing any underlying functionality or user flows.
+**Goal:** Hide/suppress all automated in-app system toast notifications so they never render in the UI.
 
 **Planned changes:**
-- Remove/disable the global Sonner toaster UI so no toast popups can render.
-- Remove/disable all frontend calls that trigger Sonner toast notifications (success, info, and error), ensuring no automated toast messages appear.
-- Clean up related imports/usages to keep the frontend building without TypeScript errors.
+- Disable or remove the global toast renderer (e.g., Sonner toaster) so automated success/error/info toasts are not displayed.
+- Ensure any toast-triggering calls no longer result in visible UI notifications, without changing underlying action behavior or logic.
 
-**User-visible outcome:** Users can create/delete missions and perform all existing actions as before, but no automated toast/notification popups (including success/error/info) appear anywhere in the app.
+**User-visible outcome:** Actions that previously showed automated toast messages (e.g., “Mission created successfully”) will no longer display any toast notifications, while the rest of the app behaves the same.

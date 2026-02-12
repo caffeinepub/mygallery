@@ -1,48 +1,21 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove all Sonner toast popups while preserving existing app behavior",
+  "title": "Hide automated in-app system toast messages",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Disable all automated in-app toast notifications by removing the global Sonner Toaster and replacing all toast calls with a no-op notifier, without altering underlying flows.",
+      "summary": "Suppress/hide all automated in-app system toast notifications so they never render in the UI.",
       "acceptanceCriteria": [
-        "Creating a mission does not display a success toast (e.g., “Mission created successfully”).",
-        "Deleting a mission does not display a success toast (e.g., “Mission deleted successfully”).",
-        "No other toast popups appear for any app actions (success, info, or error toasts).",
-        "All existing CRUD and upload flows continue to function as before (no behavior changes besides the absence of toast popups).",
-        "The frontend builds cleanly without TypeScript errors (e.g., no unused imports after toast/Toaster removal)."
+        "After actions that previously showed success/error/info toasts (e.g., creating a mission), no toast notification is displayed to the user.",
+        "No other UI/UX, layout, navigation, or business logic changes occur aside from removing/hiding the automated toast messages.",
+        "The app compiles and runs without requiring any changes to immutable Shadcn UI component source files (frontend/src/components/ui)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Remove Sonner Toaster wiring (import and rendered <Toaster />) so the app no longer mounts a toast container; ensure no unused imports remain. (Do not edit files under frontend/src/components/ui.)"
-        },
-        {
-          "path": "frontend/src/utils/noopToast.ts",
-          "operation": "create",
-          "description": "Add a tiny no-op toast implementation that matches the Sonner API surface used in the app (e.g., success/error/info) so existing control flow can remain unchanged while producing no UI popups."
-        },
-        {
-          "path": "frontend/src/components/FileUploadSection.tsx",
-          "operation": "modify",
-          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility and keep all validations/returns and upload/link/note flows unchanged; ensure no toasts are emitted (including speech-to-text error handling)."
-        },
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility and keep mission delete flows, optimistic updates, and guards unchanged while preventing all success/error toast popups."
-        },
-        {
-          "path": "frontend/src/components/MissionEditorDialog.tsx",
-          "operation": "modify",
-          "description": "Replace `toast` import from 'sonner' with the shared no-op toast utility; keep mission creation validation and mutation flow unchanged while removing all toast popups."
-        },
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Remove dev-only dynamic import and usage of Sonner toast in the smoke-test runner (keep smoke test capability and console logging intact) so no toasts can appear even in development."
+          "description": "Remove the Sonner <Toaster /> mounting (and its import) so toast notifications are never rendered anywhere in the UI, while leaving all existing toast trigger calls and application behavior unchanged."
         }
       ]
     }

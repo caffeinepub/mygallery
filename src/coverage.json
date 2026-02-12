@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T09:30:13.353Z",
+  "generatedAt": "2026-02-12T11:38:28.169Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,23 +12,13 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
+        "summary": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/utils/noopToast.ts",
-          "frontend/src/components/FileUploadSection.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionEditorDialog.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/utils/noopToast.ts",
-          "frontend/src/components/FileUploadSection.tsx",
-          "frontend/src/components/MissionsFullScreenView.tsx",
-          "frontend/src/components/MissionEditorDialog.tsx",
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/App.tsx"
         ]
       }
     ]
@@ -39,12 +29,6 @@
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/App.tsx",
-    "frontend/src/components/FileUploadSection.tsx",
-    "frontend/src/components/MissionEditorDialog.tsx",
-    "frontend/src/components/MissionsFullScreenView.tsx",
-    "frontend/src/components/MoveToMissionDialog.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/utils/noopToast.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

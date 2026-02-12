@@ -3,14 +3,14 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [
-    "Remove/disable automated success/info toast messages (e.g., \"mission created successfully\") while keeping all other functionality unchanged."
+    "Add a way to suppress/disable automated success/toast messages globally without changing other app behavior."
   ],
   "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-disable-all-automated-in-app-toast-notification-popups-e-g-mission-created-successfully-so-that-no-sonner-toast-messages-are-shown-anywhere-in-the-app-while-keeping-all-underlying-app-logic-and-flows-unchanged",
-      "title": "Disable all automated in-app toast/notification popups (e.g., “Mission created successfully”) so that no Sonner toast messages are shown anywhere in the app, while keeping all underlying app logic and flows unchanged.",
+      "id": "feature-suppress-hide-all-automated-in-app-system-toast-notifications-e-g-sonner-toasts-such-as-mission-created-successfully-so-they-do-not-render-anywhere-in-the-ui",
+      "title": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
       "reqIds": [
         "REQ-1"
       ],
@@ -20,12 +20,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Disable automated in-app messages/notifications (e.g., \"mission created successfully\") without changing any other app functionality",
+      "summary": "Hide/suppress automated in-app system messages (e.g., \"mission created successfully\") so they do not appear in the UI; change nothing else.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Disable automated in-app toast messages (e.g., “Mission created successfully”) without changing app functionality",
+  "projectName": "Hide automated in-app system toast messages",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
