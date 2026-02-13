@@ -4,7 +4,7 @@ import { useGetNotesNotInFolder, useGetNotesInFolder, useDeleteNotes } from '@/h
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink, StickyNote } from 'lucide-react';
+import { FileImage, FileVideo, File as FileIcon, ArrowLeft, FileText, FileSpreadsheet, FolderInput, Download, Trash2, Check, Share2, Target, ExternalLink, StickyNote, CheckSquare, Square } from 'lucide-react';
 import FullScreenViewer from './FullScreenViewer';
 import NoteViewerDialog from './NoteViewerDialog';
 import SendToFolderDialog from './SendToFolderDialog';
@@ -12,6 +12,7 @@ import MoveToMissionDialog from './MoveToMissionDialog';
 import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
 import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
 import { downloadFile, openExternally, shareFile, downloadNoteAsText, shareNote } from '@/utils/externalOpen';
+import { toast } from 'sonner';
 import type { FileMetadata, Folder, Note } from '@/backend';
 
 interface GallerySectionProps {
@@ -334,7 +335,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const [viewerOpen, setViewerOpen] = useState(false);
   const [noteViewerOpen, setNoteViewerOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
@@ -365,6 +366,15 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const title = useMemo(() => selectedFolder ? selectedFolder.name : 'Collection', [selectedFolder]);
   const subtitle = useMemo(() => selectedFolder ? 'Files and notes in folder' : 'Your files and notes', [selectedFolder]);
 
+  // Check if all items are selected
+  const allItemsSelected = useMemo(() => {
+    if (galleryItems.length === 0) return false;
+    return galleryItems.every(item => {
+      const itemId = item.type === 'file' ? item.data.id : `note-${item.data.id}`;
+      return selectedItems.has(itemId);
+    });
+  }, [galleryItems, selectedItems]);
+
   // Notify parent when bulk selection state changes
   useEffect(() => {
     const isBulkActive = selectionMode && selectedItems.size > 0;
@@ -391,7 +401,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
       if (!item) return;
 
       if (item.type === 'note') {
-        setSelectedNoteId(item.data.id);
+        setSelectedNote(item.data);
         setNoteViewerOpen(true);
         return;
       }
@@ -438,6 +448,19 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     setSelectionMode(false);
     setSelectedItems(new Set());
   }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    if (allItemsSelected) {
+      // Deselect all
+      setSelectedItems(new Set());
+    } else {
+      // Select all
+      const allIds = galleryItems.map(item => 
+        item.type === 'file' ? item.data.id : `note-${item.data.id}`
+      );
+      setSelectedItems(new Set(allIds));
+    }
+  }, [allItemsSelected, galleryItems]);
 
   const handleDeleteSelected = useCallback(async () => {
     const fileIds: string[] = [];
@@ -510,11 +533,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     }
   }, [selectedItems, files, notes]);
 
-  const selectedNote = useMemo(() => {
-    if (!selectedNoteId) return null;
-    return notes?.find(n => n.id === selectedNoteId) ?? null;
-  }, [selectedNoteId, notes]);
-
   const selectedFileIds = useMemo(() => {
     return Array.from(selectedItems).filter(id => !id.startsWith('note-'));
   }, [selectedItems]);
@@ -525,58 +543,63 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
       .map(id => BigInt(id.replace('note-', '')));
   }, [selectedItems]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="w-[100px] h-[100px] rounded-lg" />
-              <Skeleton className="w-[100px] h-4" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleRetryOpenLink = useCallback(async () => {
+    if (currentLinkUrl) {
+      await openExternally(currentLinkUrl);
+    }
+  }, [currentLinkUrl]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (currentLinkUrl) {
+      try {
+        await navigator.clipboard.writeText(currentLinkUrl);
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+      }
+    }
+  }, [currentLinkUrl]);
 
   return (
-    <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {selectedFolder && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onBackToMain}
-                className="shrink-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            )}
-            <div>
-              <h2 className="text-2xl font-bold">{title}</h2>
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            </div>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="flex items-center gap-3">
+          {selectedFolder && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBackToMain}
+              className="h-8 w-8"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <div>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
         </div>
+      </div>
 
-        {galleryItems.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="rounded-full bg-muted p-4 mb-4">
-                <FileIcon className="h-8 w-8 text-muted-foreground" />
+      {/* Gallery Grid */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {isLoading ? (
+          <div className="grid grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="w-[100px] h-[100px] rounded-lg" />
+                <Skeleton className="w-[100px] h-4" />
               </div>
-              <p className="text-sm text-muted-foreground">No items yet</p>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+        ) : galleryItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="text-muted-foreground mb-2">
+              <FileIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">No files or notes yet</p>
+              <p className="text-xs mt-1">Upload files or create notes to get started</p>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {galleryItems.map((item, index) => {
@@ -585,7 +608,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
 
               return item.type === 'file' ? (
                 <FileCard
-                  key={itemId}
+                  key={item.data.id}
                   file={item.data}
                   onClick={() => handleItemClick(index)}
                   isSelected={isSelected}
@@ -594,7 +617,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
                 />
               ) : (
                 <NoteCard
-                  key={itemId}
+                  key={item.data.id}
                   note={item.data}
                   onClick={() => handleItemClick(index)}
                   isSelected={isSelected}
@@ -609,120 +632,122 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
 
       {/* Bulk Action Bar */}
       {selectionMode && selectedItems.size > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">
-                  {selectedItems.size} selected
-                </span>
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 safe-area-pb">
+          <div className="max-w-[430px] mx-auto px-4 py-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium">
+                {selectedItems.size} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleSelectAll}
+                  className="h-8 gap-2"
+                >
+                  {allItemsSelected ? (
+                    <>
+                      <Square className="h-4 w-4" />
+                      <span className="text-xs">Deselect All</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="h-4 w-4" />
+                      <span className="text-xs">All files</span>
+                    </>
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCancelSelection}
+                  className="h-8"
                 >
                   Cancel
                 </Button>
               </div>
-              <div className="grid grid-cols-5 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSendToFolderOpen(true)}
-                  className="flex flex-col h-auto py-2 px-1"
-                >
-                  <FolderInput className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Folder</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMoveToMissionOpen(true)}
-                  className="flex flex-col h-auto py-2 px-1"
-                >
-                  <Target className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Mission</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadSelected}
-                  className="flex flex-col h-auto py-2 px-1"
-                >
-                  <Download className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Download</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShareSelected}
-                  disabled={isSharing}
-                  className="flex flex-col h-auto py-2 px-1"
-                >
-                  <Share2 className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Share</span>
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteSelected}
-                  disabled={deleteFiles.isPending || deleteNotes.isPending}
-                  className="flex flex-col h-auto py-2 px-1"
-                >
-                  <Trash2 className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Delete</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSendToFolderOpen(true)}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <FolderInput className="h-5 w-5" />
+                <span className="text-xs">Folder</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMoveToMissionOpen(true)}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Target className="h-5 w-5" />
+                <span className="text-xs">Mission</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadSelected}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Download className="h-5 w-5" />
+                <span className="text-xs">Download</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareSelected}
+                disabled={isSharing}
+                className="flex flex-col items-center gap-1 h-auto py-2"
+              >
+                <Share2 className="h-5 w-5" />
+                <span className="text-xs">Share</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteSelected}
+                className="flex flex-col items-center gap-1 h-auto py-2 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span className="text-xs">Delete</span>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Full Screen Viewer */}
-      {viewerOpen && files && files.length > 0 && (
+      {/* Dialogs */}
+      {files && files.length > 0 && (
         <FullScreenViewer
-          files={files.filter(f => f.blob)}
+          files={files}
           initialIndex={selectedIndex}
           open={viewerOpen}
           onOpenChange={setViewerOpen}
         />
       )}
 
-      {/* Note Viewer Dialog */}
-      {noteViewerOpen && selectedNote && (
+      {selectedNote && (
         <NoteViewerDialog
           note={selectedNote}
           open={noteViewerOpen}
           onOpenChange={setNoteViewerOpen}
-          onSendToFolder={() => {
-            setNoteViewerOpen(false);
-            setSelectionMode(true);
-            setSelectedItems(new Set([`note-${selectedNote.id}`]));
-            setSendToFolderOpen(true);
-          }}
-          onSendToMission={() => {
-            setNoteViewerOpen(false);
-            setSelectionMode(true);
-            setSelectedItems(new Set([`note-${selectedNote.id}`]));
-            setMoveToMissionOpen(true);
-          }}
         />
       )}
 
-      {/* Send to Folder Dialog */}
       <SendToFolderDialog
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
         fileIds={selectedFileIds}
         noteIds={selectedNoteIds}
-        currentFolderId={selectedFolder?.id}
         onMoveComplete={() => {
           setSelectionMode(false);
           setSelectedItems(new Set());
         }}
       />
 
-      {/* Move to Mission Dialog */}
       <MoveToMissionDialog
         open={moveToMissionOpen}
         onOpenChange={setMoveToMissionOpen}
@@ -734,22 +759,13 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
         }}
       />
 
-      {/* Link Fallback Dialog */}
       <LinkOpenFallbackDialog
         open={linkFallbackOpen}
         onOpenChange={setLinkFallbackOpen}
         linkUrl={currentLinkUrl}
-        onRetryOpen={() => openExternally(currentLinkUrl)}
-        onCopyLink={async () => {
-          if (currentLinkUrl && navigator.clipboard) {
-            try {
-              await navigator.clipboard.writeText(currentLinkUrl);
-            } catch (error) {
-              console.error('Failed to copy link:', error);
-            }
-          }
-        }}
+        onRetryOpen={handleRetryOpenLink}
+        onCopyLink={handleCopyLink}
       />
-    </>
+    </div>
   );
 }

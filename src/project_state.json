@@ -1,18 +1,26 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Add a Gallery option \"All files\" to allow bulk-selecting all items for actions (send to folder/mission, download, share, delete) without changing other app functionality.",
   "architectural_notes": [
-    "Add a way to suppress/disable automated success/toast messages globally without changing other app behavior."
+    "Scope constraint: implement the Gallery \"All files\" bulk-select option without changing any other existing app functionality."
   ],
   "known_issues": [],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-suppress-hide-all-automated-in-app-system-toast-notifications-e-g-sonner-toasts-such-as-mission-created-successfully-so-they-do-not-render-anywhere-in-the-ui",
-      "title": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
+      "id": "feature-in-the-gallery-bulk-selection-ui-add-an-explicit-option-labeled-all-files-that-lets-the-user-select-all-items-currently-shown-in-the-gallery-current-view-main-collection-or-the-currently-opened-folder-in-one-action-so-the-existing-bulk-actions-move-to-folder-move-to-mission-download-share-delete-can-be-applied-to-the-entire-set-without-manually-selecting-each-item",
+      "title": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
       "reqIds": [
         "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-clear-way-to-undo-the-all-files-bulk-selection-without-changing-existing-flows-e-g-a-toggle-behavior-on-the-same-all-files-control-to-deselect-all-or-an-adjacent-clear-selection-control-keeping-all-other-gallery-behaviors-unchanged",
+      "title": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -20,12 +28,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Hide/suppress automated in-app system messages (e.g., \"mission created successfully\") so they do not appear in the UI; change nothing else.",
+      "summary": "Add \"All files\" option in Gallery to bulk-select all files for batch actions (send to folder/mission, download, share, delete).",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Hide automated in-app system toast messages",
+  "projectName": "Add “All files” bulk-select option in Gallery",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

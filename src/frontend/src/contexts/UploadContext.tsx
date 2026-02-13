@@ -1,195 +1,161 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+
+export type UploadType = 'file' | 'link' | 'note';
 
 export interface UploadProgress {
-  id: string;
-  itemId: string; // Stable per-item ID for deterministic progress tracking
+  itemId: string;
+  batchId: string;
   name: string;
+  type: UploadType;
   progress: number;
-  type: 'file' | 'link' | 'note';
-  size?: number;
-  completed?: boolean;
+  size: number;
+  completed: boolean;
 }
 
 interface UploadContextType {
   uploads: UploadProgress[];
-  addUpload: (upload: UploadProgress) => void;
-  updateUpload: (itemId: string, progress: number) => void;
-  removeUpload: (itemId: string) => void;
-  clearCompleted: () => void;
+  isUploading: boolean;
+  totalProgress: number;
   startUpload: (files: File[]) => string;
   startLinkUpload: (name: string) => string;
   startNoteUpload: (title: string) => string;
-  updateProgress: (uploadId: string, itemId: string, progress: number) => void;
+  updateProgress: (batchId: string, itemId: string, progress: number) => void;
   completeUpload: (itemId: string) => void;
-  isUploading: boolean;
-  totalProgress: number;
-  itemCount: number;
-  registerBatchItems: (batchId: string, itemIds: string[]) => void;
-  restoreItem: (item: UploadProgress) => void;
+  restoreItem: (itemId: string, name: string, type: UploadType, size: number, progress: number) => void;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
-  const pendingUpdatesRef = useRef<Map<string, number>>(new Map());
-  const rafIdRef = useRef<number | null>(null);
-  const batchMappingRef = useRef<Map<string, string[]>>(new Map());
 
-  const flushPendingUpdates = useCallback(() => {
-    if (pendingUpdatesRef.current.size === 0) {
-      rafIdRef.current = null;
-      return;
-    }
+  const startUpload = useCallback((files: File[]): string => {
+    const batchId = `batch-${Date.now()}`;
+    const newUploads: UploadProgress[] = files.map((file, index) => ({
+      itemId: `${batchId}-${index}`,
+      batchId,
+      name: file.name,
+      type: 'file' as UploadType,
+      progress: 0,
+      size: file.size,
+      completed: false,
+    }));
 
-    const updates = new Map(pendingUpdatesRef.current);
-    pendingUpdatesRef.current.clear();
-
-    setUploads(prev => 
-      prev.map(upload => {
-        const newProgress = updates.get(upload.itemId);
-        return newProgress !== undefined ? { ...upload, progress: newProgress } : upload;
-      })
-    );
-
-    rafIdRef.current = null;
-  }, []);
-
-  const addUpload = useCallback((upload: UploadProgress) => {
-    setUploads(prev => [...prev, upload]);
-  }, []);
-
-  const updateUpload = useCallback((itemId: string, progress: number) => {
-    const clampedProgress = Math.max(0, Math.min(100, progress));
-    pendingUpdatesRef.current.set(itemId, clampedProgress);
-
-    if (rafIdRef.current === null) {
-      rafIdRef.current = requestAnimationFrame(flushPendingUpdates);
-    }
-  }, [flushPendingUpdates]);
-
-  const removeUpload = useCallback((itemId: string) => {
-    pendingUpdatesRef.current.delete(itemId);
-    setUploads(prev => prev.filter(u => u.itemId !== itemId));
-  }, []);
-
-  const clearCompleted = useCallback(() => {
-    setUploads(prev => prev.filter(u => !u.completed));
-  }, []);
-
-  const startUpload = useCallback((files: File[]) => {
-    const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const itemIds: string[] = [];
-
-    files.forEach((file, index) => {
-      const itemId = `${batchId}-${index}`;
-      itemIds.push(itemId);
-      addUpload({
-        id: batchId,
-        itemId,
-        name: file.name,
-        progress: 0,
-        type: 'file',
-        size: file.size,
-        completed: false,
-      });
-    });
-
-    batchMappingRef.current.set(batchId, itemIds);
+    setUploads(prev => [...prev, ...newUploads]);
     return batchId;
-  }, [addUpload]);
+  }, []);
 
-  const startLinkUpload = useCallback((name: string) => {
-    const batchId = `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const itemId = `${batchId}-0`;
-    
-    addUpload({
-      id: batchId,
-      itemId,
+  const startLinkUpload = useCallback((name: string): string => {
+    const batchId = `link-${Date.now()}`;
+    const newUpload: UploadProgress = {
+      itemId: `${batchId}-0`,
+      batchId,
       name,
-      progress: 0,
       type: 'link',
-      completed: false,
-    });
-
-    batchMappingRef.current.set(batchId, [itemId]);
-    return batchId;
-  }, [addUpload]);
-
-  const startNoteUpload = useCallback((title: string) => {
-    const batchId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const itemId = `${batchId}-0`;
-    
-    addUpload({
-      id: batchId,
-      itemId,
-      name: title,
       progress: 0,
-      type: 'note',
+      size: 0,
       completed: false,
-    });
+    };
 
-    batchMappingRef.current.set(batchId, [itemId]);
+    setUploads(prev => [...prev, newUpload]);
     return batchId;
-  }, [addUpload]);
+  }, []);
 
-  const updateProgress = useCallback((uploadId: string, itemId: string, progress: number) => {
-    updateUpload(itemId, progress);
-  }, [updateUpload]);
+  const startNoteUpload = useCallback((title: string): string => {
+    const batchId = `note-${Date.now()}`;
+    const newUpload: UploadProgress = {
+      itemId: `${batchId}-0`,
+      batchId,
+      name: title,
+      type: 'note',
+      progress: 0,
+      size: 0,
+      completed: false,
+    };
+
+    setUploads(prev => [...prev, newUpload]);
+    return batchId;
+  }, []);
+
+  const updateProgress = useCallback((batchId: string, itemId: string, progress: number) => {
+    setUploads(prev =>
+      prev.map(upload =>
+        upload.itemId === itemId
+          ? { ...upload, progress: Math.min(100, Math.max(0, progress)) }
+          : upload
+      )
+    );
+  }, []);
 
   const completeUpload = useCallback((itemId: string) => {
-    setUploads(prev => 
-      prev.map(upload => 
-        upload.itemId === itemId ? { ...upload, progress: 100, completed: true } : upload
+    setUploads(prev =>
+      prev.map(upload =>
+        upload.itemId === itemId
+          ? { ...upload, progress: 100, completed: true }
+          : upload
       )
     );
 
+    // Remove completed uploads after a delay
     setTimeout(() => {
-      removeUpload(itemId);
-    }, 1000);
-  }, [removeUpload]);
-
-  const registerBatchItems = useCallback((batchId: string, itemIds: string[]) => {
-    batchMappingRef.current.set(batchId, itemIds);
+      setUploads(prev => prev.filter(upload => upload.itemId !== itemId));
+    }, 2000);
   }, []);
 
-  const restoreItem = useCallback((item: UploadProgress) => {
-    addUpload(item);
-  }, [addUpload]);
+  const restoreItem = useCallback((
+    itemId: string,
+    name: string,
+    type: UploadType,
+    size: number,
+    progress: number
+  ) => {
+    setUploads(prev => {
+      // Check if item already exists (prevent duplicates)
+      const exists = prev.some(u => u.itemId === itemId);
+      if (exists) {
+        return prev;
+      }
 
-  const isUploading = uploads.length > 0;
+      const batchId = itemId.split('-').slice(0, -1).join('-') || `restored-${Date.now()}`;
+      
+      return [...prev, {
+        itemId,
+        batchId,
+        name,
+        type,
+        progress,
+        size,
+        completed: false,
+      }];
+    });
+  }, []);
 
-  const totalProgress = useMemo(() => {
-    if (uploads.length === 0) return 0;
+  const isUploading = uploads.some(u => !u.completed);
 
-    const totalSize = uploads.reduce((sum, u) => sum + (u.size || 1), 0);
-    const weightedProgress = uploads.reduce((sum, u) => {
-      const weight = (u.size || 1) / totalSize;
-      return sum + (u.progress * weight);
-    }, 0);
-
-    return Math.round(weightedProgress);
-  }, [uploads]);
-
-  const itemCount = uploads.length;
+  const totalProgress = uploads.length > 0
+    ? Math.round(
+        uploads.reduce((sum, upload) => {
+          const weight = upload.size > 0 ? upload.size : 1000;
+          return sum + (upload.progress * weight);
+        }, 0) /
+        uploads.reduce((sum, upload) => {
+          const weight = upload.size > 0 ? upload.size : 1000;
+          return sum + weight;
+        }, 0)
+      )
+    : 0;
 
   return (
     <UploadContext.Provider
       value={{
         uploads,
-        addUpload,
-        updateUpload,
-        removeUpload,
-        clearCompleted,
+        isUploading,
+        totalProgress,
         startUpload,
         startLinkUpload,
         startNoteUpload,
         updateProgress,
         completeUpload,
-        isUploading,
-        totalProgress,
-        itemCount,
-        registerBatchItems,
         restoreItem,
       }}
     >

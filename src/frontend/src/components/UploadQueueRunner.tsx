@@ -4,8 +4,8 @@ import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useUploadFile } from '@/hooks/useQueries';
 import { useUpload } from '@/contexts/UploadContext';
 import { persistedQueue } from '@/utils/persistedUploadQueue';
+import { fileBytesWorker } from '@/utils/fileBytesWorkerSingleton';
 import { ExternalBlob } from '@/backend';
-import { toast } from 'sonner';
 import { createConcurrencyLimiter } from '@/utils/uploadConcurrency';
 
 const uploadLimiter = createConcurrencyLimiter(3);
@@ -15,8 +15,8 @@ export default function UploadQueueRunner() {
   const { identity } = useInternetIdentity();
   const uploadFileMutation = useUploadFile();
   const { restoreItem, updateProgress, completeUpload } = useUpload();
-  const isProcessingRef = useRef(false);
   const hasRestoredRef = useRef(false);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     // Only restore once when actor is ready and user is authenticated
@@ -39,26 +39,22 @@ export default function UploadQueueRunner() {
         console.log(`Resuming ${items.length} pending upload(s)...`);
 
         // Restore items to upload context with their last known progress
-        const batchId = `resumed-${Date.now()}`;
-        for (const item of items) {
-          restoreItem({
-            id: batchId,
-            itemId: item.itemId,
-            name: item.name,
-            progress: item.progress,
-            type: 'file',
-            size: item.size,
-            completed: false,
-          });
-        }
+        items.forEach(item => {
+          restoreItem(item.itemId, item.name, 'file', item.size, item.progress);
+        });
 
         // Process uploads with controlled parallelism
-        const uploadPromises = items.map((item) =>
+        const uploadPromises = items.map(item =>
           uploadLimiter(async () => {
             try {
-              const uint8Array = new Uint8Array(item.bytes);
-              const blobWithProgress = ExternalBlob.fromBytes(uint8Array).withUploadProgress((progress) => {
-                updateProgress(batchId, item.itemId, progress);
+              // Create a proper ArrayBuffer copy
+              const buffer = new ArrayBuffer(item.bytes.byteLength);
+              const standardBytes = new Uint8Array(buffer);
+              standardBytes.set(new Uint8Array(item.bytes.buffer || item.bytes));
+
+              // Upload with progress tracking
+              const blobWithProgress = ExternalBlob.fromBytes(standardBytes).withUploadProgress((progress) => {
+                updateProgress(item.itemId.split('-').slice(0, -1).join('-'), item.itemId, progress);
                 persistedQueue.updateProgress(item.itemId, progress).catch(() => {});
               });
 
@@ -69,26 +65,29 @@ export default function UploadQueueRunner() {
                 blob: blobWithProgress,
               });
 
-              // Remove from persisted queue on success
-              await persistedQueue.dequeue(item.itemId).catch(() => {});
+              // Mark as completed in persisted queue (don't delete yet)
+              await persistedQueue.markCompleted(item.itemId);
+              
+              // Remove from persisted queue after successful upload
+              await persistedQueue.dequeue(item.itemId);
+              
               completeUpload(item.itemId);
+              
+              return { success: true, itemId: item.itemId };
             } catch (error) {
-              console.error(`Failed to resume upload for ${item.name}:`, error);
-              // Keep in queue for retry on next app start
-              throw error;
+              console.error(`Resume upload error for ${item.name}:`, error);
+              completeUpload(item.itemId);
+              return { success: false, itemId: item.itemId, error };
             }
           })
         );
 
         const results = await Promise.allSettled(uploadPromises);
+        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
         
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-
-        if (successCount > 0) {
-          toast.success(`Resumed and completed ${successCount} upload(s)`);
-        }
+        console.log(`Resumed uploads: ${successCount}/${items.length} successful`);
       } catch (error) {
-        console.error('Failed to restore upload queue:', error);
+        console.error('Failed to restore uploads:', error);
       } finally {
         isProcessingRef.current = false;
       }
@@ -97,6 +96,12 @@ export default function UploadQueueRunner() {
     restoreAndResume();
   }, [status, identity, uploadFileMutation, restoreItem, updateProgress, completeUpload]);
 
-  // This component has no UI
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      fileBytesWorker.terminate();
+    };
+  }, []);
+
   return null;
 }

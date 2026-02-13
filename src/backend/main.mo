@@ -13,8 +13,6 @@ import AccessControl "authorization/access-control";
 import Cycles "mo:core/Cycles";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
-
 actor {
   include MixinStorage();
 

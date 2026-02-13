@@ -1,21 +1,38 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Hide automated in-app system toast messages",
+  "title": "Add “All files” bulk-select toggle in Gallery selection mode",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Suppress/hide all automated in-app system toast notifications so they never render in the UI.",
+      "summary": "Add an \"All files\" control in Gallery selection mode to select every currently displayed item (current view: main collection or selected folder) so existing bulk actions apply to the full set.",
       "acceptanceCriteria": [
-        "After actions that previously showed success/error/info toasts (e.g., creating a mission), no toast notification is displayed to the user.",
-        "No other UI/UX, layout, navigation, or business logic changes occur aside from removing/hiding the automated toast messages.",
-        "The app compiles and runs without requiring any changes to immutable Shadcn UI component source files (frontend/src/components/ui)."
+        "When the Gallery is in selection mode, an option/button labeled \"All files\" is visible in the bulk selection controls.",
+        "Tapping \"All files\" selects every item currently displayed in the Gallery list/grid (including everything returned for the current view: main collection vs selected folder).",
+        "After tapping \"All files\", each item shows the same selected visual state as if individually selected, and the selected count equals the number of displayed items.",
+        "Bulk actions (move to folder, move to mission, download, share, delete) operate on the full selected set exactly as they already do for manually selected items.",
+        "The change is scoped to the Gallery selection UX only; no other screens, flows, or existing behaviors are altered."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Remove the Sonner <Toaster /> mounting (and its import) so toast notifications are never rendered anywhere in the UI, while leaving all existing toast trigger calls and application behavior unchanged."
+          "description": "In the existing selection-mode bulk controls, add a Button labeled \"All files\" that, when tapped, populates selectedItems with IDs for all items currently rendered for the active view (main vs selectedFolder). Ensure the selected visual state and selected count update via the existing selectedItems/selectionMode logic, and that existing bulk-action handlers continue to operate unchanged on the resulting selectedFileIds/selectedNoteIds. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Provide a one-action way to undo an \"All files\" selection without changing existing Gallery flows (toggle to deselect all or a clear control).",
+      "acceptanceCriteria": [
+        "If all displayed items are selected via \"All files\", the user can deselect all items with a single action (without needing to tap each item).",
+        "Deselecting all returns the Gallery to the same selection-mode state logic as before (no side effects such as unintended navigation, deletion, or viewer opening)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Implement toggle/clear behavior for the \"All files\" control: detect when the current displayed set is fully selected and, on tap, clear selectedItems in a single action while keeping the preexisting selection-mode behavior intact (no navigation/viewer side effects). If needed for clarity, adjust the control label/state styling while keeping user-facing text in English and avoiding any changes to bulk action logic. Verify the component's usage instructions before implementing."
         }
       ]
     }

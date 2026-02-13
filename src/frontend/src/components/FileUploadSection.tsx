@@ -1,10 +1,12 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Upload, Link as LinkIcon, Plus, FileText, Mic, MicOff } from 'lucide-react';
 import { useUploadFile, useCreateLink } from '@/hooks/useQueries';
 import { useCreateNote } from '@/hooks/useNotesQueries';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
 import { persistedQueue } from '@/utils/persistedUploadQueue';
+import { fileBytesWorker } from '@/utils/fileBytesWorkerSingleton';
+import { createConcurrencyLimiter } from '@/utils/uploadConcurrency';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +21,8 @@ import {
 import { perfDiag } from '@/utils/performanceDiagnostics';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { ExternalBlob } from '@/backend';
-import type { FileBytesRequest, FileBytesResponse } from '@/workers/fileBytes.worker';
+
+const uploadLimiter = createConcurrencyLimiter(3);
 
 export default function FileUploadSection() {
   const uploadFileMutation = useUploadFile();
@@ -33,7 +36,6 @@ export default function FileUploadSection() {
   const [linkName, setLinkName] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
-  const workerRef = useRef<Worker | null>(null);
 
   const { isListening, isSupported, startListening, stopListening } = useSpeechToText({
     onTranscript: (transcript, isFinal) => {
@@ -56,18 +58,6 @@ export default function FileUploadSection() {
       stopListening();
     }
   }, [showNoteForm, isListening, stopListening]);
-
-  // Initialize Web Worker
-  useEffect(() => {
-    workerRef.current = new Worker(
-      new URL('../workers/fileBytes.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -94,72 +84,63 @@ export default function FileUploadSection() {
       const operationId = `upload-files-${Date.now()}`;
       perfDiag.startTiming(operationId, 'Upload files (UI)', { fileCount: fileArray.length });
 
-      // Process files in background using Web Worker and upload with concurrency
-      const uploadPromises = fileArray.map(async (file, index) => {
+      // Process files in background with controlled parallelism
+      const uploadPromises = fileArray.map((file, index) => {
         const itemId = `${batchId}-${index}`;
 
-        return new Promise<void>((resolve, reject) => {
-          if (!workerRef.current) {
-            reject(new Error('Worker not initialized'));
-            return;
+        return uploadLimiter(async () => {
+          try {
+            // Read file bytes using singleton worker
+            const bytes = await fileBytesWorker.readFileBytes(file, itemId);
+
+            // Persist to IndexedDB (best-effort, non-blocking)
+            persistedQueue.enqueueBytesDirectly(
+              itemId,
+              file.name,
+              file.type || 'application/octet-stream',
+              file.size,
+              bytes,
+              0
+            ).catch(err => {
+              console.warn('Failed to persist upload:', err);
+            });
+
+            // Create a proper Uint8Array with ArrayBuffer (not ArrayBufferLike)
+            const buffer = new ArrayBuffer(bytes.byteLength);
+            const standardBytes = new Uint8Array(buffer);
+            standardBytes.set(bytes);
+
+            // Upload with progress tracking
+            const blobWithProgress = ExternalBlob.fromBytes(standardBytes).withUploadProgress((progress) => {
+              updateProgress(batchId, itemId, progress);
+              persistedQueue.updateProgress(itemId, progress).catch(() => {});
+            });
+
+            await uploadFileMutation.mutateAsync({
+              name: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              size: BigInt(file.size),
+              blob: blobWithProgress,
+            });
+
+            // Mark as completed and remove from persisted queue on success
+            await persistedQueue.markCompleted(itemId);
+            await persistedQueue.dequeue(itemId);
+            completeUpload(itemId);
+
+            return { success: true, name: file.name };
+          } catch (error) {
+            console.error(`Upload error for ${file.name}:`, error);
+            completeUpload(itemId);
+            return { success: false, name: file.name, error };
           }
-
-          const handleMessage = async (e: MessageEvent<FileBytesResponse>) => {
-            if (e.data.itemId !== itemId) return;
-
-            workerRef.current?.removeEventListener('message', handleMessage);
-
-            if (e.data.error) {
-              reject(new Error(e.data.error));
-              return;
-            }
-
-            try {
-              // Persist to IndexedDB (best-effort, non-blocking)
-              persistedQueue.enqueue(file, itemId, 0).catch(err => {
-                console.warn('Failed to persist upload:', err);
-              });
-
-              // Create a new ArrayBuffer copy to ensure proper type
-              const buffer = new ArrayBuffer(e.data.bytes.byteLength);
-              const standardBytes = new Uint8Array(buffer);
-              standardBytes.set(new Uint8Array(e.data.bytes.buffer));
-
-              // Upload with progress tracking
-              const blobWithProgress = ExternalBlob.fromBytes(standardBytes).withUploadProgress((progress) => {
-                updateProgress(batchId, itemId, progress);
-                persistedQueue.updateProgress(itemId, progress).catch(() => {});
-              });
-
-              await uploadFileMutation.mutateAsync({
-                name: e.data.name,
-                mimeType: e.data.mimeType,
-                size: BigInt(e.data.size),
-                blob: blobWithProgress,
-              });
-
-              // Remove from persisted queue on success
-              await persistedQueue.dequeue(itemId).catch(() => {});
-              completeUpload(itemId);
-              resolve();
-            } catch (error) {
-              console.error(`Upload error for ${e.data.name}:`, error);
-              reject(error);
-            }
-          };
-
-          workerRef.current.addEventListener('message', handleMessage);
-
-          // Send file to worker for byte reading
-          const request: FileBytesRequest = { file, itemId };
-          workerRef.current.postMessage(request);
         });
       });
 
       // Don't await - let uploads continue in background
       Promise.allSettled(uploadPromises).then((results) => {
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-        const failCount = results.filter(r => r.status === 'rejected').length;
+        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        const failCount = results.filter(r => r.status === 'fulfilled' && !r.value.success).length;
 
         perfDiag.endTiming(operationId, { success: failCount === 0 });
 

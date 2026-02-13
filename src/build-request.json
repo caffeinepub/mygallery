@@ -1,36 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Hide automated in-app system toast messages",
+  "title": "Add “All files” bulk-select option in Gallery",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Suppress/hide all automated in-app system toast notifications (e.g., Sonner toasts such as \"Mission created successfully\") so they do not render anywhere in the UI.",
+      "text": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-4"
         ],
         "quotes": [
-          "The automated messages in the app, e.g. \"mission created successfully\" etc., should be hidden and not shown in the app. Don't change absolutely anything else in the app and its functionality, only hide the automated messages."
+          "Πρόσθεσε επιλογή \"όλα τα αρχεία \" στην gallery ώστε να μπορεί ο χρήστης να κάνει μαζική επιλογή όλων των αρχείων που υπάρχουν στην gallery για αποστολή σε folder, mission , download , share , delete .Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
         ]
       },
       "acceptanceCriteria": [
-        "After actions that previously showed success/error/info toasts (e.g., creating a mission), no toast notification is displayed to the user.",
-        "No other UI/UX, layout, navigation, or business logic changes occur aside from removing/hiding the automated toast messages.",
-        "The app compiles and runs without requiring any changes to immutable Shadcn UI component source files (frontend/src/components/ui)."
+        "When the Gallery is in selection mode, an option/button labeled \"All files\" is visible in the bulk selection controls.",
+        "Tapping \"All files\" selects every item currently displayed in the Gallery list/grid (including everything returned for the current view: main collection vs selected folder).",
+        "After tapping \"All files\", each item shows the same selected visual state as if individually selected, and the selected count equals the number of displayed items.",
+        "Bulk actions (move to folder, move to mission, download, share, delete) operate on the full selected set exactly as they already do for manually selected items.",
+        "The change is scoped to the Gallery selection UX only; no other screens, flows, or existing behaviors are altered."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Πρόσθεσε επιλογή \"όλα τα αρχεία \"... Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+        ]
+      },
+      "acceptanceCriteria": [
+        "If all displayed items are selected via \"All files\", the user can deselect all items with a single action (without needing to tap each item).",
+        "Deselecting all returns the Gallery to the same selection-mode state logic as before (no side effects such as unintended navigation, deletion, or viewer opening)."
       ]
     }
   ],
   "constraints": [
-    "Do not change any application behavior or features other than hiding automated in-app messages/toasts.",
-    "Do not edit files under frontend/src/components/ui (immutable).",
-    "No backend changes or state migrations are allowed/needed for this request."
+    "Do not change any other application functionality beyond adding the \"All files\" bulk-select option in the Gallery selection UI.",
+    "Keep the existing bulk actions’ logic and outcomes unchanged; only expand selection convenience.",
+    "Use English for any user-facing text introduced by this change.",
+    "Do not modify any files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Adding a new notification system.",
-    "Changing validation logic, mission creation/deletion flows, or error handling behavior beyond hiding the UI notifications.",
-    "Translating or rewriting the toast message strings (they should simply not appear)."
+    "Adding new bulk actions beyond the existing set (move to folder/mission, download, share, delete).",
+    "Backend changes, schema changes, or migration work.",
+    "Changing the overall app theme, layouts outside the Gallery selection controls, or refactoring unrelated code."
   ],
   "imageRequirements": {
     "required": [],
