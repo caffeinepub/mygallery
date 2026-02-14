@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Add an “All files” control to Gallery selection mode so users can select (and optionally clear) the entire currently displayed set of items in one action.
+**Goal:** Make swipe-to-delete in the full-screen Folders and Missions views actually delete the selected item and immediately reflect the change in the UI without manual refresh.
 
 **Planned changes:**
-- Add a visible “All files” option/button within the Gallery bulk-selection controls (selection mode only).
-- When “All files” is used, select every item currently shown in the Gallery (current view: main collection or currently opened folder) and update selected visuals and selected count accordingly.
-- Provide a single-action way to undo the “All files” selection (e.g., toggle to deselect all or a “Clear selection” control) without altering existing Gallery flows.
-- Ensure existing bulk actions (move to folder, move to mission, download, share, delete) operate on the selected set exactly as they do today, with no other behavior changes.
+- Fix the Folders swipe-to-delete action to invoke the backend delete, then update/refresh the folders list state (via React Query cache update/invalidation) so the deleted folder disappears after success.
+- Fix the Missions swipe-to-delete action to invoke the backend delete, then update/refresh the missions list state (including the correct Incomplete/Completed tab) so the deleted mission disappears after success.
+- Ensure backend delete methods remove the correct folder/mission for the authenticated caller, and add error handling so failed deletes show an error toast and do not remove (or roll back) the item.
 
-**User-visible outcome:** In Gallery selection mode, users can tap “All files” to instantly select everything currently displayed (in the current view) and then run existing bulk actions on the full set, and can also clear that selection in a single action.
+**User-visible outcome:** Swiping a folder or mission row and confirming Delete removes it from the backend and it disappears from the list immediately (and stays gone when navigating, refetching, or switching mission tabs); failures show an error and do not affect other rows.

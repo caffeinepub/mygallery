@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, lazy, Suspense, useCallback } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FileUploadSection from '@/components/FileUploadSection';
@@ -9,6 +9,7 @@ import DecorativeBottomLine from '@/components/DecorativeBottomLine';
 import ActorInitErrorState from '@/components/ActorInitErrorState';
 import WelcomeIntroScreen from '@/components/WelcomeIntroScreen';
 import MobileOnlyLayout from '@/components/MobileOnlyLayout';
+import HomeSharedElementTransitionLayer from '@/components/HomeSharedElementTransitionLayer';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useBackendActor } from '@/contexts/ActorContext';
 import { useGetFolders, useGetFilesNotInFolder } from '@/hooks/useQueries';
@@ -26,6 +27,18 @@ export default function HomePage() {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [folderOpenedFromFoldersView, setFolderOpenedFromFoldersView] = useState(false);
   const [isBulkSelectionActive, setIsBulkSelectionActive] = useState(false);
+  const [transitionState, setTransitionState] = useState<{
+    isActive: boolean;
+    type: 'opening' | 'closing' | null;
+    source: 'folders' | 'missions' | null;
+  }>({
+    isActive: false,
+    type: null,
+    source: null,
+  });
+  const [iconPulse, setIconPulse] = useState<'folders' | 'missions' | null>(null);
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
   const { identity, isInitializing } = useInternetIdentity();
   const { status, error, retry, signOut, actor } = useBackendActor();
 
@@ -105,10 +118,69 @@ export default function HomePage() {
     setIsBulkSelectionActive(isActive);
   }, []);
 
-  const handleCloseFolders = useCallback(() => setIsFoldersOpen(false), []);
-  const handleCloseMissions = useCallback(() => setIsMissionsOpen(false), []);
-  const handleOpenFolders = useCallback(() => setIsFoldersOpen(true), []);
-  const handleOpenMissions = useCallback(() => setIsMissionsOpen(true), []);
+  const handleCloseFolders = useCallback(() => {
+    // Start closing transition
+    setTransitionState({
+      isActive: true,
+      type: 'closing',
+      source: 'folders',
+    });
+    pendingActionRef.current = () => setIsFoldersOpen(false);
+  }, []);
+
+  const handleCloseMissions = useCallback(() => {
+    // Start closing transition
+    setTransitionState({
+      isActive: true,
+      type: 'closing',
+      source: 'missions',
+    });
+    pendingActionRef.current = () => setIsMissionsOpen(false);
+  }, []);
+
+  const handleOpenFolders = useCallback(() => {
+    // Start opening transition
+    setTransitionState({
+      isActive: true,
+      type: 'opening',
+      source: 'folders',
+    });
+    pendingActionRef.current = () => setIsFoldersOpen(true);
+  }, []);
+
+  const handleOpenMissions = useCallback(() => {
+    // Start opening transition
+    setTransitionState({
+      isActive: true,
+      type: 'opening',
+      source: 'missions',
+    });
+    pendingActionRef.current = () => setIsMissionsOpen(true);
+  }, []);
+
+  const handleTransitionComplete = useCallback(() => {
+    const wasClosing = transitionState.type === 'closing';
+    const source = transitionState.source;
+
+    // Execute pending action
+    if (pendingActionRef.current) {
+      pendingActionRef.current();
+      pendingActionRef.current = null;
+    }
+
+    // Clear transition state
+    setTransitionState({
+      isActive: false,
+      type: null,
+      source: null,
+    });
+
+    // Trigger icon pulse after closing
+    if (wasClosing && source) {
+      setIconPulse(source);
+      setTimeout(() => setIconPulse(null), 300);
+    }
+  }, [transitionState]);
 
   const mainContent = useMemo(() => {
     // Show welcome intro for unauthenticated users (every time there's no active session)
@@ -187,16 +259,24 @@ export default function HomePage() {
                   onClick={handleOpenFolders} 
                   disabled={!isActorReady}
                   behindOverlay={isBulkSelectionActive}
+                  pulse={iconPulse === 'folders'}
                 />
                 <MissionsButton 
                   onClick={handleOpenMissions} 
                   disabled={!isActorReady}
                   behindOverlay={isBulkSelectionActive}
+                  pulse={iconPulse === 'missions'}
                 />
                 <Footer />
               </div>
             )}
           </Suspense>
+          <HomeSharedElementTransitionLayer
+            isActive={transitionState.isActive}
+            transitionType={transitionState.type}
+            source={transitionState.source}
+            onTransitionComplete={handleTransitionComplete}
+          />
         </MobileOnlyLayout>
       );
     }
@@ -216,7 +296,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isBulkSelectionActive, iconPulse, transitionState, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect, handleTransitionComplete]);
 
   return mainContent;
 }

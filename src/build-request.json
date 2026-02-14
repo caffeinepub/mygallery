@@ -1,56 +1,75 @@
 {
   "kind": "build_request",
-  "title": "Add “All files” bulk-select option in Gallery",
+  "title": "Fix swipe-to-delete for Folders and Missions",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
-      "target": "frontend",
+      "text": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Πρόσθεσε επιλογή \"όλα τα αρχεία \" στην gallery ώστε να μπορεί ο χρήστης να κάνει μαζική επιλογή όλων των αρχείων που υπάρχουν στην gallery για αποστολή σε folder, mission , download , share , delete .Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+          "Διόρθωσε την λειτουργία διαγραφής folders ... ώστε να διαγράφονται τα folders ... όταν ο χρήστης κάνει swipe και πατάει διαγραφή ."
         ]
       },
       "acceptanceCriteria": [
-        "When the Gallery is in selection mode, an option/button labeled \"All files\" is visible in the bulk selection controls.",
-        "Tapping \"All files\" selects every item currently displayed in the Gallery list/grid (including everything returned for the current view: main collection vs selected folder).",
-        "After tapping \"All files\", each item shows the same selected visual state as if individually selected, and the selected count equals the number of displayed items.",
-        "Bulk actions (move to folder, move to mission, download, share, delete) operate on the full selected set exactly as they already do for manually selected items.",
-        "The change is scoped to the Gallery selection UX only; no other screens, flows, or existing behaviors are altered."
+        "Given at least one folder exists, when the user swipes a folder row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
+        "After successful deletion, the deleted folder no longer appears in the folders list UI and does not reappear after navigating away/back or after any automatic refetch.",
+        "If the backend delete fails, the folder remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other folder rows are affected.",
+        "The fix is limited to the deletion behavior triggered by the swipe delete action in the folders list (no unrelated UI/behavior changes)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
-      "target": "frontend",
+      "text": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Πρόσθεσε επιλογή \"όλα τα αρχεία \"... Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+          "Διόρθωσε την λειτουργία διαγραφής ... mission ώστε να διαγράφονται ... τα missions όταν ο χρήστης κάνει swipe και πατάει διαγραφή ."
         ]
       },
       "acceptanceCriteria": [
-        "If all displayed items are selected via \"All files\", the user can deselect all items with a single action (without needing to tap each item).",
-        "Deselecting all returns the Gallery to the same selection-mode state logic as before (no side effects such as unintended navigation, deletion, or viewer opening)."
+        "Given at least one mission exists, when the user swipes a mission row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
+        "After successful deletion, the deleted mission no longer appears in the missions list UI and does not reappear after switching tabs (Incomplete/Completed) or after navigating away/back.",
+        "If the backend delete fails, the mission remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other missions are affected.",
+        "The fix is limited to the deletion behavior triggered by the swipe delete action in the missions list (no unrelated UI/behavior changes)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Folder deletion called from the frontend results in the folder no longer being returned by the backend folder listing for that caller.",
+        "Mission deletion called from the frontend results in the mission no longer being returned by the backend mission listing for that caller.",
+        "After a successful delete, relevant React Query queries are invalidated/updated so the UI reflects backend state without a full app reload.",
+        "No changes are introduced to unrelated features or flows beyond what is necessary to make swipe-to-delete actually delete folders/missions."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other application functionality beyond adding the \"All files\" bulk-select option in the Gallery selection UI.",
-    "Keep the existing bulk actions’ logic and outcomes unchanged; only expand selection convenience.",
-    "Use English for any user-facing text introduced by this change.",
-    "Do not modify any files under frontend/src/components/ui or other immutable paths listed in SYSTEM_CONTEXT."
+    "Do not change any other application features or behaviors beyond fixing swipe-to-delete for folders and missions.",
+    "Respect the existing single-actor Motoko backend architecture (all logic in backend/main.mo; only add migration if existing stable state requires it).",
+    "Do not modify any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Adding new bulk actions beyond the existing set (move to folder/mission, download, share, delete).",
-    "Backend changes, schema changes, or migration work.",
-    "Changing the overall app theme, layouts outside the Gallery selection controls, or refactoring unrelated code."
+    "Redesigning the swipe UI/gesture behavior or changing animations/transitions.",
+    "Changing copy/text in the app beyond what is strictly necessary for this fix.",
+    "Adding new deletion entry points (e.g., bulk delete) or altering existing non-swipe deletion flows."
   ],
   "imageRequirements": {
     "required": [],

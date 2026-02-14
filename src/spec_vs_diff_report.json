@@ -1,29 +1,27 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T18:37:24.226Z",
-  "summary": "The diff indicates the requested Gallery “All files” bulk-select toggle was added in GallerySection, and supporting project/meta summary files were updated. No explicit missing REQ items are evident from the provided diff summary, but the diff also includes unrequested metadata/documentation updates that describe unrelated changes.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-14T17:45:50.354Z",
+  "summary": "Frontend changes add explicit delete-confirm state and handlers in FoldersFullScreenView and MissionsFullScreenView that call the existing delete mutations and show success/error toasts. The diff does not provide evidence that React Query caches are invalidated/updated after deletion, nor does it show any backend deletion logic changes (backend file even states no changes needed).",
+  "missing_requirements": [
     {
-      "description": "Added/updated project tracking entries (AR-1/AR-2/AR-3) in project_state.json that are not part of the requested UI feature implementation.",
-      "reason": "BuildRequest only asks for the Gallery UI change; it does not request adding/updating project_state tracking items.",
+      "id": "REQ-3",
+      "requirement": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
+      "reason": "The provided diff only shows the UI calling delete mutations and toasts; it does not show any React Query invalidation/update logic in hooks or cache updates tied to these deletions. Backend file snippet explicitly indicates no changes and does not show deletion methods or fixes.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "description": "Documentation/summary claims of many unrelated frontend changes (theme, upload queue, header/footer, hooks changes, etc.).",
-      "reason": "The BuildRequest scope explicitly forbids changing other application functionality beyond adding the “All files” option; the modified summary file describes a wide range of unrelated feature work not requested (even if only as text).",
-      "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/components/FoldersFullScreenView.tsx",
+        "frontend/src/components/MissionsFullScreenView.tsx",
+        "backend/main.mo"
       ]
     }
   ],
+  "hallucinated_features": [],
   "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/FoldersFullScreenView.tsx",
+    "frontend/src/components/MissionsFullScreenView.tsx",
     "project_state.json"
   ]
 }

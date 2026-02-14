@@ -1,3 +1,4 @@
+// No changes needed to delete folder and missions logic.
 import Nat "mo:core/Nat";
 import Text "mo:core/Text";
 import Int "mo:core/Int";

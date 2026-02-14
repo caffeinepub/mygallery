@@ -192,9 +192,12 @@ export default function FoldersFullScreenView({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col animate-page-scale-in">
         {/* Header */}
-        <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div 
+          className="flex items-center gap-4 p-4 border-b border-border"
+          data-transition-target="folders"
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -203,16 +206,12 @@ export default function FoldersFullScreenView({
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2 flex-1">
-            <Folder className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">Folders</h1>
-          </div>
+          <h1 className="text-xl font-semibold flex-1">Folders</h1>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col p-4">
-          {/* Create new folder */}
-          <div className="flex gap-2 mb-4">
+        {/* Create folder section */}
+        <div className="p-4 border-b border-border">
+          <div className="flex gap-2">
             <Input
               placeholder="New folder name"
               value={newFolderName}
@@ -221,65 +220,55 @@ export default function FoldersFullScreenView({
                 if (e.key === 'Enter') handleCreateFolder();
               }}
               disabled={!isActorReady || createFolderMutation.isPending}
+              className="flex-1"
             />
             <Button
               onClick={handleCreateFolder}
-              disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
+              disabled={!newFolderName.trim() || !isActorReady || createFolderMutation.isPending}
               size="icon"
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-
-          {/* Folders list */}
-          <ScrollArea className="flex-1 rounded-md border">
-            <div className="p-4">
-              {isLoading ? (
-                <div className="text-center text-muted-foreground py-8">
-                  Loading folders...
-                </div>
-              ) : !isActorReady ? (
-                <div className="text-center text-muted-foreground py-8">
-                  Loading...
-                </div>
-              ) : folders.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  No folders yet. Create one to get started!
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {folders.map((folder) => renderFolderRow(folder))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
         </div>
+
+        {/* Folders list */}
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-2">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading folders...
+              </div>
+            ) : folders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No folders yet. Create one to get started!
+              </div>
+            ) : (
+              folders.map(renderFolderRow)
+            )}
+          </div>
+        </ScrollArea>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmFolderId !== null} onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}>
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteConfirmFolderId !== null}
+        onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this folder and all files inside it. This action cannot be undone.
+              Are you sure you want to delete this folder? All files and notes in this folder will also be deleted. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteFolderMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmFolderId !== null && handleDeleteFolder(deleteConfirmFolderId)}
-              disabled={deleteFolderMutation.isPending}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteFolderMutation.isPending ? (
-                <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                  Deleting...
-                </>
-              ) : (
-                'OK'
-              )}
+              OK
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

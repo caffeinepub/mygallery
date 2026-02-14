@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-gallery-bulk-selection-ui-add-an-explicit-option-labeled-all-files-that-lets-the-user-select-all-items-currently-shown-in-the-gallery-current-view-main-collection-or-the-currently-opened-folder-in-one-action-so-the-existing-bulk-actions-move-to-folder-move-to-mission-download-share-delete-can-be-applied-to-the-entire-set-without-manually-selecting-each-item",
-      "featureTitle": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
+      "featureId": "feature-fix-the-swipe-to-delete-flow-in-the-folders-full-screen-view-so-that-when-a-user-swipes-a-folder-row-taps-delete-and-confirms-the-folder-is-actually-deleted-from-the-backend-and-disappears-from-the-folders-list-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
+      "featureTitle": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
       "files": [
-        "frontend/src/components/GallerySection.tsx"
+        "frontend/src/components/FoldersFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -22,10 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-implement-a-clear-way-to-undo-the-all-files-bulk-selection-without-changing-existing-flows-e-g-a-toggle-behavior-on-the-same-all-files-control-to-deselect-all-or-an-adjacent-clear-selection-control-keeping-all-other-gallery-behaviors-unchanged",
-      "featureTitle": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
+      "featureId": "feature-fix-the-swipe-to-delete-flow-in-the-missions-full-screen-view-so-that-when-a-user-swipes-a-mission-row-taps-delete-and-confirms-the-mission-is-actually-deleted-from-the-backend-and-disappears-from-the-missions-list-including-the-correct-tab-incomplete-completed-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
+      "featureTitle": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
       "files": [
-        "frontend/src/components/GallerySection.tsx"
+        "frontend/src/components/MissionsFullScreenView.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",

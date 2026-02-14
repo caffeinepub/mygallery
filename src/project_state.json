@@ -1,24 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Add a Gallery option \"All files\" to allow bulk-selecting all items for actions (send to folder/mission, download, share, delete) without changing other app functionality.",
-  "architectural_notes": [
-    "Scope constraint: implement the Gallery \"All files\" bulk-select option without changing any other existing app functionality."
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [
+    "Swipe-to-delete on folders and missions does not delete the underlying folder/mission when user swipes and taps delete."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-in-the-gallery-bulk-selection-ui-add-an-explicit-option-labeled-all-files-that-lets-the-user-select-all-items-currently-shown-in-the-gallery-current-view-main-collection-or-the-currently-opened-folder-in-one-action-so-the-existing-bulk-actions-move-to-folder-move-to-mission-download-share-delete-can-be-applied-to-the-entire-set-without-manually-selecting-each-item",
-      "title": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
+      "id": "feature-fix-the-swipe-to-delete-flow-in-the-folders-full-screen-view-so-that-when-a-user-swipes-a-folder-row-taps-delete-and-confirms-the-folder-is-actually-deleted-from-the-backend-and-disappears-from-the-folders-list-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
+      "title": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-implement-a-clear-way-to-undo-the-all-files-bulk-selection-without-changing-existing-flows-e-g-a-toggle-behavior-on-the-same-all-files-control-to-deselect-all-or-an-adjacent-clear-selection-control-keeping-all-other-gallery-behaviors-unchanged",
-      "title": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
+      "id": "feature-fix-the-swipe-to-delete-flow-in-the-missions-full-screen-view-so-that-when-a-user-swipes-a-mission-row-taps-delete-and-confirms-the-mission-is-actually-deleted-from-the-backend-and-disappears-from-the-missions-list-including-the-correct-tab-incomplete-completed-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
+      "title": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
       "reqIds": [
         "REQ-2"
       ],
@@ -27,13 +27,15 @@
   ],
   "new_feature_requests": [
     {
-      "id": "AR-1",
-      "summary": "Add \"All files\" option in Gallery to bulk-select all files for batch actions (send to folder/mission, download, share, delete).",
-      "reqIds": [],
+      "id": "AR-3",
+      "summary": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Add “All files” bulk-select option in Gallery",
+  "projectName": "Fix swipe-to-delete for Folders and Missions",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

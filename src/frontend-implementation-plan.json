@@ -1,38 +1,61 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add “All files” bulk-select toggle in Gallery selection mode",
+  "title": "Fix swipe-to-delete confirmation handling for Folders and Missions",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add an \"All files\" control in Gallery selection mode to select every currently displayed item (current view: main collection or selected folder) so existing bulk actions apply to the full set.",
+      "summary": "Ensure swipe-to-delete in Folders full-screen view always triggers the delete mutation (including for ID 0n) and the list updates via existing React Query cache updates/invalidations.",
       "acceptanceCriteria": [
-        "When the Gallery is in selection mode, an option/button labeled \"All files\" is visible in the bulk selection controls.",
-        "Tapping \"All files\" selects every item currently displayed in the Gallery list/grid (including everything returned for the current view: main collection vs selected folder).",
-        "After tapping \"All files\", each item shows the same selected visual state as if individually selected, and the selected count equals the number of displayed items.",
-        "Bulk actions (move to folder, move to mission, download, share, delete) operate on the full selected set exactly as they already do for manually selected items.",
-        "The change is scoped to the Gallery selection UX only; no other screens, flows, or existing behaviors are altered."
+        "Given at least one folder exists, when the user swipes a folder row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
+        "After successful deletion, the deleted folder no longer appears in the folders list UI and does not reappear after navigating away/back or after any automatic refetch.",
+        "If the backend delete fails, the folder remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other folder rows are affected.",
+        "The fix is limited to the deletion behavior triggered by the swipe delete action in the folders list (no unrelated UI/behavior changes)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/GallerySection.tsx",
+          "path": "frontend/src/components/FoldersFullScreenView.tsx",
           "operation": "modify",
-          "description": "In the existing selection-mode bulk controls, add a Button labeled \"All files\" that, when tapped, populates selectedItems with IDs for all items currently rendered for the active view (main vs selectedFolder). Ensure the selected visual state and selected count update via the existing selectedItems/selectionMode logic, and that existing bulk-action handlers continue to operate unchanged on the resulting selectedFileIds/selectedNoteIds. Verify the component's usage instructions before implementing."
+          "description": "Fix the delete-confirm dialog OK handler to avoid falsy checks on BigInt IDs (e.g., 0n). Replace `deleteConfirmFolderId && ...` with a null-check so deletion always runs for valid IDs; keep existing mutation usage and toast behavior unchanged."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Provide a one-action way to undo an \"All files\" selection without changing existing Gallery flows (toggle to deselect all or a clear control).",
+      "summary": "Ensure swipe-to-delete in Missions full-screen view always triggers the delete mutation (including for ID 0n) and the mission disappears from the correct tab (Incomplete/Completed) via existing React Query cache updates/invalidations.",
       "acceptanceCriteria": [
-        "If all displayed items are selected via \"All files\", the user can deselect all items with a single action (without needing to tap each item).",
-        "Deselecting all returns the Gallery to the same selection-mode state logic as before (no side effects such as unintended navigation, deletion, or viewer opening)."
+        "Given at least one mission exists, when the user swipes a mission row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
+        "After successful deletion, the deleted mission no longer appears in the missions list UI and does not reappear after switching tabs (Incomplete/Completed) or after navigating away/back.",
+        "If the backend delete fails, the mission remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other missions are affected.",
+        "The fix is limited to the deletion behavior triggered by the swipe delete action in the missions list (no unrelated UI/behavior changes)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/GallerySection.tsx",
+          "path": "frontend/src/components/MissionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Implement toggle/clear behavior for the \"All files\" control: detect when the current displayed set is fully selected and, on tap, clear selectedItems in a single action while keeping the preexisting selection-mode behavior intact (no navigation/viewer side effects). If needed for clarity, adjust the control label/state styling while keeping user-facing text in English and avoiding any changes to bulk action logic. Verify the component's usage instructions before implementing."
+          "description": "Fix the delete-confirm dialog OK handler to avoid falsy checks on BigInt IDs (e.g., 0n). Replace `deleteConfirmMissionId && ...` with a null-check so deletion always runs for valid IDs; keep tab logic and existing mutation/toast behavior unchanged."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Keep UI consistent with backend state by ensuring React Query caches used by folders/missions lists are updated/invalidated after successful deletes initiated from swipe-to-delete flows.",
+      "acceptanceCriteria": [
+        "Folder deletion called from the frontend results in the folder no longer being returned by the backend folder listing for that caller.",
+        "Mission deletion called from the frontend results in the mission no longer being returned by the backend mission listing for that caller.",
+        "After a successful delete, relevant React Query queries are invalidated/updated so the UI reflects backend state without a full app reload.",
+        "No changes are introduced to unrelated features or flows beyond what is necessary to make swipe-to-delete actually delete folders/missions."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Audit and, if needed, adjust the folder delete mutation cache updates/invalidations to ensure the folders list query key used by the UI is updated and stays consistent after deletion (including post-navigation). Keep changes narrowly scoped to folder deletion-related query keys and behavior."
+        },
+        {
+          "path": "frontend/src/hooks/useMissionsQueries.ts",
+          "operation": "modify",
+          "description": "Audit and, if needed, adjust the mission delete mutation cache updates/invalidations to ensure the missions list query key used by the UI is updated and stays consistent across the Incomplete/Completed tabs after deletion (including post-navigation). Keep changes narrowly scoped to mission deletion-related query keys and behavior."
         }
       ]
     }

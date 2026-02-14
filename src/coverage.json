@@ -1,45 +1,57 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T18:37:24.229Z",
+  "generatedAt": "2026-02-14T17:45:50.357Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
+    "total": 3,
     "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In the Gallery bulk-selection UI, add an explicit option labeled \"All files\" that lets the user select all items currently shown in the Gallery (current view: main collection or the currently opened folder) in one action, so the existing bulk actions (move to folder, move to mission, download, share, delete) can be applied to the entire set without manually selecting each item.",
+        "summary": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/GallerySection.tsx"
+          "frontend/src/components/FoldersFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/GallerySection.tsx"
+          "frontend/src/components/FoldersFullScreenView.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Implement a clear way to undo the \"All files\" bulk selection without changing existing flows (e.g., a toggle behavior on the same \"All files\" control to deselect all, or an adjacent \"Clear selection\" control), keeping all other Gallery behaviors unchanged.",
+        "summary": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/GallerySection.tsx"
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/GallerySection.tsx"
+          "frontend/src/components/MissionsFullScreenView.tsx"
         ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/hooks/useMissionsQueries.ts"
+        ],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/FoldersFullScreenView.tsx",
+    "frontend/src/components/MissionsFullScreenView.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
