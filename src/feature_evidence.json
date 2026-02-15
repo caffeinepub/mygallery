@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-swipe-to-delete-flow-in-the-folders-full-screen-view-so-that-when-a-user-swipes-a-folder-row-taps-delete-and-confirms-the-folder-is-actually-deleted-from-the-backend-and-disappears-from-the-folders-list-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
-      "featureTitle": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
+      "featureId": "feature-remove-the-visible-mygallery-text-from-the-top-left-header-area-next-to-the-app-icon-on-the-home-page-by-updating-the-header-component-currently-rendered-as-an-h1-in-frontend-src-components-header-tsx",
+      "featureTitle": "Remove the visible \"MyGallery\" text from the top-left header area next to the app icon on the home page by updating the header component (currently rendered as an <h1> in frontend/src/components/Header.tsx).",
       "files": [
-        "frontend/src/components/FoldersFullScreenView.tsx"
+        "frontend/src/components/Header.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,26 +18,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-swipe-to-delete-flow-in-the-missions-full-screen-view-so-that-when-a-user-swipes-a-mission-row-taps-delete-and-confirms-the-mission-is-actually-deleted-from-the-backend-and-disappears-from-the-missions-list-including-the-correct-tab-incomplete-completed-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
-      "featureTitle": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
-      "files": [
-        "frontend/src/components/MissionsFullScreenView.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

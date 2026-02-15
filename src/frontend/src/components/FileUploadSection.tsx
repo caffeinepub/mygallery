@@ -319,18 +319,23 @@ export default function FileUploadSection() {
               />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-48">
-            <DropdownMenuItem onClick={triggerFileInput}>
+          <DropdownMenuContent 
+            align="center" 
+            side="bottom"
+            sideOffset={8}
+            className="floating-action-menu"
+          >
+            <DropdownMenuItem onClick={triggerFileInput} className="floating-menu-item" style={{ '--item-index': 0 } as React.CSSProperties}>
               <Upload className="mr-2 h-4 w-4" />
-              Upload Files
+              Upload files
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowLinkForm(true)}>
+            <DropdownMenuItem onClick={() => setShowLinkForm(true)} className="floating-menu-item" style={{ '--item-index': 1 } as React.CSSProperties}>
               <LinkIcon className="mr-2 h-4 w-4" />
-              Paste Link
+              Paste link
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowNoteForm(true)}>
+            <DropdownMenuItem onClick={() => setShowNoteForm(true)} className="floating-menu-item" style={{ '--item-index': 2 } as React.CSSProperties}>
               <FileText className="mr-2 h-4 w-4" />
-              Add Note
+              Add note
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

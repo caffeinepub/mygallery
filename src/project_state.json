@@ -3,39 +3,27 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [
-    "Swipe-to-delete on folders and missions does not delete the underlying folder/mission when user swipes and taps delete."
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-swipe-to-delete-flow-in-the-folders-full-screen-view-so-that-when-a-user-swipes-a-folder-row-taps-delete-and-confirms-the-folder-is-actually-deleted-from-the-backend-and-disappears-from-the-folders-list-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
-      "title": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
+      "id": "feature-remove-the-visible-mygallery-text-from-the-top-left-header-area-next-to-the-app-icon-on-the-home-page-by-updating-the-header-component-currently-rendered-as-an-h1-in-frontend-src-components-header-tsx",
+      "title": "Remove the visible \"MyGallery\" text from the top-left header area next to the app icon on the home page by updating the header component (currently rendered as an <h1> in frontend/src/components/Header.tsx).",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-fix-the-swipe-to-delete-flow-in-the-missions-full-screen-view-so-that-when-a-user-swipes-a-mission-row-taps-delete-and-confirms-the-mission-is-actually-deleted-from-the-backend-and-disappears-from-the-missions-list-including-the-correct-tab-incomplete-completed-after-the-mutation-completes-or-optimistically-if-already-implemented-without-requiring-a-manual-refresh",
-      "title": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
-      "id": "AR-3",
-      "summary": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
-      "reqIds": [
-        "REQ-3"
-      ],
+      "id": "AR-1",
+      "summary": "Remove the \"MyGallery\" text from the top-left of the home page next to the app icon (no other changes).",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Fix swipe-to-delete for Folders and Missions",
+  "projectName": "Remove \"MyGallery\" header text from top-left",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

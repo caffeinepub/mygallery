@@ -51,9 +51,6 @@ export default function Header() {
               <AnimatedGalleryIcon />
             </div>
           )}
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">MyGallery</h1>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button

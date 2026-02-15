@@ -1,78 +1,47 @@
 {
   "kind": "build_request",
-  "title": "Fix swipe-to-delete for Folders and Missions",
+  "title": "Remove \"MyGallery\" header text from top-left",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the swipe-to-delete flow in the Folders full-screen view so that when a user swipes a folder row, taps Delete, and confirms, the folder is actually deleted from the backend and disappears from the folders list after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
-      "target": "both",
+      "text": "Remove the visible \"MyGallery\" text from the top-left header area next to the app icon on the home page by updating the header component (currently rendered as an <h1> in frontend/src/components/Header.tsx).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Διόρθωσε την λειτουργία διαγραφής folders ... ώστε να διαγράφονται τα folders ... όταν ο χρήστης κάνει swipe και πατάει διαγραφή ."
+          "Στην κεντρική σελίδα της σβησε το κείμενο \"MyGallery \" στο πανω αριστερό μέρος της σελίδας δίπλα από το εικονίδιο της εφαρμογής. Μην Αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
         ]
       },
       "acceptanceCriteria": [
-        "Given at least one folder exists, when the user swipes a folder row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
-        "After successful deletion, the deleted folder no longer appears in the folders list UI and does not reappear after navigating away/back or after any automatic refetch.",
-        "If the backend delete fails, the folder remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other folder rows are affected.",
-        "The fix is limited to the deletion behavior triggered by the swipe delete action in the folders list (no unrelated UI/behavior changes)."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix the swipe-to-delete flow in the Missions full-screen view so that when a user swipes a mission row, taps Delete, and confirms, the mission is actually deleted from the backend and disappears from the missions list (including the correct tab: incomplete/completed) after the mutation completes (or optimistically if already implemented), without requiring a manual refresh.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Διόρθωσε την λειτουργία διαγραφής ... mission ώστε να διαγράφονται ... τα missions όταν ο χρήστης κάνει swipe και πατάει διαγραφή ."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Given at least one mission exists, when the user swipes a mission row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
-        "After successful deletion, the deleted mission no longer appears in the missions list UI and does not reappear after switching tabs (Incomplete/Completed) or after navigating away/back.",
-        "If the backend delete fails, the mission remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other missions are affected.",
-        "The fix is limited to the deletion behavior triggered by the swipe delete action in the missions list (no unrelated UI/behavior changes)."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Ensure backend deletion methods invoked by the swipe-to-delete flows correctly remove the target entities for the authenticated caller (folder deletion removes the folder record; mission deletion removes the mission record), and that frontend React Query caches are invalidated/updated so the UI state stays consistent with backend state.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Folder deletion called from the frontend results in the folder no longer being returned by the backend folder listing for that caller.",
-        "Mission deletion called from the frontend results in the mission no longer being returned by the backend mission listing for that caller.",
-        "After a successful delete, relevant React Query queries are invalidated/updated so the UI reflects backend state without a full app reload.",
-        "No changes are introduced to unrelated features or flows beyond what is necessary to make swipe-to-delete actually delete folders/missions."
+        "When viewing the home page header, the app icon remains visible but the \"MyGallery\" text is not displayed anywhere in the top-left header area.",
+        "No other UI elements, layout spacing (beyond removing the text itself), animations, routes, or app functionality are changed.",
+        "No backend changes are made."
       ]
     }
   ],
   "constraints": [
-    "Do not change any other application features or behaviors beyond fixing swipe-to-delete for folders and missions.",
-    "Respect the existing single-actor Motoko backend architecture (all logic in backend/main.mo; only add migration if existing stable state requires it).",
-    "Do not modify any frontend files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT."
+    "Do not change anything else in the application besides removing the \"MyGallery\" header text.",
+    "Do not modify any files under frontend/src/components/ui or any other immutable paths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Redesigning the swipe UI/gesture behavior or changing animations/transitions.",
-    "Changing copy/text in the app beyond what is strictly necessary for this fix.",
-    "Adding new deletion entry points (e.g., bulk delete) or altering existing non-swipe deletion flows."
+    "Rebranding the app name elsewhere (e.g., manifest, page title, footer) unless required to remove the specific top-left header text.",
+    "Any changes to menu behavior, animations, authentication, uploads, gallery features, or backend logic."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

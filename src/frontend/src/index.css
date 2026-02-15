@@ -291,6 +291,36 @@ img, video {
     animation: iconPulse 300ms ease-in-out;
 }
 
+/* Floating action menu styling */
+.floating-action-menu {
+    min-width: 180px;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .floating-action-menu {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Staggered pop-up animation for menu items */
+@keyframes floatingMenuItemAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.floating-menu-item {
+    opacity: 0;
+    animation: floatingMenuItemAppear 400ms ease-out forwards;
+    animation-delay: calc(var(--item-index) * 150ms);
+}
+
 /* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
     .animate-text-reveal {
@@ -306,6 +336,12 @@ img, video {
     }
     
     .animate-icon-pulse {
+        animation: none;
+        transform: none;
+    }
+    
+    .floating-menu-item {
+        opacity: 1;
         animation: none;
         transform: none;
     }

@@ -1,61 +1,21 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix swipe-to-delete confirmation handling for Folders and Missions",
+  "title": "Remove \"MyGallery\" header text from home page top-left",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure swipe-to-delete in Folders full-screen view always triggers the delete mutation (including for ID 0n) and the list updates via existing React Query cache updates/invalidations.",
+      "summary": "Remove the visible \"MyGallery\" header text next to the app icon by updating the existing Header component.",
       "acceptanceCriteria": [
-        "Given at least one folder exists, when the user swipes a folder row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
-        "After successful deletion, the deleted folder no longer appears in the folders list UI and does not reappear after navigating away/back or after any automatic refetch.",
-        "If the backend delete fails, the folder remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other folder rows are affected.",
-        "The fix is limited to the deletion behavior triggered by the swipe delete action in the folders list (no unrelated UI/behavior changes)."
+        "When viewing the home page header, the app icon remains visible but the \"MyGallery\" text is not displayed anywhere in the top-left header area.",
+        "No other UI elements, layout spacing (beyond removing the text itself), animations, routes, or app functionality are changed.",
+        "No backend changes are made."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FoldersFullScreenView.tsx",
+          "path": "frontend/src/components/Header.tsx",
           "operation": "modify",
-          "description": "Fix the delete-confirm dialog OK handler to avoid falsy checks on BigInt IDs (e.g., 0n). Replace `deleteConfirmFolderId && ...` with a null-check so deletion always runs for valid IDs; keep existing mutation usage and toast behavior unchanged."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Ensure swipe-to-delete in Missions full-screen view always triggers the delete mutation (including for ID 0n) and the mission disappears from the correct tab (Incomplete/Completed) via existing React Query cache updates/invalidations.",
-      "acceptanceCriteria": [
-        "Given at least one mission exists, when the user swipes a mission row, taps the Delete (trash) action, and confirms in the dialog, the backend delete operation is invoked and succeeds.",
-        "After successful deletion, the deleted mission no longer appears in the missions list UI and does not reappear after switching tabs (Incomplete/Completed) or after navigating away/back.",
-        "If the backend delete fails, the mission remains in the list (or is rolled back if removed optimistically) and an error toast is shown; no other missions are affected.",
-        "The fix is limited to the deletion behavior triggered by the swipe delete action in the missions list (no unrelated UI/behavior changes)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/MissionsFullScreenView.tsx",
-          "operation": "modify",
-          "description": "Fix the delete-confirm dialog OK handler to avoid falsy checks on BigInt IDs (e.g., 0n). Replace `deleteConfirmMissionId && ...` with a null-check so deletion always runs for valid IDs; keep tab logic and existing mutation/toast behavior unchanged."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Keep UI consistent with backend state by ensuring React Query caches used by folders/missions lists are updated/invalidated after successful deletes initiated from swipe-to-delete flows.",
-      "acceptanceCriteria": [
-        "Folder deletion called from the frontend results in the folder no longer being returned by the backend folder listing for that caller.",
-        "Mission deletion called from the frontend results in the mission no longer being returned by the backend mission listing for that caller.",
-        "After a successful delete, relevant React Query queries are invalidated/updated so the UI reflects backend state without a full app reload.",
-        "No changes are introduced to unrelated features or flows beyond what is necessary to make swipe-to-delete actually delete folders/missions."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Audit and, if needed, adjust the folder delete mutation cache updates/invalidations to ensure the folders list query key used by the UI is updated and stays consistent after deletion (including post-navigation). Keep changes narrowly scoped to folder deletion-related query keys and behavior."
-        },
-        {
-          "path": "frontend/src/hooks/useMissionsQueries.ts",
-          "operation": "modify",
-          "description": "Audit and, if needed, adjust the mission delete mutation cache updates/invalidations to ensure the missions list query key used by the UI is updated and stays consistent across the Incomplete/Completed tabs after deletion (including post-navigation). Keep changes narrowly scoped to mission deletion-related query keys and behavior."
+          "description": "Remove the <h1> element that renders the \"MyGallery\" text (currently in the top-left header area next to the AnimatedGalleryIcon), without changing any other markup, styling, spacing rules beyond the removal of the text node itself, or behavior."
         }
       ]
     }
