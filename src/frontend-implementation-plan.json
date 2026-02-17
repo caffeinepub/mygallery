@@ -1,21 +1,88 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove \"MyGallery\" header text from home page top-left",
+  "title": "MyGallery: Inline in-app document preview for PDF and Office files",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove the visible \"MyGallery\" header text next to the app icon by updating the existing Header component.",
+      "summary": "Open PDF and Office files inside the app using inline previews instead of downloading or navigating away.",
       "acceptanceCriteria": [
-        "When viewing the home page header, the app icon remains visible but the \"MyGallery\" text is not displayed anywhere in the top-left header area.",
-        "No other UI elements, layout spacing (beyond removing the text itself), animations, routes, or app functionality are changed.",
-        "No backend changes are made."
+        "Clicking a PDF opens an in-app inline preview without downloading the file and without leaving the SPA.",
+        "Clicking a Word/Excel/PowerPoint file opens an in-app inline preview without downloading the file and without leaving the SPA.",
+        "No code path for opening these document types uses same-tab redirects (e.g., `window.location = ...`) or `window.open(...)` as the primary click action."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/components/FullScreenViewer.tsx",
           "operation": "modify",
-          "description": "Remove the <h1> element that renders the \"MyGallery\" text (currently in the top-left header area next to the AnimatedGalleryIcon), without changing any other markup, styling, spacing rules beyond the removal of the text node itself, or behavior."
+          "description": "Render Office documents inline (iframe/embed-based) using the file's direct URL, so Office files are readable inside the full-screen in-app viewer without leaving the SPA. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/FilePreviewDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure the inline preview path for PDF and Office documents consistently uses the file direct URL for embedding, and confirm no primary action triggers download or external navigation for these categories. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Make document previews render inline consistently across existing viewers (FullScreenViewer and FilePreviewDialog), removing Office external-only UI.",
+      "acceptanceCriteria": [
+        "In `FullScreenViewer`, Office documents (the `office` category) render an inline preview (e.g., iframe-based) instead of a prompt to open externally.",
+        "In `FilePreviewDialog`, Office documents render an inline preview.",
+        "User remains inside the app UI while previewing documents (dialog/screen remains part of the React app)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/FullScreenViewer.tsx",
+          "operation": "modify",
+          "description": "Replace the current Office 'Open in app' prompt-only UI with an inline Office document preview area (iframe/embed) that stays within the dialog, matching the PDF inline behavior. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/FilePreviewDialog.tsx",
+          "operation": "modify",
+          "description": "Align the Office document preview behavior with FullScreenViewer by ensuring Office category is rendered inline and never presented as external-only UI. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Make the gallery default click action for common document types always open the in-app viewer flow (never direct download).",
+      "acceptanceCriteria": [
+        "From the gallery, clicking a supported document type never triggers a direct download flow.",
+        "From the gallery, clicking a supported document type opens the in-app viewer flow.",
+        "Unsupported/non-previewable file types keep their existing behavior unless they are considered “common documents” under REQ-1."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/fileOpenRules.ts",
+          "operation": "modify",
+          "description": "Update the file open decision logic so the primary action for the `pdf` and `office` categories is always the in-app viewer flow (no special-casing that could route Office to an external/open-only primary action)."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Ensure the gallery click behavior uses the updated open rules so supported document types (PDF/Office) always open the in-app viewer and never enter the direct-download path; keep existing behavior for unsupported types and links."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Preserve existing UI/layout and non-file-opening functionality; only change supported document open behavior to inline in-app preview.",
+      "acceptanceCriteria": [
+        "No backend schema/state changes are required to deliver inline previews.",
+        "All existing features (uploads, folders, missions, notes, delete/move actions, selection mode) continue to work as before, with only the document-opening behavior changed for supported document types."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/FullScreenViewer.tsx",
+          "operation": "modify",
+          "description": "Implement Office inline preview in-place with minimal UI disruption: keep existing viewer layout, navigation, and action buttons (download/share/move/delete) unchanged wherever possible; only replace the Office external-only preview area."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Constrain changes to file-opening decision paths only (supported documents open the viewer instead of downloading/opening externally); avoid altering selection mode, bulk actions, folder/mission flows, note handling, and existing navigation."
         }
       ]
     }

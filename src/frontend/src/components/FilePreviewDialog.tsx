@@ -17,6 +17,7 @@ import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
 import { useDeleteFile } from '@/hooks/useQueries';
 import { getFileCategory } from '@/utils/filePreview';
+import { openFileInSameTab } from '@/utils/externalOpen';
 
 interface FilePreviewDialogProps {
   file: FileMetadata;
@@ -103,7 +104,7 @@ export default function FilePreviewDialog({ file, open, onOpenChange }: FilePrev
 
   const handleOpenInNewTab = () => {
     if (file.blob) {
-      window.open(file.blob.getDirectURL(), '_blank');
+      openFileInSameTab(file.blob.getDirectURL());
     }
   };
 

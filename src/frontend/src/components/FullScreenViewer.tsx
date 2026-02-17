@@ -5,9 +5,8 @@ import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, Ex
 import { useDeleteFile } from '@/hooks/useQueries';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
-import ExternalOpenFallbackDialog from './ExternalOpenFallbackDialog';
 import { getFileCategory } from '@/utils/filePreview';
-import { openExternally, downloadFile } from '@/utils/externalOpen';
+import { openFileInSameTab, downloadFile } from '@/utils/externalOpen';
 import type { FileMetadata } from '@/backend';
 
 interface FullScreenViewerProps {
@@ -23,7 +22,6 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
   const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [fallbackDialogOpen, setFallbackDialogOpen] = useState(false);
   const deleteFile = useDeleteFile();
 
   const currentFile = files[currentIndex];
@@ -122,26 +120,9 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     setMoveToMissionOpen(true);
   };
 
-  const handleOpenExternally = async () => {
+  const handleOpenExternally = () => {
     if (!currentFile || !currentFile.blob) return;
-    const success = await openExternally(currentFile.blob.getDirectURL());
-    if (!success) {
-      setFallbackDialogOpen(true);
-    }
-  };
-
-  const handleFallbackDownload = async () => {
-    if (!currentFile || !currentFile.blob) return;
-    try {
-      await downloadFile(currentFile.blob.getDirectURL(), currentFile.name);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
-  };
-
-  const handleFallbackRetry = async () => {
-    if (!currentFile || !currentFile.blob) return;
-    await openExternally(currentFile.blob.getDirectURL());
+    openFileInSameTab(currentFile.blob.getDirectURL());
   };
 
   const handleMoveComplete = () => {
@@ -167,164 +148,191 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, handlePrevious, handleNext, onOpenChange]);
 
-  if (!currentFile || !currentFile.blob) return null;
+  if (!currentFile) return null;
 
   const fileCategory = getFileCategory(currentFile.mimeType);
-  const isImage = fileCategory === 'image';
-  const isVideo = fileCategory === 'video';
-  const isPDF = fileCategory === 'pdf';
-  const isOffice = fileCategory === 'office';
-  const isUnsupported = fileCategory === 'unsupported';
+  const fileUrl = currentFile.blob?.getDirectURL() || '';
+  const canShare = 'share' in navigator;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-[100vw] max-h-[100vh] w-full h-full p-0 bg-black/95 border-0"
+          className="max-w-full max-h-full w-screen h-screen p-0 bg-black/95 border-0"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className="relative w-full h-full flex flex-col">
-            <div className="absolute top-4 right-4 z-50 flex gap-2">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+              <h2 className="text-white text-lg font-medium truncate flex-1 pr-4">
+                {currentFile.name}
+              </h2>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onOpenChange(false)}
-                className="bg-black/50 hover:bg-black/70 text-white"
+                className="text-white hover:bg-white/20 shrink-0"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </Button>
             </div>
 
-            <div className="flex-1 flex items-center justify-center overflow-hidden min-h-0">
-              {isImage && (
+            {/* Main content */}
+            <div className="flex-1 flex items-center justify-center overflow-hidden">
+              {fileCategory === 'image' && currentFile.blob && (
                 <img
-                  src={currentFile.blob.getDirectURL()}
+                  src={fileUrl}
                   alt={currentFile.name}
                   className="max-w-full max-h-full object-contain"
                 />
               )}
-              {isVideo && (
+
+              {fileCategory === 'video' && currentFile.blob && (
                 <video
-                  src={currentFile.blob.getDirectURL()}
+                  src={fileUrl}
                   controls
                   className="max-w-full max-h-full"
-                  autoPlay
                 />
               )}
-              {isPDF && (
-                <iframe
-                  src={currentFile.blob.getDirectURL()}
-                  className="w-full h-full border-0"
-                  title={currentFile.name}
-                />
-              )}
-              {isOffice && (
-                <div className="w-full h-full flex flex-col">
+
+              {fileCategory === 'pdf' && currentFile.blob && (
+                <div className="w-full h-full p-4">
                   <iframe
-                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(currentFile.blob.getDirectURL())}`}
-                    className="w-full h-full border-0"
+                    src={fileUrl}
+                    className="w-full h-full border-0 bg-white"
                     title={currentFile.name}
                   />
                 </div>
               )}
-              {isUnsupported && (
-                <div className="text-center text-white px-4">
-                  <p className="text-lg mb-6">{currentFile.name}</p>
-                  <p className="text-sm text-white/70 mb-6">This file type cannot be previewed</p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={handleDownload} variant="secondary">
+
+              {fileCategory === 'office' && currentFile.blob && (
+                <div className="w-full h-full p-4">
+                  <iframe
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+                    className="w-full h-full border-0 bg-white"
+                    title={currentFile.name}
+                  />
+                </div>
+              )}
+
+              {fileCategory === 'unsupported' && (
+                <div className="text-white text-center space-y-4 p-8">
+                  <p className="text-lg font-medium">Preview not available</p>
+                  <p className="text-sm text-white/70">
+                    This file type cannot be previewed
+                  </p>
+                  <div className="flex gap-3 justify-center pt-4">
+                    <Button
+                      onClick={handleOpenExternally}
+                      variant="default"
+                      className="bg-white text-black hover:bg-white/90"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open in app
+                    </Button>
+                    <Button
+                      onClick={handleDownload}
+                      variant="outline"
+                      className="border-white text-white hover:bg-white/20"
+                    >
                       <Download className="mr-2 h-4 w-4" />
-                      Download File
+                      Download
                     </Button>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* Navigation arrows */}
             {files.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handlePrevious}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-8 w-8" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-8 w-8" />
                 </Button>
               </>
             )}
 
-            <div className="bg-black/80 backdrop-blur-sm border-t border-white/10 flex-shrink-0">
-              <div className="p-3 sm:p-4">
-                <div className="flex items-center justify-center gap-2 flex-wrap max-w-4xl mx-auto">
+            {/* Bottom action bar */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <Button
+                  onClick={handleOpenExternally}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open in app
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </Button>
+                {canShare && (
                   <Button
-                    variant="secondary"
-                    onClick={handleSendToFolder}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                  >
-                    <FolderInput className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Folder</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleMoveToMission}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                  >
-                    <Target className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Mission</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
                     onClick={handleShare}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
                   >
-                    <Share2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Share</span>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Share
                   </Button>
-                  {isOffice && (
-                    <Button
-                      variant="secondary"
-                      onClick={handleOpenExternally}
-                      className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                    >
-                      <ExternalLink className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span className="truncate">New Tab</span>
-                    </Button>
-                  )}
-                  <Button
-                    variant="secondary"
-                    onClick={handleDownload}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                  >
-                    <Download className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Download</span>
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={deleteFile.isPending}
-                    className="flex-1 min-w-[100px] max-w-[160px] h-9 sm:h-10 text-xs sm:text-sm font-medium"
-                  >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Delete</span>
-                  </Button>
-                </div>
-                <div className="text-center mt-2 sm:mt-3">
-                  <p className="text-xs sm:text-sm text-white/70">
-                    {currentIndex + 1} of {files.length}
-                  </p>
-                </div>
+                )}
+                <Button
+                  onClick={handleSendToFolder}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                >
+                  <FolderInput className="mr-2 h-4 w-4" />
+                  Folder
+                </Button>
+                <Button
+                  onClick={handleMoveToMission}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                >
+                  <Target className="mr-2 h-4 w-4" />
+                  Mission
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-400 hover:bg-white/20"
+                  disabled={deleteFile.isPending}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
               </div>
+              {files.length > 1 && (
+                <div className="text-center text-white/70 text-sm mt-2">
+                  {currentIndex + 1} / {files.length}
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
@@ -334,7 +342,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         open={sendToFolderOpen}
         onOpenChange={setSendToFolderOpen}
         fileIds={[currentFile.id]}
-        currentFolderId={currentFile.folderId ?? undefined}
+        currentFolderId={currentFile.folderId}
         onMoveComplete={handleMoveComplete}
       />
 
@@ -344,17 +352,6 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         fileIds={[currentFile.id]}
         onMoveComplete={handleMoveComplete}
       />
-
-      {currentFile && currentFile.blob && (
-        <ExternalOpenFallbackDialog
-          open={fallbackDialogOpen}
-          onOpenChange={setFallbackDialogOpen}
-          fileName={currentFile.name}
-          fileUrl={currentFile.blob.getDirectURL()}
-          onRetryOpen={handleFallbackRetry}
-          onDownload={handleFallbackDownload}
-        />
-      )}
     </>
   );
 }

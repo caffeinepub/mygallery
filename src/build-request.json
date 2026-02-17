@@ -1,47 +1,95 @@
 {
   "kind": "build_request",
-  "title": "Remove \"MyGallery\" header text from top-left",
+  "title": "Inline in-app preview for common documents (no download or external app open)",
+  "projectName": "MyGallery",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Remove the visible \"MyGallery\" text from the top-left header area next to the app icon on the home page by updating the header component (currently rendered as an <h1> in frontend/src/components/Header.tsx).",
+      "text": "When a user taps/clicks a file that is a common document type (at minimum: PDF, Word, Excel, PowerPoint; i.e., the MIME types currently categorized as `pdf` and `office` in `frontend/src/utils/filePreview.ts`), open the file for reading inside the app via an inline preview (e.g., iframe/embed/viewer) instead of triggering a download or navigating away from the app / opening an external/native app.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Στην κεντρική σελίδα της σβησε το κείμενο \"MyGallery \" στο πανω αριστερό μέρος της σελίδας δίπλα από το εικονίδιο της εφαρμογής. Μην Αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+          "Όταν ο χρήστης πατάει πάνω σε αρχεία PDF, Word, Excel ή άλλα έγγραφα, θέλω να τα ανοίγει απευθείας μέσα στην εφαρμογή, χρησιμοποιώντας inline preview μέσα στο React (όπως iframe, embed ή άλλο viewer). Να μην γίνεται download και να μην ανοίγεται εξωτερική εφαρμογή."
         ]
       },
       "acceptanceCriteria": [
-        "When viewing the home page header, the app icon remains visible but the \"MyGallery\" text is not displayed anywhere in the top-left header area.",
-        "No other UI elements, layout spacing (beyond removing the text itself), animations, routes, or app functionality are changed.",
-        "No backend changes are made."
+        "Clicking a PDF opens an in-app inline preview without downloading the file and without leaving the SPA.",
+        "Clicking a Word/Excel/PowerPoint file opens an in-app inline preview without downloading the file and without leaving the SPA.",
+        "No code path for opening these document types uses same-tab redirects (e.g., `window.location = ...`) or `window.open(...)` as the primary click action."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update the existing in-app viewers so that document previews are rendered inline consistently wherever files are previewed (at minimum: `FullScreenViewer` and `FilePreviewDialog`). Specifically, Office documents must no longer show an “Open in app”/external-only UI; they must render an inline preview instead.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Απλά πρόσθεσε inline preview για όλα τα κοινά αρχεία ώστε να ανοίγουν άμεσα για ανάγνωση μέσα στην εφαρμογή."
+        ]
+      },
+      "acceptanceCriteria": [
+        "In `FullScreenViewer`, Office documents (the `office` category) render an inline preview (e.g., iframe-based) instead of a prompt to open externally.",
+        "In `FilePreviewDialog`, Office documents render an inline preview.",
+        "User remains inside the app UI while previewing documents (dialog/screen remains part of the React app)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Change the file click/open decision logic so that the default click action for common document types is always the in-app inline preview (not auto-download). This must apply from the gallery list/grid click behavior (e.g., the logic in `frontend/src/components/GallerySection.tsx` using `shouldDownloadDirectly` / `shouldOpenInViewer`).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Να μην γίνεται download ... Απλά πρόσθεσε inline preview ... Να διατηρηθεί όλο το υπόλοιπο UI και η λογική όπως είναι, χωρίς αλλαγές."
+        ]
+      },
+      "acceptanceCriteria": [
+        "From the gallery, clicking a supported document type never triggers a direct download flow.",
+        "From the gallery, clicking a supported document type opens the in-app viewer flow.",
+        "Unsupported/non-previewable file types keep their existing behavior unless they are considered “common documents” under REQ-1."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Preserve the existing UI layout, navigation, and all non-file-opening functionality; the only behavior change should be that supported documents open via inline preview inside the app rather than downloading or opening externally.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No backend schema/state changes are required to deliver inline previews.",
+        "All existing features (uploads, folders, missions, notes, delete/move actions, selection mode) continue to work as before, with only the document-opening behavior changed for supported document types."
       ]
     }
   ],
   "constraints": [
-    "Do not change anything else in the application besides removing the \"MyGallery\" header text.",
-    "Do not modify any files under frontend/src/components/ui or any other immutable paths listed in SYSTEM_CONTEXT."
+    "Do not edit files under frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Do not change backend data models or storage unless strictly required for inline preview (expected: not required).",
+    "Keep all user-facing text in English.",
+    "Do not introduce any behavior that automatically downloads a document or opens it in an external/native application as the primary click/tap action for supported document types."
   ],
   "nonGoals": [
-    "Rebranding the app name elsewhere (e.g., manifest, page title, footer) unless required to remove the specific top-left header text.",
-    "Any changes to menu behavior, animations, authentication, uploads, gallery features, or backend logic."
+    "Add new backend endpoints or change Motoko actor logic for file storage.",
+    "Add third-party authentication providers or non-Internet-Identity auth.",
+    "Add real-time collaboration or messaging.",
+    "Redesign the app UI/visual theme (the user requested no other UI/logic changes)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

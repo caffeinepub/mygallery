@@ -1,34 +1,73 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T17:55:36.362Z",
+  "generatedAt": "2026-02-17T15:29:16.560Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the visible \"MyGallery\" text from the top-left header area next to the app icon on the home page by updating the header component (currently rendered as an <h1> in frontend/src/components/Header.tsx).",
+        "summary": "When a user taps/clicks a file that is a common document type (at minimum: PDF, Word, Excel, PowerPoint; i.e., the MIME types currently categorized as `pdf` and `office` in `frontend/src/utils/filePreview.ts`), open the file for reading inside the app via an inline preview (e.g., iframe/embed/viewer) instead of triggering a download or navigating away from the app / opening an external/native app.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/FullScreenViewer.tsx",
+          "frontend/src/components/FilePreviewDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/FullScreenViewer.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update the existing in-app viewers so that document previews are rendered inline consistently wherever files are previewed (at minimum: `FullScreenViewer` and `FilePreviewDialog`). Specifically, Office documents must no longer show an “Open in app”/external-only UI; they must render an inline preview instead.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/FullScreenViewer.tsx",
+          "frontend/src/components/FilePreviewDialog.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/FullScreenViewer.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Change the file click/open decision logic so that the default click action for common document types is always the in-app inline preview (not auto-download). This must apply from the gallery list/grid click behavior (e.g., the logic in `frontend/src/components/GallerySection.tsx` using `shouldDownloadDirectly` / `shouldOpenInViewer`).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/fileOpenRules.ts",
+          "frontend/src/components/GallerySection.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/fileOpenRules.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Preserve the existing UI layout, navigation, and all non-file-opening functionality; the only behavior change should be that supported documents open via inline preview inside the app rather than downloading or opening externally.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/FullScreenViewer.tsx",
+          "frontend/src/components/GallerySection.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/FullScreenViewer.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Header.tsx",
+    "frontend/src/components/FullScreenViewer.tsx",
+    "frontend/src/utils/fileOpenRules.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

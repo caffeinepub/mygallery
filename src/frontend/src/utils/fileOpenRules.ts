@@ -3,8 +3,7 @@ import { getFileCategory, type FileCategory } from './filePreview';
 
 export type FileOpenAction = 
   | { type: 'in-app-viewer' }
-  | { type: 'download-only' }
-  | { type: 'office-preview' };
+  | { type: 'download-only' };
 
 /**
  * Determines the primary action when a user taps/clicks a file
@@ -16,12 +15,9 @@ export function getFileOpenAction(file: FileMetadata): FileOpenAction {
     case 'image':
     case 'video':
     case 'pdf':
-      // PDFs, images, and videos open in the in-app viewer
-      return { type: 'in-app-viewer' };
-    
     case 'office':
-      // Office documents open in-app preview with option to open in new tab
-      return { type: 'office-preview' };
+      // PDFs, images, videos, and Office documents all open in the in-app viewer
+      return { type: 'in-app-viewer' };
     
     case 'unsupported':
     default:
@@ -35,7 +31,7 @@ export function getFileOpenAction(file: FileMetadata): FileOpenAction {
  */
 export function shouldOpenInViewer(file: FileMetadata): boolean {
   const action = getFileOpenAction(file);
-  return action.type === 'in-app-viewer' || action.type === 'office-preview';
+  return action.type === 'in-app-viewer';
 }
 
 /**
@@ -47,7 +43,7 @@ export function shouldDownloadDirectly(file: FileMetadata): boolean {
 }
 
 /**
- * Checks if a file is an Office document that supports preview + new tab open
+ * Checks if a file is an Office document that supports preview
  */
 export function isOfficeDocument(file: FileMetadata): boolean {
   const category = getFileCategory(file.mimeType);

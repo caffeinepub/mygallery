@@ -69,6 +69,14 @@ export function openExternally(url: string): Promise<boolean> {
 }
 
 /**
+ * Opens a file URL in the same tab via redirect
+ * This triggers Android's App Picker for native app handling (PDF, Office, etc.)
+ */
+export function openFileInSameTab(url: string): void {
+  window.location.assign(url);
+}
+
+/**
  * Downloads a file from a URL
  */
 export async function downloadFile(url: string, filename: string): Promise<void> {
