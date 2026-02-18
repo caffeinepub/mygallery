@@ -1,88 +1,153 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "MyGallery: Inline in-app document preview for PDF and Office files",
+  "title": "Add Live Stack Inbox for newly uploaded files",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Open PDF and Office files inside the app using inline previews instead of downloading or navigating away.",
+      "summary": "Animate newly uploaded files from Gallery to bottom-right stack with 200-250ms slide animation",
       "acceptanceCriteria": [
-        "Clicking a PDF opens an in-app inline preview without downloading the file and without leaving the SPA.",
-        "Clicking a Word/Excel/PowerPoint file opens an in-app inline preview without downloading the file and without leaving the SPA.",
-        "No code path for opening these document types uses same-tab redirects (e.g., `window.location = ...`) or `window.open(...)` as the primary click action."
+        "File appears in Gallery immediately after upload completes",
+        "File then slides to the bottom-right stack with 200-250ms duration",
+        "Animation is smooth and does not disrupt Gallery usage"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FullScreenViewer.tsx",
-          "operation": "modify",
-          "description": "Render Office documents inline (iframe/embed-based) using the file's direct URL, so Office files are readable inside the full-screen in-app viewer without leaving the SPA. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/components/LiveStackInbox.tsx",
+          "operation": "create",
+          "description": "Create a new component that manages the Live Stack Inbox visual stack in the bottom-right corner. This component will subscribe to upload completion events from UploadContext and trigger slide animations for newly uploaded files. Use Framer Motion for smooth 200-250ms animations. The component will track unorganized file IDs and render a compact stack with badge."
         },
         {
-          "path": "frontend/src/components/FilePreviewDialog.tsx",
+          "path": "frontend/src/hooks/useFileOrganizationStatus.ts",
+          "operation": "create",
+          "description": "Create a hook that determines which files are unorganized by checking if they have null folderId and null missionId. This hook will query file metadata and return a Set of unorganized file IDs, updating when files are moved to folders or missions."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Ensure the inline preview path for PDF and Office documents consistently uses the file direct URL for embedding, and confirm no primary action triggers download or external navigation for these categories. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+          "description": "Import and render the LiveStackInbox component at the end of the GallerySection JSX. Pass necessary props including file data and organization callbacks. Ensure the stack is positioned absolutely within the Gallery container so it appears in the bottom-right corner without affecting Gallery layout."
+        },
+        {
+          "path": "frontend/src/contexts/UploadContext.tsx",
+          "operation": "modify",
+          "description": "Add a mechanism to emit upload completion events when files finish uploading. Expose a callback or event system that LiveStackInbox can subscribe to for triggering animations when new files are added."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Make document previews render inline consistently across existing viewers (FullScreenViewer and FilePreviewDialog), removing Office external-only UI.",
+      "summary": "Display stack in bottom-right with 3-5px diagonal offset between cards for layered effect",
       "acceptanceCriteria": [
-        "In `FullScreenViewer`, Office documents (the `office` category) render an inline preview (e.g., iframe-based) instead of a prompt to open externally.",
-        "In `FilePreviewDialog`, Office documents render an inline preview.",
-        "User remains inside the app UI while previewing documents (dialog/screen remains part of the React app)."
+        "Stack appears in the bottom-right corner of Gallery",
+        "Cards in stack have 3-5px diagonal offset between them",
+        "Visual layering is subtle and professional"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FullScreenViewer.tsx",
+          "path": "frontend/src/components/LiveStackInbox.tsx",
           "operation": "modify",
-          "description": "Replace the current Office 'Open in app' prompt-only UI with an inline Office document preview area (iframe/embed) that stays within the dialog, matching the PDF inline behavior. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/FilePreviewDialog.tsx",
-          "operation": "modify",
-          "description": "Align the Office document preview behavior with FullScreenViewer by ensuring Office category is rendered inline and never presented as external-only UI. Use the blob-storage ExternalBlob getDirectURL() for the preview URL. Verify the component's usage instructions before implementing."
+          "description": "Implement the visual stack rendering with each card offset by 4px diagonally (both x and y) from the previous card. Use absolute positioning and transform to create the layered effect. Limit visible stack depth to 3-4 cards maximum for performance and clarity. Apply professional styling consistent with existing Gallery design."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Make the gallery default click action for common document types always open the in-app viewer flow (never direct download).",
+      "summary": "Show badge on stack displaying count of unorganized files",
       "acceptanceCriteria": [
-        "From the gallery, clicking a supported document type never triggers a direct download flow.",
-        "From the gallery, clicking a supported document type opens the in-app viewer flow.",
-        "Unsupported/non-previewable file types keep their existing behavior unless they are considered “common documents” under REQ-1."
+        "Badge displays numeric count of unorganized files",
+        "Count updates in real-time as files are added or organized",
+        "Badge is clearly visible on the stack"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/fileOpenRules.ts",
+          "path": "frontend/src/components/LiveStackInbox.tsx",
           "operation": "modify",
-          "description": "Update the file open decision logic so the primary action for the `pdf` and `office` categories is always the in-app viewer flow (no special-casing that could route Office to an external/open-only primary action)."
-        },
-        {
-          "path": "frontend/src/components/GallerySection.tsx",
-          "operation": "modify",
-          "description": "Ensure the gallery click behavior uses the updated open rules so supported document types (PDF/Office) always open the in-app viewer and never enter the direct-download path; keep existing behavior for unsupported types and links."
+          "description": "Add a badge component overlaying the stack that displays the count of unorganized files. Use the useFileOrganizationStatus hook to get the current count. Style the badge using existing design tokens for consistency (similar to notification badges). Position it on the top-right of the stack container."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Preserve existing UI/layout and non-file-opening functionality; only change supported document open behavior to inline in-app preview.",
+      "summary": "Display 'Unorganized' indicator on files in Gallery that are not in a Folder or Mission",
       "acceptanceCriteria": [
-        "No backend schema/state changes are required to deliver inline previews.",
-        "All existing features (uploads, folders, missions, notes, delete/move actions, selection mode) continue to work as before, with only the document-opening behavior changed for supported document types."
+        "Unorganized files in Gallery show 'Unorganized' indicator",
+        "Indicator is visible but does not obstruct file preview",
+        "Organized files do not show this indicator"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FullScreenViewer.tsx",
+          "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Implement Office inline preview in-place with minimal UI disruption: keep existing viewer layout, navigation, and action buttons (download/share/move/delete) unchanged wherever possible; only replace the Office external-only preview area."
+          "description": "Add conditional rendering of an 'Unorganized' label or icon overlay on file cards when the file has no folderId and no missionId. Use the useFileOrganizationStatus hook to determine organization status. Position the indicator subtly (e.g., top-left corner with semi-transparent background) so it does not obstruct the preview thumbnail. Use professional styling matching the app theme."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Remove file from stack and clear 'Unorganized' indicator when moved to Folder or Mission",
+      "acceptanceCriteria": [
+        "File removed from stack when moved to Folder",
+        "File removed from stack when moved to Mission",
+        "'Unorganized' indicator removed from Gallery view",
+        "Stack badge count decrements appropriately"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useFileOrganizationStatus.ts",
+          "operation": "modify",
+          "description": "Implement React Query cache invalidation or refetch logic that triggers when files are moved to folders or missions. Listen to mutation success events from useQueries hooks (moveFileToFolder, moveFilesToFolder, moveFilesToMission) and update the unorganized file set immediately."
+        },
+        {
+          "path": "frontend/src/components/LiveStackInbox.tsx",
+          "operation": "modify",
+          "description": "Subscribe to organization status changes from useFileOrganizationStatus. When a file is removed from the unorganized set, trigger a removal animation (fade out or slide out) before removing it from the stack. Update the badge count reactively based on the current unorganized file count."
         },
         {
           "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Constrain changes to file-opening decision paths only (supported documents open the viewer instead of downloading/opening externally); avoid altering selection mode, bulk actions, folder/mission flows, note handling, and existing navigation."
+          "description": "Ensure the 'Unorganized' indicator reacts to organization status changes from useFileOrganizationStatus. When a file's status changes to organized, remove the indicator with a subtle fade-out transition."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Ensure stack does not interfere with Gallery usage, interactions, or navigation",
+      "acceptanceCriteria": [
+        "Stack positioned to avoid blocking Gallery content",
+        "Gallery scrolling, selection, and preview actions work normally",
+        "Stack does not capture unintended touch or click events"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/LiveStackInbox.tsx",
+          "operation": "modify",
+          "description": "Position the stack using fixed positioning in the bottom-right corner with appropriate margin/padding (e.g., 16px from edges). Use pointer-events CSS to ensure the stack does not interfere with Gallery scrolling or file selection. Add z-index management to keep the stack above Gallery content but below dialogs. Ensure the stack is compact (max width/height limits) to minimize footprint."
+        },
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Verify that LiveStackInbox is rendered within a non-blocking layer. Test that Gallery grid scrolling, file selection, and interaction callbacks (onClick, onLongPress) are not affected by the stack presence. Adjust layout padding if needed to prevent content overlap."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Apply professional, non-playful visual style to stack, animations, and indicators",
+      "acceptanceCriteria": [
+        "Stack design uses professional colors and typography",
+        "Animations are smooth and subtle, not bouncy or exaggerated",
+        "Badge and indicators follow existing UI design language"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/LiveStackInbox.tsx",
+          "operation": "modify",
+          "description": "Apply styling consistent with the existing app design system. Use CSS variables from frontend/src/index.css for colors (background, text, borders). Use linear easing for animations (no bounce or elastic). Keep badge and indicator styling minimal and aligned with existing components like Header and Footer. Use subtle shadows and borders for depth without being playful."
+        },
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Add any necessary CSS utility classes or custom styles for the LiveStackInbox component, ensuring they integrate with the existing Tailwind and theme variable setup. Define professional color tokens for the stack badge and unorganized indicators if not already present."
         }
       ]
     }

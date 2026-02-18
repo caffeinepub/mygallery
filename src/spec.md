@@ -1,11 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Enable in-app inline previews for common document types (PDF and Office files) so users can read them inside MyGallery without downloading or opening an external/native app.
+**Goal:** Add a Live Stack Inbox in the bottom-right corner of the Gallery that shows newly uploaded, unorganized files with visual feedback and animation.
 
 **Planned changes:**
-- Update file open/click handling so PDF and Office document types (the `pdf` and `office` categories in `frontend/src/utils/filePreview.ts`) default to opening in the in-app viewer flow rather than downloading or redirecting.
-- Update existing viewers (at minimum `FullScreenViewer` and `FilePreviewDialog`) to render Office documents inline (e.g., iframe/embed/viewer) instead of showing an external-only “Open in app” UI.
-- Keep all other UI, navigation, and non-file-opening behavior unchanged.
+- Add slide animation (200-250ms) when file upload completes, moving file toward bottom-right stack
+- Display stack in bottom-right corner with 3-5px diagonal offset between cards
+- Show badge on stack with count of unorganized files
+- Display "Unorganized" indicator on files in Gallery that haven't been moved to Folder or Mission
+- Remove files from stack and remove "Unorganized" indicator when moved to Folder or Mission
+- Ensure stack doesn't interfere with normal Gallery usage
+- Apply professional, non-playful visual style to stack, animations, and indicators
 
-**User-visible outcome:** When a user clicks/taps a PDF, Word, Excel, or PowerPoint file from the gallery (and in existing preview surfaces), the document opens inline within the app for reading, without triggering a download and without leaving the SPA.
+**User-visible outcome:** Users see newly uploaded files animate into a visible inbox stack in the bottom-right corner, can track unorganized files via badge count and indicators, and see files automatically leave the stack when organized into Folders or Missions.

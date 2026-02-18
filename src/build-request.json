@@ -1,92 +1,150 @@
 {
   "kind": "build_request",
-  "title": "Inline in-app preview for common documents (no download or external app open)",
-  "projectName": "MyGallery",
+  "title": "Add Live Stack Inbox for newly uploaded files",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "When a user taps/clicks a file that is a common document type (at minimum: PDF, Word, Excel, PowerPoint; i.e., the MIME types currently categorized as `pdf` and `office` in `frontend/src/utils/filePreview.ts`), open the file for reading inside the app via an inline preview (e.g., iframe/embed/viewer) instead of triggering a download or navigating away from the app / opening an external/native app.",
+      "text": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-11"
         ],
         "quotes": [
-          "Όταν ο χρήστης πατάει πάνω σε αρχεία PDF, Word, Excel ή άλλα έγγραφα, θέλω να τα ανοίγει απευθείας μέσα στην εφαρμογή, χρησιμοποιώντας inline preview μέσα στο React (όπως iframe, embed ή άλλο viewer). Να μην γίνεται download και να μην ανοίγεται εξωτερική εφαρμογή."
+          "Όταν ολοκληρώνεται το upload:το αρχείο εμφανίζεται κανονικά στην Gallery. Αμέσως μετά κάνει slide animation προς μια μικρή στοίβα στο κάτω δεξί μέρος gallery.",
+          "Animation 200–250ms."
         ]
       },
       "acceptanceCriteria": [
-        "Clicking a PDF opens an in-app inline preview without downloading the file and without leaving the SPA.",
-        "Clicking a Word/Excel/PowerPoint file opens an in-app inline preview without downloading the file and without leaving the SPA.",
-        "No code path for opening these document types uses same-tab redirects (e.g., `window.location = ...`) or `window.open(...)` as the primary click action."
+        "File appears in Gallery immediately after upload completes",
+        "File then slides to the bottom-right stack with 200-250ms duration",
+        "Animation is smooth and does not disrupt Gallery usage"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update the existing in-app viewers so that document previews are rendered inline consistently wherever files are previewed (at minimum: `FullScreenViewer` and `FilePreviewDialog`). Specifically, Office documents must no longer show an “Open in app”/external-only UI; they must render an inline preview instead.",
+      "text": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-11"
         ],
         "quotes": [
-          "Απλά πρόσθεσε inline preview για όλα τα κοινά αρχεία ώστε να ανοίγουν άμεσα για ανάγνωση μέσα στην εφαρμογή."
+          "Η στοίβα:δείχνει ελαφρύ offset μεταξύ καρτών (3–5px διαγώνια)."
         ]
       },
       "acceptanceCriteria": [
-        "In `FullScreenViewer`, Office documents (the `office` category) render an inline preview (e.g., iframe-based) instead of a prompt to open externally.",
-        "In `FilePreviewDialog`, Office documents render an inline preview.",
-        "User remains inside the app UI while previewing documents (dialog/screen remains part of the React app)."
+        "Stack appears in the bottom-right corner of Gallery",
+        "Cards in stack have 3-5px diagonal offset between them",
+        "Visual layering is subtle and professional"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Change the file click/open decision logic so that the default click action for common document types is always the in-app inline preview (not auto-download). This must apply from the gallery list/grid click behavior (e.g., the logic in `frontend/src/components/GallerySection.tsx` using `shouldDownloadDirectly` / `shouldOpenInViewer`).",
+      "text": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-11"
         ],
         "quotes": [
-          "Να μην γίνεται download ... Απλά πρόσθεσε inline preview ... Να διατηρηθεί όλο το υπόλοιπο UI και η λογική όπως είναι, χωρίς αλλαγές."
+          "Έχει badge με αριθμό μη οργανωμένων αρχείων."
         ]
       },
       "acceptanceCriteria": [
-        "From the gallery, clicking a supported document type never triggers a direct download flow.",
-        "From the gallery, clicking a supported document type opens the in-app viewer flow.",
-        "Unsupported/non-previewable file types keep their existing behavior unless they are considered “common documents” under REQ-1."
+        "Badge displays numeric count of unorganized files",
+        "Count updates in real-time as files are added or organized",
+        "Badge is clearly visible on the stack"
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Preserve the existing UI layout, navigation, and all non-file-opening functionality; the only behavior change should be that supported documents open via inline preview inside the app rather than downloading or opening externally.",
-      "target": "both",
+      "text": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-11"
         ],
         "quotes": [
-          "Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της"
+          "Τα αρχεία παραμένουν ορατά στην Gallery αλλά έχουν ένδειξη \"Μη οργανωμένο\"."
         ]
       },
       "acceptanceCriteria": [
-        "No backend schema/state changes are required to deliver inline previews.",
-        "All existing features (uploads, folders, missions, notes, delete/move actions, selection mode) continue to work as before, with only the document-opening behavior changed for supported document types."
+        "Unorganized files in Gallery show 'Unorganized' indicator",
+        "Indicator is visible but does not obstruct file preview",
+        "Organized files do not show this indicator"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-11"
+        ],
+        "quotes": [
+          "Μόλις το αρχείο μεταφερθεί σε Folder ή Mission:αφαιρείται από τη στοίβα. Φεύγει η ένδειξη \"Μη οργανωμένο\"."
+        ]
+      },
+      "acceptanceCriteria": [
+        "File removed from stack when moved to Folder",
+        "File removed from stack when moved to Mission",
+        "'Unorganized' indicator removed from Gallery view",
+        "Stack badge count decrements appropriately"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-11"
+        ],
+        "quotes": [
+          "Να μην εμποδίζει τη χρήση της Gallery."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Stack positioned to avoid blocking Gallery content",
+        "Gallery scrolling, selection, and preview actions work normally",
+        "Stack does not capture unintended touch or click events"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-11"
+        ],
+        "quotes": [
+          "Ύφος επαγγελματικό, όχι παιχνιδιάρικο."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Stack design uses professional colors and typography",
+        "Animations are smooth and subtle, not bouncy or exaggerated",
+        "Badge and indicators follow existing UI design language"
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Do not change backend data models or storage unless strictly required for inline preview (expected: not required).",
-    "Keep all user-facing text in English.",
-    "Do not introduce any behavior that automatically downloads a document or opens it in an external/native application as the primary click/tap action for supported document types."
+    "Do not modify any other features or functionality of the application",
+    "Animation duration must be between 200-250ms",
+    "Stack offset between cards must be 3-5px diagonal",
+    "Stack must be positioned in the bottom-right corner of the Gallery",
+    "Do not interfere with normal Gallery usage"
   ],
   "nonGoals": [
-    "Add new backend endpoints or change Motoko actor logic for file storage.",
-    "Add third-party authentication providers or non-Internet-Identity auth.",
-    "Add real-time collaboration or messaging.",
-    "Redesign the app UI/visual theme (the user requested no other UI/logic changes)."
+    "Backend state changes for tracking organized status",
+    "Reorganizing existing Gallery layout or components",
+    "Modifying file upload logic or backend upload handling",
+    "Changing folder or mission selection flows",
+    "Adding new file management actions beyond organizing"
   ],
   "imageRequirements": {
     "required": [],

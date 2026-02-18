@@ -1,40 +1,70 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Add inline in-app document preview so common files (PDF/Word/Excel/etc.) open directly inside the React app without downloading or launching external apps, while keeping existing UI/logic unchanged.",
-  "architectural_notes": [],
+  "summary": "Gallery application with file organization system",
+  "architectural_notes": [
+    "Gallery displays uploaded files with 'Unorganized' indicator until moved to Folder or Mission",
+    "Live Stack Inbox positioned at bottom-right with 3-5px diagonal offset between cards",
+    "Slide animation (200-250ms) moves files from Gallery to Stack after upload",
+    "Badge displays count of unorganized files in Stack",
+    "Files removed from Stack when organized into Folder or Mission"
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-when-a-user-taps-clicks-a-file-that-is-a-common-document-type-at-minimum-pdf-word-excel-powerpoint-i-e-the-mime-types-currently-categorized-as-pdf-and-office-in-frontend-src-utils-filepreview-ts-open-the-file-for-reading-inside-the-app-via-an-inline-preview-e-g-iframe-embed-viewer-instead-of-triggering-a-download-or-navigating-away-from-the-app-opening-an-external-native-app",
-      "title": "When a user taps/clicks a file that is a common document type (at minimum: PDF, Word, Excel, PowerPoint; i.e., the MIME types currently categorized as `pdf` and `office` in `frontend/src/utils/filePreview.ts`), open the file for reading inside the app via an inline preview (e.g., iframe/embed/viewer) instead of triggering a download or navigating away from the app / opening an external/native app.",
+      "id": "feature-when-a-file-upload-completes-display-the-file-normally-in-the-gallery-then-immediately-animate-it-with-a-200-250ms-slide-animation-toward-a-small-stack-positioned-in-the-bottom-right-corner-of-the-gallery-view",
+      "title": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-the-existing-in-app-viewers-so-that-document-previews-are-rendered-inline-consistently-wherever-files-are-previewed-at-minimum-fullscreenviewer-and-filepreviewdialog-specifically-office-documents-must-no-longer-show-an-open-in-app-external-only-ui-they-must-render-an-inline-preview-instead",
-      "title": "Update the existing in-app viewers so that document previews are rendered inline consistently wherever files are previewed (at minimum: `FullScreenViewer` and `FilePreviewDialog`). Specifically, Office documents must no longer show an “Open in app”/external-only UI; they must render an inline preview instead.",
+      "id": "feature-display-the-stack-in-the-bottom-right-corner-of-the-gallery-with-a-subtle-3-5px-diagonal-offset-between-stacked-file-cards-to-create-a-layered-visual-effect",
+      "title": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-change-the-file-click-open-decision-logic-so-that-the-default-click-action-for-common-document-types-is-always-the-in-app-inline-preview-not-auto-download-this-must-apply-from-the-gallery-list-grid-click-behavior-e-g-the-logic-in-frontend-src-components-gallerysection-tsx-using-shoulddownloaddirectly-shouldopeninviewer",
-      "title": "Change the file click/open decision logic so that the default click action for common document types is always the in-app inline preview (not auto-download). This must apply from the gallery list/grid click behavior (e.g., the logic in `frontend/src/components/GallerySection.tsx` using `shouldDownloadDirectly` / `shouldOpenInViewer`).",
+      "id": "feature-show-a-badge-on-the-stack-displaying-the-count-of-unorganized-files-currently-in-the-inbox",
+      "title": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-preserve-the-existing-ui-layout-navigation-and-all-non-file-opening-functionality-the-only-behavior-change-should-be-that-supported-documents-open-via-inline-preview-inside-the-app-rather-than-downloading-or-opening-externally",
-      "title": "Preserve the existing UI layout, navigation, and all non-file-opening functionality; the only behavior change should be that supported documents open via inline preview inside the app rather than downloading or opening externally.",
+      "id": "feature-display-an-unorganized-indicator-on-files-in-the-gallery-that-have-not-yet-been-moved-to-a-folder-or-mission",
+      "title": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-a-file-is-moved-to-a-folder-or-mission-remove-it-from-the-live-stack-inbox-and-remove-its-unorganized-indicator-in-the-gallery",
+      "title": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-live-stack-inbox-does-not-interfere-with-normal-gallery-usage-interactions-or-navigation",
+      "title": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-professional-non-playful-visual-style-to-the-live-stack-inbox-stack-animations-and-unorganized-indicators",
+      "title": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
+      "reqIds": [
+        "REQ-7"
       ],
       "version": 1
     }
@@ -42,13 +72,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Inline in-app preview for common documents (PDF, Word, Excel, etc.) in React; no download and no external app; keep existing UI/logic unchanged.",
+      "summary": "Live Stack Inbox system for newly uploaded files in gallery with slide animation to bottom-right stack, badge count, and unorganized indicator",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "MyGallery",
+  "projectName": "Add Live Stack Inbox for newly uploaded files",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

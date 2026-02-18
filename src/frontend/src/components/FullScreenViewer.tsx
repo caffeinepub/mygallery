@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, ExternalLink, Target } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, Target } from 'lucide-react';
 import { useDeleteFile } from '@/hooks/useQueries';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
 import { getFileCategory } from '@/utils/filePreview';
-import { openFileInSameTab, downloadFile } from '@/utils/externalOpen';
+import { downloadFile } from '@/utils/externalOpen';
 import type { FileMetadata } from '@/backend';
 
 interface FullScreenViewerProps {
@@ -120,11 +120,6 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     setMoveToMissionOpen(true);
   };
 
-  const handleOpenExternally = () => {
-    if (!currentFile || !currentFile.blob) return;
-    openFileInSameTab(currentFile.blob.getDirectURL());
-  };
-
   const handleMoveComplete = () => {
     if (files.length === 1) {
       onOpenChange(false);
@@ -225,17 +220,9 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                   </p>
                   <div className="flex gap-3 justify-center pt-4">
                     <Button
-                      onClick={handleOpenExternally}
+                      onClick={handleDownload}
                       variant="default"
                       className="bg-white text-black hover:bg-white/90"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Open in app
-                    </Button>
-                    <Button
-                      onClick={handleDownload}
-                      variant="outline"
-                      className="border-white text-white hover:bg-white/20"
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Download
@@ -270,15 +257,6 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
             {/* Bottom action bar */}
             <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Button
-                  onClick={handleOpenExternally}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open in app
-                </Button>
                 <Button
                   onClick={handleDownload}
                   variant="ghost"

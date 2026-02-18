@@ -10,8 +10,10 @@ import NoteViewerDialog from './NoteViewerDialog';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
 import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
+import LiveStackInbox from './LiveStackInbox';
 import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
 import { downloadFile, openExternally, shareFile, downloadNoteAsText, shareNote } from '@/utils/externalOpen';
+import { useFileOrganizationStatus } from '@/hooks/useFileOrganizationStatus';
 import { toast } from 'sonner';
 import type { FileMetadata, Folder, Note } from '@/backend';
 
@@ -30,13 +32,15 @@ const FileCard = memo(({
   onClick, 
   isSelected, 
   isSelectionMode,
-  onLongPress 
+  onLongPress,
+  isUnorganized
 }: { 
   file: FileMetadata; 
   onClick: () => void;
   isSelected: boolean;
   isSelectionMode: boolean;
   onLongPress: () => void;
+  isUnorganized: boolean;
 }) => {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -182,6 +186,11 @@ const FileCard = memo(({
             <ExternalLink className="h-3 w-3" />
           </div>
         )}
+        {isUnorganized && !isSelected && (
+          <div className="absolute top-2 left-2 bg-orange-500/90 text-white text-[10px] font-medium px-1.5 py-0.5 rounded shadow-sm">
+            Unorganized
+          </div>
+        )}
       </div>
       <p className="mt-1.5 text-xs truncate w-[100px]" title={file.name}>
         {file.name}
@@ -192,7 +201,8 @@ const FileCard = memo(({
   return (
     prevProps.file.id === nextProps.file.id &&
     prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isSelectionMode === nextProps.isSelectionMode
+    prevProps.isSelectionMode === nextProps.isSelectionMode &&
+    prevProps.isUnorganized === nextProps.isUnorganized
   );
 });
 
@@ -350,6 +360,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const folderNotesQuery = useGetNotesInFolder(selectedFolder?.id ?? null);
   const deleteFiles = useDeleteFiles();
   const deleteNotes = useDeleteNotes();
+  const { unorganizedFileIds } = useFileOrganizationStatus();
 
   const { data: files, isLoading: isLoadingFiles } = selectedFolder ? folderFilesQuery : mainFilesQuery;
   const { data: notes, isLoading: isLoadingNotes } = selectedFolder ? folderNotesQuery : mainNotesQuery;
@@ -509,9 +520,9 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   }, [selectedItems, files, notes]);
 
   const handleShareSelected = useCallback(async () => {
-    if (selectedItems.size === 0) return;
-    
+    if (isSharing) return;
     setIsSharing(true);
+
     try {
       for (const itemId of selectedItems) {
         if (itemId.startsWith('note-')) {
@@ -531,17 +542,15 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     } finally {
       setIsSharing(false);
     }
-  }, [selectedItems, files, notes]);
+  }, [selectedItems, files, notes, isSharing]);
 
-  const selectedFileIds = useMemo(() => {
-    return Array.from(selectedItems).filter(id => !id.startsWith('note-'));
-  }, [selectedItems]);
+  const handleSendToFolder = useCallback(() => {
+    setSendToFolderOpen(true);
+  }, []);
 
-  const selectedNoteIds = useMemo(() => {
-    return Array.from(selectedItems)
-      .filter(id => id.startsWith('note-'))
-      .map(id => BigInt(id.replace('note-', '')));
-  }, [selectedItems]);
+  const handleMoveToMission = useCallback(() => {
+    setMoveToMissionOpen(true);
+  }, []);
 
   const handleRetryOpenLink = useCallback(async () => {
     if (currentLinkUrl) {
@@ -559,160 +568,179 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     }
   }, [currentLinkUrl]);
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="flex items-center gap-3">
-          {selectedFolder && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBackToMain}
-              className="h-8 w-8"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
-          <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+  const selectedFileIds = useMemo(() => {
+    return Array.from(selectedItems).filter(id => !id.startsWith('note-'));
+  }, [selectedItems]);
+
+  const selectedNoteIds = useMemo(() => {
+    return Array.from(selectedItems)
+      .filter(id => id.startsWith('note-'))
+      .map(id => BigInt(id.replace('note-', '')));
+  }, [selectedItems]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="max-w-4xl mx-auto py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="w-[100px] h-[100px] rounded-lg" />
+            ))}
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Gallery Grid */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {isLoading ? (
-          <div className="grid grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <Skeleton className="w-[100px] h-[100px] rounded-lg" />
-                <Skeleton className="w-[100px] h-4" />
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto px-4 pb-24 relative">
+        <div className="max-w-4xl mx-auto py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                {selectedFolder && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onBackToMain}
+                    className="h-8 w-8"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                )}
+                <h2 className="text-2xl font-bold">{title}</h2>
               </div>
-            ))}
-          </div>
-        ) : galleryItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="text-muted-foreground mb-2">
-              <FileIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No files or notes yet</p>
-              <p className="text-xs mt-1">Upload files or create notes to get started</p>
+              <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4">
-            {galleryItems.map((item, index) => {
-              const itemId = item.type === 'file' ? item.data.id : `note-${item.data.id}`;
-              const isSelected = selectedItems.has(itemId);
 
-              return item.type === 'file' ? (
-                <FileCard
-                  key={item.data.id}
-                  file={item.data}
-                  onClick={() => handleItemClick(index)}
-                  isSelected={isSelected}
-                  isSelectionMode={selectionMode}
-                  onLongPress={() => handleLongPress(itemId)}
-                />
-              ) : (
-                <NoteCard
-                  key={item.data.id}
-                  note={item.data}
-                  onClick={() => handleItemClick(index)}
-                  isSelected={isSelected}
-                  isSelectionMode={selectionMode}
-                  onLongPress={() => handleLongPress(itemId)}
-                />
-              );
-            })}
-          </div>
+          {galleryItems.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  {selectedFolder ? 'No items in this folder yet' : 'No items yet'}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-3 gap-4">
+              {galleryItems.map((item, index) => {
+                if (item.type === 'file') {
+                  const isSelected = selectedItems.has(item.data.id);
+                  const isUnorganized = !selectedFolder && unorganizedFileIds.has(item.data.id);
+                  return (
+                    <FileCard
+                      key={item.data.id}
+                      file={item.data}
+                      onClick={() => handleItemClick(index)}
+                      isSelected={isSelected}
+                      isSelectionMode={selectionMode}
+                      onLongPress={() => handleLongPress(item.data.id)}
+                      isUnorganized={isUnorganized}
+                    />
+                  );
+                } else {
+                  const noteId = `note-${item.data.id}`;
+                  const isSelected = selectedItems.has(noteId);
+                  return (
+                    <NoteCard
+                      key={noteId}
+                      note={item.data}
+                      onClick={() => handleItemClick(index)}
+                      isSelected={isSelected}
+                      isSelectionMode={selectionMode}
+                      onLongPress={() => handleLongPress(noteId)}
+                    />
+                  );
+                }
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Live Stack Inbox - only show in main gallery (not in folders) */}
+        {!selectedFolder && files && files.length > 0 && (
+          <LiveStackInbox files={files} />
         )}
       </div>
 
-      {/* Bulk Action Bar */}
+      {/* Bulk action bar */}
       {selectionMode && selectedItems.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 safe-area-pb">
-          <div className="max-w-[430px] mx-auto px-4 py-3">
-            <div className="flex items-center justify-between mb-3">
+        <div className="fixed bottom-16 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelSelection}
+              >
+                Cancel
+              </Button>
               <span className="text-sm font-medium">
                 {selectedItems.size} selected
               </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleSelectAll}
-                  className="h-8 gap-2"
-                >
-                  {allItemsSelected ? (
-                    <>
-                      <Square className="h-4 w-4" />
-                      <span className="text-xs">Deselect All</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare className="h-4 w-4" />
-                      <span className="text-xs">All files</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelSelection}
-                  className="h-8"
-                >
-                  Cancel
-                </Button>
-              </div>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="flex items-center gap-2">
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSendToFolderOpen(true)}
-                className="flex flex-col items-center gap-1 h-auto py-2"
+                variant="ghost"
+                size="icon"
+                onClick={handleToggleSelectAll}
+                title={allItemsSelected ? "Deselect all" : "Select all"}
               >
-                <FolderInput className="h-5 w-5" />
-                <span className="text-xs">Folder</span>
+                {allItemsSelected ? (
+                  <CheckSquare className="h-5 w-5" />
+                ) : (
+                  <Square className="h-5 w-5" />
+                )}
               </Button>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMoveToMissionOpen(true)}
-                className="flex flex-col items-center gap-1 h-auto py-2"
-              >
-                <Target className="h-5 w-5" />
-                <span className="text-xs">Mission</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={handleDownloadSelected}
-                className="flex flex-col items-center gap-1 h-auto py-2"
+                title="Download"
               >
                 <Download className="h-5 w-5" />
-                <span className="text-xs">Download</span>
               </Button>
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={handleShareSelected}
                 disabled={isSharing}
-                className="flex flex-col items-center gap-1 h-auto py-2"
+                title="Share"
               >
                 <Share2 className="h-5 w-5" />
-                <span className="text-xs">Share</span>
               </Button>
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
+                onClick={handleSendToFolder}
+                title="Send to folder"
+              >
+                <FolderInput className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleMoveToMission}
+                title="Move to mission"
+              >
+                <Target className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleDeleteSelected}
-                className="flex flex-col items-center gap-1 h-auto py-2 text-destructive hover:text-destructive"
+                title="Delete"
               >
                 <Trash2 className="h-5 w-5" />
-                <span className="text-xs">Delete</span>
               </Button>
             </div>
           </div>
@@ -766,6 +794,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
         onRetryOpen={handleRetryOpenLink}
         onCopyLink={handleCopyLink}
       />
-    </div>
+    </>
   );
 }
