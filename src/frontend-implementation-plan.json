@@ -1,153 +1,32 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Live Stack Inbox for newly uploaded files",
+  "title": "Position mission icon next to folder icon with proper spacing",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Animate newly uploaded files from Gallery to bottom-right stack with 200-250ms slide animation",
+      "summary": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation",
       "acceptanceCriteria": [
-        "File appears in Gallery immediately after upload completes",
-        "File then slides to the bottom-right stack with 200-250ms duration",
-        "Animation is smooth and does not disrupt Gallery usage"
+        "Mission icon appears horizontally adjacent to folder icon",
+        "Spacing between the two icons provides clear visual distinction",
+        "Both icons maintain their existing functionality",
+        "No other application features or behaviors are modified"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "create",
-          "description": "Create a new component that manages the Live Stack Inbox visual stack in the bottom-right corner. This component will subscribe to upload completion events from UploadContext and trigger slide animations for newly uploaded files. Use Framer Motion for smooth 200-250ms animations. The component will track unorganized file IDs and render a compact stack with badge."
+          "path": "frontend/src/components/FoldersButton.tsx",
+          "operation": "modify",
+          "description": "Update the FoldersButton component positioning to support horizontal layout with the MissionsButton. Adjust fixed positioning styles to accommodate side-by-side placement while maintaining existing hover effects, pulse animation support, and accessibility attributes."
         },
         {
-          "path": "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "operation": "create",
-          "description": "Create a hook that determines which files are unorganized by checking if they have null folderId and null missionId. This hook will query file metadata and return a Set of unorganized file IDs, updating when files are moved to folders or missions."
+          "path": "frontend/src/components/MissionsButton.tsx",
+          "operation": "modify",
+          "description": "Update the MissionsButton component positioning to align horizontally next to FoldersButton with appropriate spacing (e.g., using margin or gap). Ensure the button maintains its disabled state handling, pulse animation, z-index control, and existing functionality while adapting to the new horizontal layout."
         },
         {
-          "path": "frontend/src/components/GallerySection.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Import and render the LiveStackInbox component at the end of the GallerySection JSX. Pass necessary props including file data and organization callbacks. Ensure the stack is positioned absolutely within the Gallery container so it appears in the bottom-right corner without affecting Gallery layout."
-        },
-        {
-          "path": "frontend/src/contexts/UploadContext.tsx",
-          "operation": "modify",
-          "description": "Add a mechanism to emit upload completion events when files finish uploading. Expose a callback or event system that LiveStackInbox can subscribe to for triggering animations when new files are added."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Display stack in bottom-right with 3-5px diagonal offset between cards for layered effect",
-      "acceptanceCriteria": [
-        "Stack appears in the bottom-right corner of Gallery",
-        "Cards in stack have 3-5px diagonal offset between them",
-        "Visual layering is subtle and professional"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "modify",
-          "description": "Implement the visual stack rendering with each card offset by 4px diagonally (both x and y) from the previous card. Use absolute positioning and transform to create the layered effect. Limit visible stack depth to 3-4 cards maximum for performance and clarity. Apply professional styling consistent with existing Gallery design."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Show badge on stack displaying count of unorganized files",
-      "acceptanceCriteria": [
-        "Badge displays numeric count of unorganized files",
-        "Count updates in real-time as files are added or organized",
-        "Badge is clearly visible on the stack"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "modify",
-          "description": "Add a badge component overlaying the stack that displays the count of unorganized files. Use the useFileOrganizationStatus hook to get the current count. Style the badge using existing design tokens for consistency (similar to notification badges). Position it on the top-right of the stack container."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Display 'Unorganized' indicator on files in Gallery that are not in a Folder or Mission",
-      "acceptanceCriteria": [
-        "Unorganized files in Gallery show 'Unorganized' indicator",
-        "Indicator is visible but does not obstruct file preview",
-        "Organized files do not show this indicator"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/GallerySection.tsx",
-          "operation": "modify",
-          "description": "Add conditional rendering of an 'Unorganized' label or icon overlay on file cards when the file has no folderId and no missionId. Use the useFileOrganizationStatus hook to determine organization status. Position the indicator subtly (e.g., top-left corner with semi-transparent background) so it does not obstruct the preview thumbnail. Use professional styling matching the app theme."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Remove file from stack and clear 'Unorganized' indicator when moved to Folder or Mission",
-      "acceptanceCriteria": [
-        "File removed from stack when moved to Folder",
-        "File removed from stack when moved to Mission",
-        "'Unorganized' indicator removed from Gallery view",
-        "Stack badge count decrements appropriately"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "operation": "modify",
-          "description": "Implement React Query cache invalidation or refetch logic that triggers when files are moved to folders or missions. Listen to mutation success events from useQueries hooks (moveFileToFolder, moveFilesToFolder, moveFilesToMission) and update the unorganized file set immediately."
-        },
-        {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "modify",
-          "description": "Subscribe to organization status changes from useFileOrganizationStatus. When a file is removed from the unorganized set, trigger a removal animation (fade out or slide out) before removing it from the stack. Update the badge count reactively based on the current unorganized file count."
-        },
-        {
-          "path": "frontend/src/components/GallerySection.tsx",
-          "operation": "modify",
-          "description": "Ensure the 'Unorganized' indicator reacts to organization status changes from useFileOrganizationStatus. When a file's status changes to organized, remove the indicator with a subtle fade-out transition."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Ensure stack does not interfere with Gallery usage, interactions, or navigation",
-      "acceptanceCriteria": [
-        "Stack positioned to avoid blocking Gallery content",
-        "Gallery scrolling, selection, and preview actions work normally",
-        "Stack does not capture unintended touch or click events"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "modify",
-          "description": "Position the stack using fixed positioning in the bottom-right corner with appropriate margin/padding (e.g., 16px from edges). Use pointer-events CSS to ensure the stack does not interfere with Gallery scrolling or file selection. Add z-index management to keep the stack above Gallery content but below dialogs. Ensure the stack is compact (max width/height limits) to minimize footprint."
-        },
-        {
-          "path": "frontend/src/components/GallerySection.tsx",
-          "operation": "modify",
-          "description": "Verify that LiveStackInbox is rendered within a non-blocking layer. Test that Gallery grid scrolling, file selection, and interaction callbacks (onClick, onLongPress) are not affected by the stack presence. Adjust layout padding if needed to prevent content overlap."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Apply professional, non-playful visual style to stack, animations, and indicators",
-      "acceptanceCriteria": [
-        "Stack design uses professional colors and typography",
-        "Animations are smooth and subtle, not bouncy or exaggerated",
-        "Badge and indicators follow existing UI design language"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/LiveStackInbox.tsx",
-          "operation": "modify",
-          "description": "Apply styling consistent with the existing app design system. Use CSS variables from frontend/src/index.css for colors (background, text, borders). Use linear easing for animations (no bounce or elastic). Keep badge and indicator styling minimal and aligned with existing components like Header and Footer. Use subtle shadows and borders for depth without being playful."
-        },
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Add any necessary CSS utility classes or custom styles for the LiveStackInbox component, ensuring they integrate with the existing Tailwind and theme variable setup. Define professional color tokens for the stack badge and unorganized indicators if not already present."
+          "description": "Update the HomePage component to render FoldersButton and MissionsButton in a horizontal container with appropriate spacing between them. Ensure the container maintains proper positioning on the page and both buttons remain accessible and functional. Verify that no other UI elements or features are affected by this layout change."
         }
       ]
     }

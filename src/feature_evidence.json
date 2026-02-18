@@ -2,12 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-when-a-file-upload-completes-display-the-file-normally-in-the-gallery-then-immediately-animate-it-with-a-200-250ms-slide-animation-toward-a-small-stack-positioned-in-the-bottom-right-corner-of-the-gallery-view",
-      "featureTitle": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
+      "featureId": "feature-position-the-mission-icon-missionsbutton-component-next-to-the-folder-icon-foldersbutton-component-with-appropriate-spacing-between-them-for-visual-separation-do-not-change-any-other-functionality-or-features-of-the-application",
+      "featureTitle": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
       "files": [
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/components/LiveStackInbox.tsx",
-        "frontend/src/hooks/useFileOrganizationStatus.ts"
+        "frontend/src/components/MissionsButton.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -20,129 +18,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-display-the-stack-in-the-bottom-right-corner-of-the-gallery-with-a-subtle-3-5px-diagonal-offset-between-stacked-file-cards-to-create-a-layered-visual-effect",
-      "featureTitle": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
-      "files": [
-        "frontend/src/components/LiveStackInbox.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-show-a-badge-on-the-stack-displaying-the-count-of-unorganized-files-currently-in-the-inbox",
-      "featureTitle": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
-      "files": [
-        "frontend/src/components/LiveStackInbox.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-display-an-unorganized-indicator-on-files-in-the-gallery-that-have-not-yet-been-moved-to-a-folder-or-mission",
-      "featureTitle": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
-      "files": [
-        "frontend/src/components/GallerySection.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-when-a-file-is-moved-to-a-folder-or-mission-remove-it-from-the-live-stack-inbox-and-remove-its-unorganized-indicator-in-the-gallery",
-      "featureTitle": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
-      "files": [
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/components/LiveStackInbox.tsx",
-        "frontend/src/hooks/useFileOrganizationStatus.ts"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-the-live-stack-inbox-does-not-interfere-with-normal-gallery-usage-interactions-or-navigation",
-      "featureTitle": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
-      "files": [
-        "frontend/src/components/GallerySection.tsx",
-        "frontend/src/components/LiveStackInbox.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-6"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-apply-a-professional-non-playful-visual-style-to-the-live-stack-inbox-stack-animations-and-unorganized-indicators",
-      "featureTitle": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
-      "files": [
-        "frontend/src/components/LiveStackInbox.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "authorization@4.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-7"
       ],
       "confidence": "high"
     }

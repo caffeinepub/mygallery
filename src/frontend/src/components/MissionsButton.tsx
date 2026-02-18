@@ -16,7 +16,7 @@ const MissionsButton = forwardRef<HTMLButtonElement, MissionsButtonProps>(
         onClick={onClick}
         disabled={disabled}
         data-transition-source="missions"
-        className={`fixed bottom-16 left-[17rem] flex flex-col items-center gap-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-missions-accent focus:ring-offset-2 rounded-lg p-2 group ${
+        className={`fixed bottom-16 left-[9.5rem] flex flex-col items-center gap-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-missions-accent focus:ring-offset-2 rounded-lg p-2 group ${
           disabled 
             ? 'opacity-50 cursor-not-allowed' 
             : 'hover:scale-105 cursor-pointer'

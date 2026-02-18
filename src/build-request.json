@@ -1,150 +1,39 @@
 {
   "kind": "build_request",
-  "title": "Add Live Stack Inbox for newly uploaded files",
+  "title": "Position mission icon next to folder icon with proper spacing",
+  "projectName": "Live Stack Inbox",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
+      "text": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-11"
+          "msg-4"
         ],
         "quotes": [
-          "Όταν ολοκληρώνεται το upload:το αρχείο εμφανίζεται κανονικά στην Gallery. Αμέσως μετά κάνει slide animation προς μια μικρή στοίβα στο κάτω δεξί μέρος gallery.",
-          "Animation 200–250ms."
+          "Τοποθέτησε το εικονίδιο της λειτουργίας mission δίπλα από το εικονίδιο της λειτουργίας folder με σωστό κενό ανάμεσα τους για να ξεχωρίζουν . Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
         ]
       },
       "acceptanceCriteria": [
-        "File appears in Gallery immediately after upload completes",
-        "File then slides to the bottom-right stack with 200-250ms duration",
-        "Animation is smooth and does not disrupt Gallery usage"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Η στοίβα:δείχνει ελαφρύ offset μεταξύ καρτών (3–5px διαγώνια)."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Stack appears in the bottom-right corner of Gallery",
-        "Cards in stack have 3-5px diagonal offset between them",
-        "Visual layering is subtle and professional"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Έχει badge με αριθμό μη οργανωμένων αρχείων."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Badge displays numeric count of unorganized files",
-        "Count updates in real-time as files are added or organized",
-        "Badge is clearly visible on the stack"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Τα αρχεία παραμένουν ορατά στην Gallery αλλά έχουν ένδειξη \"Μη οργανωμένο\"."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Unorganized files in Gallery show 'Unorganized' indicator",
-        "Indicator is visible but does not obstruct file preview",
-        "Organized files do not show this indicator"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Μόλις το αρχείο μεταφερθεί σε Folder ή Mission:αφαιρείται από τη στοίβα. Φεύγει η ένδειξη \"Μη οργανωμένο\"."
-        ]
-      },
-      "acceptanceCriteria": [
-        "File removed from stack when moved to Folder",
-        "File removed from stack when moved to Mission",
-        "'Unorganized' indicator removed from Gallery view",
-        "Stack badge count decrements appropriately"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Να μην εμποδίζει τη χρήση της Gallery."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Stack positioned to avoid blocking Gallery content",
-        "Gallery scrolling, selection, and preview actions work normally",
-        "Stack does not capture unintended touch or click events"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-11"
-        ],
-        "quotes": [
-          "Ύφος επαγγελματικό, όχι παιχνιδιάρικο."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Stack design uses professional colors and typography",
-        "Animations are smooth and subtle, not bouncy or exaggerated",
-        "Badge and indicators follow existing UI design language"
+        "Mission icon appears horizontally adjacent to folder icon",
+        "Spacing between the two icons provides clear visual distinction",
+        "Both icons maintain their existing functionality",
+        "No other application features or behaviors are modified"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any other features or functionality of the application",
-    "Animation duration must be between 200-250ms",
-    "Stack offset between cards must be 3-5px diagonal",
-    "Stack must be positioned in the bottom-right corner of the Gallery",
-    "Do not interfere with normal Gallery usage"
+    "Do not modify any application functionality beyond icon positioning",
+    "Preserve all existing features and behaviors",
+    "Maintain existing hover effects and interactions for both buttons"
   ],
   "nonGoals": [
-    "Backend state changes for tracking organized status",
-    "Reorganizing existing Gallery layout or components",
-    "Modifying file upload logic or backend upload handling",
-    "Changing folder or mission selection flows",
-    "Adding new file management actions beyond organizing"
+    "Changing icon design or styling",
+    "Modifying button functionality or click handlers",
+    "Adjusting other UI elements or layout",
+    "Adding new features"
   ],
   "imageRequirements": {
     "required": [],

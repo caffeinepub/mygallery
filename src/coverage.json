@@ -1,115 +1,36 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T17:10:55.561Z",
+  "generatedAt": "2026-02-18T17:22:26.986Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
-    "implemented": 7,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
+        "summary": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "frontend/src/components/GallerySection.tsx",
-          "frontend/src/contexts/UploadContext.tsx"
+          "frontend/src/components/FoldersButton.tsx",
+          "frontend/src/components/MissionsButton.tsx",
+          "frontend/src/pages/HomePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "frontend/src/components/GallerySection.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/GallerySection.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/GallerySection.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/components/GallerySection.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useFileOrganizationStatus.ts",
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/components/GallerySection.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/components/GallerySection.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/components/GallerySection.tsx"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx",
-          "frontend/src/index.css"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/LiveStackInbox.tsx"
+          "frontend/src/components/MissionsButton.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/GallerySection.tsx",
-    "frontend/src/components/LiveStackInbox.tsx",
-    "frontend/src/hooks/useFileOrganizationStatus.ts",
+    "frontend/src/components/MissionsButton.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

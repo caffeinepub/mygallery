@@ -1,83 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Gallery application with file organization system",
-  "architectural_notes": [
-    "Gallery displays uploaded files with 'Unorganized' indicator until moved to Folder or Mission",
-    "Live Stack Inbox positioned at bottom-right with 3-5px diagonal offset between cards",
-    "Slide animation (200-250ms) moves files from Gallery to Stack after upload",
-    "Badge displays count of unorganized files in Stack",
-    "Files removed from Stack when organized into Folder or Mission"
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-when-a-file-upload-completes-display-the-file-normally-in-the-gallery-then-immediately-animate-it-with-a-200-250ms-slide-animation-toward-a-small-stack-positioned-in-the-bottom-right-corner-of-the-gallery-view",
-      "title": "When a file upload completes, display the file normally in the Gallery, then immediately animate it with a 200-250ms slide animation toward a small stack positioned in the bottom-right corner of the Gallery view",
+      "id": "feature-position-the-mission-icon-missionsbutton-component-next-to-the-folder-icon-foldersbutton-component-with-appropriate-spacing-between-them-for-visual-separation-do-not-change-any-other-functionality-or-features-of-the-application",
+      "title": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-display-the-stack-in-the-bottom-right-corner-of-the-gallery-with-a-subtle-3-5px-diagonal-offset-between-stacked-file-cards-to-create-a-layered-visual-effect",
-      "title": "Display the stack in the bottom-right corner of the Gallery with a subtle 3-5px diagonal offset between stacked file cards to create a layered visual effect",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-show-a-badge-on-the-stack-displaying-the-count-of-unorganized-files-currently-in-the-inbox",
-      "title": "Show a badge on the stack displaying the count of unorganized files currently in the inbox",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-display-an-unorganized-indicator-on-files-in-the-gallery-that-have-not-yet-been-moved-to-a-folder-or-mission",
-      "title": "Display an 'Unorganized' indicator on files in the Gallery that have not yet been moved to a Folder or Mission",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-when-a-file-is-moved-to-a-folder-or-mission-remove-it-from-the-live-stack-inbox-and-remove-its-unorganized-indicator-in-the-gallery",
-      "title": "When a file is moved to a Folder or Mission, remove it from the Live Stack Inbox and remove its 'Unorganized' indicator in the Gallery",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-live-stack-inbox-does-not-interfere-with-normal-gallery-usage-interactions-or-navigation",
-      "title": "Ensure the Live Stack Inbox does not interfere with normal Gallery usage, interactions, or navigation",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-professional-non-playful-visual-style-to-the-live-stack-inbox-stack-animations-and-unorganized-indicators",
-      "title": "Apply a professional, non-playful visual style to the Live Stack Inbox, stack animations, and unorganized indicators",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Live Stack Inbox system for newly uploaded files in gallery with slide animation to bottom-right stack, badge count, and unorganized indicator",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "projectName": "Add Live Stack Inbox for newly uploaded files",
+  "new_feature_requests": [],
+  "projectName": "Live Stack Inbox",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
