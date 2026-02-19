@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-position-the-mission-icon-missionsbutton-component-next-to-the-folder-icon-foldersbutton-component-with-appropriate-spacing-between-them-for-visual-separation-do-not-change-any-other-functionality-or-features-of-the-application",
-      "featureTitle": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
+      "featureId": "feature-after-file-upload-completes-in-the-gallery-display-uploaded-files-normally-in-the-gallery-section-for-a-few-seconds-2-3-seconds-then-animate-them-with-a-smooth-slide-transition-to-a-floating-stack-positioned-on-the-right-side-of-the-screen-above-the-mission-icon",
+      "featureTitle": "After file upload completes in the gallery, display uploaded files normally in the Gallery section for a few seconds (2-3 seconds), then animate them with a smooth slide transition to a floating stack positioned on the right side of the screen above the mission icon",
       "files": [
-        "frontend/src/components/MissionsButton.tsx"
+        "frontend/src/components/FloatingFileStack.tsx",
+        "frontend/src/components/GallerySection.tsx",
+        "frontend/src/contexts/UploadContext.tsx",
+        "frontend/src/pages/HomePage.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,6 +21,112 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-hide-the-collection-area-completely-so-files-no-longer-appear-there-only-in-the-floating-stack",
+      "featureTitle": "Hide the collection area completely so files no longer appear there, only in the floating stack",
+      "files": [
+        "frontend/src/components/GallerySection.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-design-the-floating-stack-to-show-a-slight-diagonal-offset-between-cards-3-5px-creating-a-stacked-appearance-and-include-a-badge-displaying-the-total-number-of-files",
+      "featureTitle": "Design the floating stack to show a slight diagonal offset between cards (3-5px) creating a stacked appearance, and include a badge displaying the total number of files",
+      "files": [
+        "frontend/src/components/FloatingFileStack.tsx",
+        "frontend/src/hooks/useStackedFiles.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-user-taps-the-floating-stack-open-a-new-full-screen-page-showing-all-uploaded-files-as-thumbnails-in-a-scrollable-gallery-layout-identical-to-how-they-would-appear-in-the-gallery-view",
+      "featureTitle": "When user taps the floating stack, open a new full-screen page showing all uploaded files as thumbnails in a scrollable gallery layout identical to how they would appear in the gallery view",
+      "files": [
+        "frontend/src/components/FloatingFileStack.tsx",
+        "frontend/src/components/StackFilesFullScreenView.tsx",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-in-the-new-stack-page-enable-single-and-bulk-file-selection-with-actions-to-send-files-to-folders-or-missions-share-download-and-delete-preserving-existing-action-behavior",
+      "featureTitle": "In the new stack page, enable single and bulk file selection with actions to send files to folders or missions, share, download, and delete, preserving existing action behavior",
+      "files": [
+        "frontend/src/components/StackFilesFullScreenView.tsx",
+        "frontend/src/hooks/useStackedFiles.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-files-are-moved-to-a-folder-or-mission-or-deleted-from-the-stack-page-remove-them-from-the-floating-stack-immediately-and-update-the-file-count-badge-accordingly",
+      "featureTitle": "When files are moved to a folder or mission, or deleted from the stack page, remove them from the floating stack immediately and update the file count badge accordingly",
+      "files": [
+        "frontend/src/components/FloatingFileStack.tsx",
+        "frontend/src/components/StackFilesFullScreenView.tsx",
+        "frontend/src/hooks/useStackedFiles.ts"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "authorization@4.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

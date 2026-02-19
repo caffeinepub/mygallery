@@ -1,39 +1,134 @@
 {
   "kind": "build_request",
-  "title": "Position mission icon next to folder icon with proper spacing",
-  "projectName": "Live Stack Inbox",
+  "title": "Gallery upload with animated floating stack and dedicated file management page",
+  "projectName": "Gallery Stack",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
+      "text": "After file upload completes in the gallery, display uploaded files normally in the Gallery section for a few seconds (2-3 seconds), then animate them with a smooth slide transition to a floating stack positioned on the right side of the screen above the mission icon",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-last"
         ],
         "quotes": [
-          "Τοποθέτησε το εικονίδιο της λειτουργίας mission δίπλα από το εικονίδιο της λειτουργίας folder με σωστό κενό ανάμεσα τους για να ξεχωρίζουν . Μην αλλάξεις τίποτα άλλο στην εφαρμογή και στις λειτουργίες της ."
+          "Όταν ο χρήστης ανεβάζει αρχεία στην gallery και ολοκληρωθεί το upload:τα αρχεία να εμφανίζονται κανονικά στην Galleryμετα την ολοκλήρωση του upload  για λίγα δευτερόλεπτα  και αμέσως μετά να κάνουν ομαλό slide animation προς μια μικρή floating στοίβα στο δεξί μέρος της οθωνης ΠΑΝΩ από το εικονίδιο της mission λειτουργίας"
         ]
       },
       "acceptanceCriteria": [
-        "Mission icon appears horizontally adjacent to folder icon",
-        "Spacing between the two icons provides clear visual distinction",
-        "Both icons maintain their existing functionality",
-        "No other application features or behaviors are modified"
+        "Uploaded files appear in Gallery for 2-3 seconds after upload completion",
+        "Smooth slide animation transitions files from Gallery to floating stack",
+        "Stack is positioned on right side above mission icon"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Hide the collection area completely so files no longer appear there, only in the floating stack",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "Να μην εμφανίζεται πλέον η περιοχή collection",
+          "Τα αρχεία δεν θα εμφανίζονται πλέον στην περιοχή collection αλλά μόνο στην στοιβα"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Collection area is not rendered",
+        "Files only visible in floating stack after animation"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Design the floating stack to show a slight diagonal offset between cards (3-5px) creating a stacked appearance, and include a badge displaying the total number of files",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "Η στοίβα: να δείχνει ελαφρύ διαγώνιο offset καρτών (3–5px) και να περιλαμβάνει badge με αριθμό συνολικών αρχείων"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Cards in stack show 3-5px diagonal offset",
+        "Badge displays accurate total file count",
+        "Stack appears visually as a compact, stacked set of cards"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "When user taps the floating stack, open a new full-screen page showing all uploaded files as thumbnails in a scrollable gallery layout identical to how they would appear in the gallery view",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "Όταν ο χρήστης πατάει τη στοίβα:να ανοίγει νέα σελίδα με όλα τα αρχεία που έχει ανεβάσει ο χρήστης και να εμφανίζονται όπως θα εμφανιζοντουσαν στην gallery , δηλαδή σαν thumbnails σε scrollable σελίδα"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Tapping stack opens new full-screen page",
+        "Page displays all user-uploaded files as thumbnails",
+        "Layout matches gallery thumbnail appearance",
+        "Page is scrollable to accommodate all files"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "In the new stack page, enable single and bulk file selection with actions to send files to folders or missions, share, download, and delete, preserving existing action behavior",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "Ο χρήστης να μπορεί να επιλέξει αρχείο ή μαζικά αρχεία για αποστολή σε folder ή mission , για share , download και διαγραφή οπως ισχύει"
+        ]
+      },
+      "acceptanceCriteria": [
+        "User can select individual files",
+        "User can select multiple files in bulk",
+        "Send to folder action available and functional",
+        "Send to mission action available and functional",
+        "Share action works as in existing gallery",
+        "Download action works as in existing gallery",
+        "Delete action works as in existing gallery"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "When files are moved to a folder or mission, or deleted from the stack page, remove them from the floating stack immediately and update the file count badge accordingly",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "Όταν ο χρήστης επιλεξει αρχείο ή αρχεία από την scrollable νέα σελίδα  να μεταφερθεί σε Folder ή Mission ή το διαγραψει:να αφαιρείται από τη στοίβα"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Files removed from stack when moved to folder",
+        "Files removed from stack when moved to mission",
+        "Files removed from stack when deleted",
+        "Badge count updates in real-time after removal"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any application functionality beyond icon positioning",
-    "Preserve all existing features and behaviors",
-    "Maintain existing hover effects and interactions for both buttons"
+    "Do not change any other application functionality or features",
+    "Preserve existing file action behavior (share, download, delete, move)",
+    "Maintain gallery thumbnail rendering patterns for the stack page"
   ],
   "nonGoals": [
-    "Changing icon design or styling",
-    "Modifying button functionality or click handlers",
-    "Adjusting other UI elements or layout",
-    "Adding new features"
+    "Modifying backend file storage or retrieval logic",
+    "Changing mission or folder functionality beyond file association",
+    "Altering authentication or identity flows",
+    "Redesigning the gallery upload interface"
   ],
   "imageRequirements": {
     "required": [],

@@ -1,36 +1,114 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T17:22:26.986Z",
+  "generatedAt": "2026-02-19T18:18:21.481Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 6,
+    "implemented": 6,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
+        "summary": "After file upload completes in the gallery, display uploaded files normally in the Gallery section for a few seconds (2-3 seconds), then animate them with a smooth slide transition to a floating stack positioned on the right side of the screen above the mission icon",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/FoldersButton.tsx",
-          "frontend/src/components/MissionsButton.tsx",
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FloatingFileStack.tsx",
           "frontend/src/pages/HomePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/MissionsButton.tsx"
+          "frontend/src/contexts/UploadContext.tsx",
+          "frontend/src/components/GallerySection.tsx",
+          "frontend/src/components/FloatingFileStack.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Hide the collection area completely so files no longer appear there, only in the floating stack",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/GallerySection.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/GallerySection.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Design the floating stack to show a slight diagonal offset between cards (3-5px) creating a stacked appearance, and include a badge displaying the total number of files",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/FloatingFileStack.tsx",
+          "frontend/src/hooks/useStackedFiles.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/FloatingFileStack.tsx",
+          "frontend/src/hooks/useStackedFiles.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "When user taps the floating stack, open a new full-screen page showing all uploaded files as thumbnails in a scrollable gallery layout identical to how they would appear in the gallery view",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/FloatingFileStack.tsx",
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/FloatingFileStack.tsx",
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "In the new stack page, enable single and bulk file selection with actions to send files to folders or missions, share, download, and delete, preserving existing action behavior",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/hooks/useStackedFiles.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/hooks/useStackedFiles.ts"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "When files are moved to a folder or mission, or deleted from the stack page, remove them from the floating stack immediately and update the file count badge accordingly",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useStackedFiles.ts",
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/components/FloatingFileStack.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useStackedFiles.ts",
+          "frontend/src/components/StackFilesFullScreenView.tsx",
+          "frontend/src/components/FloatingFileStack.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/MissionsButton.tsx",
+    "frontend/src/components/FileUploadSection.tsx",
+    "frontend/src/components/FloatingFileStack.tsx",
+    "frontend/src/components/GallerySection.tsx",
+    "frontend/src/components/StackFilesFullScreenView.tsx",
+    "frontend/src/contexts/UploadContext.tsx",
+    "frontend/src/hooks/useStackedFiles.ts",
+    "frontend/src/pages/HomePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

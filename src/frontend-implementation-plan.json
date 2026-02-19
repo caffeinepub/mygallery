@@ -1,32 +1,151 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Position mission icon next to folder icon with proper spacing",
+  "title": "Gallery upload with animated floating stack and dedicated file management page",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation",
+      "summary": "After file upload completes in the gallery, display uploaded files normally in the Gallery section for a few seconds (2-3 seconds), then animate them with a smooth slide transition to a floating stack positioned on the right side of the screen above the mission icon",
       "acceptanceCriteria": [
-        "Mission icon appears horizontally adjacent to folder icon",
-        "Spacing between the two icons provides clear visual distinction",
-        "Both icons maintain their existing functionality",
-        "No other application features or behaviors are modified"
+        "Uploaded files appear in Gallery for 2-3 seconds after upload completion",
+        "Smooth slide animation transitions files from Gallery to floating stack",
+        "Stack is positioned on right side above mission icon"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/FoldersButton.tsx",
+          "path": "frontend/src/contexts/UploadContext.tsx",
           "operation": "modify",
-          "description": "Update the FoldersButton component positioning to support horizontal layout with the MissionsButton. Adjust fixed positioning styles to accommodate side-by-side placement while maintaining existing hover effects, pulse animation support, and accessibility attributes."
+          "description": "Add state tracking for newly completed uploads with timestamp metadata to enable the 2-3 second display period before animation to stack. Include a mechanism to mark files as ready for stack animation after the delay period expires."
         },
         {
-          "path": "frontend/src/components/MissionsButton.tsx",
+          "path": "frontend/src/components/GallerySection.tsx",
           "operation": "modify",
-          "description": "Update the MissionsButton component positioning to align horizontally next to FoldersButton with appropriate spacing (e.g., using margin or gap). Ensure the button maintains its disabled state handling, pulse animation, z-index control, and existing functionality while adapting to the new horizontal layout."
+          "description": "Add logic to render newly completed uploads normally for 2-3 seconds, then trigger slide animation to floating stack. Use framer-motion for smooth transition effects. Coordinate with UploadContext to track animation completion and remove files from gallery view."
+        },
+        {
+          "path": "frontend/src/components/FloatingFileStack.tsx",
+          "operation": "create",
+          "description": "Create floating stack component positioned on right side above missions button with z-index layering. Accept animated files from gallery and display them in stacked layout. Use framer-motion AnimatePresence for receiving animated files from gallery with slide transition."
         },
         {
           "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Update the HomePage component to render FoldersButton and MissionsButton in a horizontal container with appropriate spacing between them. Ensure the container maintains proper positioning on the page and both buttons remain accessible and functional. Verify that no other UI elements or features are affected by this layout change."
+          "description": "Wire FloatingFileStack component into the page layout, positioned above the MissionsButton. Ensure proper z-index stacking order so stack appears above mission icon but below modals/dialogs."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Hide the collection area completely so files no longer appear there, only in the floating stack",
+      "acceptanceCriteria": [
+        "Collection area is not rendered",
+        "Files only visible in floating stack after animation"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/GallerySection.tsx",
+          "operation": "modify",
+          "description": "Remove or conditionally hide the collection area rendering logic. Ensure completed uploads that have animated to stack are no longer displayed in the gallery. Maintain display of files that have not yet been uploaded to stack (during 2-3 second delay period)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Design the floating stack to show a slight diagonal offset between cards (3-5px) creating a stacked appearance, and include a badge displaying the total number of files",
+      "acceptanceCriteria": [
+        "Cards in stack show 3-5px diagonal offset",
+        "Badge displays accurate total file count",
+        "Stack appears visually as a compact, stacked set of cards"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/FloatingFileStack.tsx",
+          "operation": "modify",
+          "description": "Implement stacked card layout with 3-5px diagonal offset (transform translate) for each successive card to create depth effect. Add a badge component displaying total file count, positioned at top-right of stack. Use Tailwind for styling and ensure stack is visually compact and touch-friendly."
+        },
+        {
+          "path": "frontend/src/hooks/useStackedFiles.ts",
+          "operation": "create",
+          "description": "Create hook to manage stack state: track files that have animated into stack, maintain file count, provide methods to add/remove files from stack. Subscribe to UploadContext for newly completed uploads and coordinate with FloatingFileStack component."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "When user taps the floating stack, open a new full-screen page showing all uploaded files as thumbnails in a scrollable gallery layout identical to how they would appear in the gallery view",
+      "acceptanceCriteria": [
+        "Tapping stack opens new full-screen page",
+        "Page displays all user-uploaded files as thumbnails",
+        "Layout matches gallery thumbnail appearance",
+        "Page is scrollable to accommodate all files"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/FloatingFileStack.tsx",
+          "operation": "modify",
+          "description": "Add onClick handler to floating stack that opens the StackFilesFullScreenView. Include visual tap feedback (scale/opacity animation) for better UX."
+        },
+        {
+          "path": "frontend/src/components/StackFilesFullScreenView.tsx",
+          "operation": "create",
+          "description": "Create full-screen view displaying all files from stack as thumbnails in scrollable gallery grid. Reuse GallerySection thumbnail rendering patterns for consistency. Include header with close button and file count display. Use same grid layout and thumbnail sizing as GallerySection."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Add state management for opening/closing StackFilesFullScreenView. Wire view into page with conditional rendering based on stack tap interaction. Ensure proper overlay/modal behavior with backdrop."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "In the new stack page, enable single and bulk file selection with actions to send files to folders or missions, share, download, and delete, preserving existing action behavior",
+      "acceptanceCriteria": [
+        "User can select individual files",
+        "User can select multiple files in bulk",
+        "Send to folder action available and functional",
+        "Send to mission action available and functional",
+        "Share action works as in existing gallery",
+        "Download action works as in existing gallery",
+        "Delete action works as in existing gallery"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/StackFilesFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Add selection state management (single and multi-select) with checkboxes on thumbnails. Add action bar at bottom showing selected count and action buttons (send to folder, send to mission, share, download, delete). Wire actions to existing mutation hooks from useQueries and preserve all existing behavior including confirmation dialogs and error handling."
+        },
+        {
+          "path": "frontend/src/hooks/useStackedFiles.ts",
+          "operation": "modify",
+          "description": "Add selection tracking methods (toggleSelect, selectAll, clearSelection) and selected file IDs state. Provide helpers to retrieve selected FileMetadata objects for action operations."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "When files are moved to a folder or mission, or deleted from the stack page, remove them from the floating stack immediately and update the file count badge accordingly",
+      "acceptanceCriteria": [
+        "Files removed from stack when moved to folder",
+        "Files removed from stack when moved to mission",
+        "Files removed from stack when deleted",
+        "Badge count updates in real-time after removal"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useStackedFiles.ts",
+          "operation": "modify",
+          "description": "Add methods to remove files from stack by file ID or array of IDs. Listen to mutation success callbacks from move/delete operations and automatically remove affected files from stack state. Ensure badge count recalculates reactively when files are removed."
+        },
+        {
+          "path": "frontend/src/components/StackFilesFullScreenView.tsx",
+          "operation": "modify",
+          "description": "After successful move or delete mutations, call useStackedFiles removal methods to update stack state. Clear selection state after successful actions. Show toast/feedback confirming action completion and stack updates."
+        },
+        {
+          "path": "frontend/src/components/FloatingFileStack.tsx",
+          "operation": "modify",
+          "description": "Subscribe to stack state changes from useStackedFiles and reactively update badge count display. Animate badge count changes for visual feedback. If stack becomes empty, optionally hide the floating stack or show empty state."
         }
       ]
     }

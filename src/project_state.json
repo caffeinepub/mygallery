@@ -1,22 +1,99 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
+  "summary": "File management application with gallery upload, floating file stack, and mission/folder organization",
+  "architectural_notes": [
+    "Gallery uploads display briefly then animate to floating stack above mission icon",
+    "Collection area hidden; files displayed only in floating stack",
+    "Stack shows 3-5px diagonal card offset with total file count badge",
+    "Stack click opens dedicated scrollable page with thumbnail grid view",
+    "File management operations (move, share, download, delete) available from stack page"
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-position-the-mission-icon-missionsbutton-component-next-to-the-folder-icon-foldersbutton-component-with-appropriate-spacing-between-them-for-visual-separation-do-not-change-any-other-functionality-or-features-of-the-application",
-      "title": "Position the mission icon (MissionsButton component) next to the folder icon (FoldersButton component) with appropriate spacing between them for visual separation. Do not change any other functionality or features of the application.",
+      "id": "feature-after-file-upload-completes-in-the-gallery-display-uploaded-files-normally-in-the-gallery-section-for-a-few-seconds-2-3-seconds-then-animate-them-with-a-smooth-slide-transition-to-a-floating-stack-positioned-on-the-right-side-of-the-screen-above-the-mission-icon",
+      "title": "After file upload completes in the gallery, display uploaded files normally in the Gallery section for a few seconds (2-3 seconds), then animate them with a smooth slide transition to a floating stack positioned on the right side of the screen above the mission icon",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-hide-the-collection-area-completely-so-files-no-longer-appear-there-only-in-the-floating-stack",
+      "title": "Hide the collection area completely so files no longer appear there, only in the floating stack",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-design-the-floating-stack-to-show-a-slight-diagonal-offset-between-cards-3-5px-creating-a-stacked-appearance-and-include-a-badge-displaying-the-total-number-of-files",
+      "title": "Design the floating stack to show a slight diagonal offset between cards (3-5px) creating a stacked appearance, and include a badge displaying the total number of files",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-user-taps-the-floating-stack-open-a-new-full-screen-page-showing-all-uploaded-files-as-thumbnails-in-a-scrollable-gallery-layout-identical-to-how-they-would-appear-in-the-gallery-view",
+      "title": "When user taps the floating stack, open a new full-screen page showing all uploaded files as thumbnails in a scrollable gallery layout identical to how they would appear in the gallery view",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-new-stack-page-enable-single-and-bulk-file-selection-with-actions-to-send-files-to-folders-or-missions-share-download-and-delete-preserving-existing-action-behavior",
+      "title": "In the new stack page, enable single and bulk file selection with actions to send files to folders or missions, share, download, and delete, preserving existing action behavior",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-files-are-moved-to-a-folder-or-mission-or-deleted-from-the-stack-page-remove-them-from-the-floating-stack-immediately-and-update-the-file-count-badge-accordingly",
+      "title": "When files are moved to a folder or mission, or deleted from the stack page, remove them from the floating stack immediately and update the file count badge accordingly",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Live Stack Inbox",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Gallery upload with animated transition to floating stack above mission icon",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Floating file stack with diagonal offset cards and file count badge",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Stack opens new page showing all uploaded files as thumbnails in scrollable view",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "File selection and bulk operations (send to folder/mission, share, download, delete) from stack page",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Files removed from stack when moved to folder/mission or deleted",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Gallery Stack",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

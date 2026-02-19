@@ -10,10 +10,8 @@ import NoteViewerDialog from './NoteViewerDialog';
 import SendToFolderDialog from './SendToFolderDialog';
 import MoveToMissionDialog from './MoveToMissionDialog';
 import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
-import LiveStackInbox from './LiveStackInbox';
 import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
 import { downloadFile, openExternally, shareFile, downloadNoteAsText, shareNote } from '@/utils/externalOpen';
-import { useFileOrganizationStatus } from '@/hooks/useFileOrganizationStatus';
 import { toast } from 'sonner';
 import type { FileMetadata, Folder, Note } from '@/backend';
 
@@ -21,6 +19,7 @@ interface GallerySectionProps {
   selectedFolder: Folder | null;
   onBackToMain: () => void;
   onBulkSelectionChange?: (isActive: boolean) => void;
+  hideCollection?: boolean;
 }
 
 type GalleryItem = 
@@ -32,15 +31,13 @@ const FileCard = memo(({
   onClick, 
   isSelected, 
   isSelectionMode,
-  onLongPress,
-  isUnorganized
+  onLongPress 
 }: { 
   file: FileMetadata; 
   onClick: () => void;
   isSelected: boolean;
   isSelectionMode: boolean;
   onLongPress: () => void;
-  isUnorganized: boolean;
 }) => {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -186,11 +183,6 @@ const FileCard = memo(({
             <ExternalLink className="h-3 w-3" />
           </div>
         )}
-        {isUnorganized && !isSelected && (
-          <div className="absolute top-2 left-2 bg-orange-500/90 text-white text-[10px] font-medium px-1.5 py-0.5 rounded shadow-sm">
-            Unorganized
-          </div>
-        )}
       </div>
       <p className="mt-1.5 text-xs truncate w-[100px]" title={file.name}>
         {file.name}
@@ -201,8 +193,7 @@ const FileCard = memo(({
   return (
     prevProps.file.id === nextProps.file.id &&
     prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isSelectionMode === nextProps.isSelectionMode &&
-    prevProps.isUnorganized === nextProps.isUnorganized
+    prevProps.isSelectionMode === nextProps.isSelectionMode
   );
 });
 
@@ -341,7 +332,7 @@ const NoteCard = memo(({
 
 NoteCard.displayName = 'NoteCard';
 
-export default function GallerySection({ selectedFolder, onBackToMain, onBulkSelectionChange }: GallerySectionProps) {
+export default function GallerySection({ selectedFolder, onBackToMain, onBulkSelectionChange, hideCollection = false }: GallerySectionProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [noteViewerOpen, setNoteViewerOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -360,14 +351,12 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const folderNotesQuery = useGetNotesInFolder(selectedFolder?.id ?? null);
   const deleteFiles = useDeleteFiles();
   const deleteNotes = useDeleteNotes();
-  const { unorganizedFileIds } = useFileOrganizationStatus();
 
   const { data: files, isLoading: isLoadingFiles } = selectedFolder ? folderFilesQuery : mainFilesQuery;
   const { data: notes, isLoading: isLoadingNotes } = selectedFolder ? folderNotesQuery : mainNotesQuery;
 
   const isLoading = isLoadingFiles || isLoadingNotes;
 
-  // Combine files and notes into a single gallery items array
   const galleryItems = useMemo<GalleryItem[]>(() => {
     const fileItems: GalleryItem[] = (files || []).map(f => ({ type: 'file' as const, data: f }));
     const noteItems: GalleryItem[] = (notes || []).map(n => ({ type: 'note' as const, data: n }));
@@ -377,7 +366,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   const title = useMemo(() => selectedFolder ? selectedFolder.name : 'Collection', [selectedFolder]);
   const subtitle = useMemo(() => selectedFolder ? 'Files and notes in folder' : 'Your files and notes', [selectedFolder]);
 
-  // Check if all items are selected
   const allItemsSelected = useMemo(() => {
     if (galleryItems.length === 0) return false;
     return galleryItems.every(item => {
@@ -386,7 +374,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     });
   }, [galleryItems, selectedItems]);
 
-  // Notify parent when bulk selection state changes
   useEffect(() => {
     const isBulkActive = selectionMode && selectedItems.size > 0;
     onBulkSelectionChange?.(isBulkActive);
@@ -419,7 +406,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
 
       const file = item.data;
 
-      // Handle link items
       if (file.link) {
         const opened = await openExternally(file.link);
         if (!opened) {
@@ -429,10 +415,8 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
         return;
       }
 
-      // Handle file items
       if (!file.blob) return;
 
-      // Check if file should download directly (unsupported types)
       if (shouldDownloadDirectly(file)) {
         try {
           await downloadFile(file.blob.getDirectURL(), file.name);
@@ -440,7 +424,6 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
           console.error('Download failed:', error);
         }
       } else if (shouldOpenInViewer(file)) {
-        // Open in-app viewer for PDFs, images, videos, and Office docs
         const fileIndex = files?.findIndex(f => f.id === file.id) ?? 0;
         setSelectedIndex(fileIndex);
         setViewerOpen(true);
@@ -462,10 +445,8 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
 
   const handleToggleSelectAll = useCallback(() => {
     if (allItemsSelected) {
-      // Deselect all
       setSelectedItems(new Set());
     } else {
-      // Select all
       const allIds = galleryItems.map(item => 
         item.type === 'file' ? item.data.id : `note-${item.data.id}`
       );
@@ -520,9 +501,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
   }, [selectedItems, files, notes]);
 
   const handleShareSelected = useCallback(async () => {
-    if (isSharing) return;
     setIsSharing(true);
-
     try {
       for (const itemId of selectedItems) {
         if (itemId.startsWith('note-')) {
@@ -542,31 +521,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
     } finally {
       setIsSharing(false);
     }
-  }, [selectedItems, files, notes, isSharing]);
-
-  const handleSendToFolder = useCallback(() => {
-    setSendToFolderOpen(true);
-  }, []);
-
-  const handleMoveToMission = useCallback(() => {
-    setMoveToMissionOpen(true);
-  }, []);
-
-  const handleRetryOpenLink = useCallback(async () => {
-    if (currentLinkUrl) {
-      await openExternally(currentLinkUrl);
-    }
-  }, [currentLinkUrl]);
-
-  const handleCopyLink = useCallback(async () => {
-    if (currentLinkUrl) {
-      try {
-        await navigator.clipboard.writeText(currentLinkUrl);
-      } catch (error) {
-        console.error('Failed to copy link:', error);
-      }
-    }
-  }, [currentLinkUrl]);
+  }, [selectedItems, files, notes]);
 
   const selectedFileIds = useMemo(() => {
     return Array.from(selectedItems).filter(id => !id.startsWith('note-'));
@@ -578,64 +533,82 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
       .map(id => BigInt(id.replace('note-', '')));
   }, [selectedItems]);
 
+  const handleRetryOpenLink = useCallback(async () => {
+    if (currentLinkUrl) {
+      await openExternally(currentLinkUrl);
+    }
+  }, [currentLinkUrl]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (currentLinkUrl) {
+      await navigator.clipboard.writeText(currentLinkUrl);
+    }
+  }, [currentLinkUrl]);
+
+  if (hideCollection && !selectedFolder) {
+    return null;
+  }
+
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
-        <div className="max-w-4xl mx-auto py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <Skeleton className="h-8 w-32 mb-2" />
-              <Skeleton className="h-4 w-48" />
-            </div>
+      <Card className="mt-8">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-6 w-32" />
           </div>
           <div className="grid grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="w-[100px] h-[100px] rounded-lg" />
             ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 pb-24 relative">
-        <div className="max-w-4xl mx-auto py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2">
-                {selectedFolder && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onBackToMain}
-                    className="h-8 w-8"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                )}
-                <h2 className="text-2xl font-bold">{title}</h2>
+      <Card className="mt-8">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {selectedFolder && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onBackToMain}
+                  className="h-8 w-8"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <div>
+                <h2 className="text-lg font-semibold">{title}</h2>
+                <p className="text-xs text-muted-foreground">{subtitle}</p>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
             </div>
+            {!selectionMode && galleryItems.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleSelectAll}
+                className="gap-2"
+              >
+                {allItemsSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                {allItemsSelected ? 'Deselect' : 'Select All'}
+              </Button>
+            )}
           </div>
 
           {galleryItems.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {selectedFolder ? 'No items in this folder yet' : 'No items yet'}
-                </p>
-              </CardContent>
-            </Card>
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No files or notes yet</p>
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-4">
               {galleryItems.map((item, index) => {
                 if (item.type === 'file') {
                   const isSelected = selectedItems.has(item.data.id);
-                  const isUnorganized = !selectedFolder && unorganizedFileIds.has(item.data.id);
                   return (
                     <FileCard
                       key={item.data.id}
@@ -644,111 +617,94 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
                       isSelected={isSelected}
                       isSelectionMode={selectionMode}
                       onLongPress={() => handleLongPress(item.data.id)}
-                      isUnorganized={isUnorganized}
                     />
                   );
                 } else {
-                  const noteId = `note-${item.data.id}`;
-                  const isSelected = selectedItems.has(noteId);
+                  const itemId = `note-${item.data.id}`;
+                  const isSelected = selectedItems.has(itemId);
                   return (
                     <NoteCard
-                      key={noteId}
+                      key={itemId}
                       note={item.data}
                       onClick={() => handleItemClick(index)}
                       isSelected={isSelected}
                       isSelectionMode={selectionMode}
-                      onLongPress={() => handleLongPress(noteId)}
+                      onLongPress={() => handleLongPress(itemId)}
                     />
                   );
                 }
               })}
             </div>
           )}
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Live Stack Inbox - only show in main gallery (not in folders) */}
-        {!selectedFolder && files && files.length > 0 && (
-          <LiveStackInbox files={files} />
-        )}
-      </div>
-
-      {/* Bulk action bar */}
       {selectionMode && selectedItems.size > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelSelection}
-              >
-                Cancel
-              </Button>
-              <span className="text-sm font-medium">
-                {selectedItems.size} selected
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggleSelectAll}
-                title={allItemsSelected ? "Deselect all" : "Select all"}
-              >
-                {allItemsSelected ? (
-                  <CheckSquare className="h-5 w-5" />
-                ) : (
-                  <Square className="h-5 w-5" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDownloadSelected}
-                title="Download"
-              >
-                <Download className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleShareSelected}
-                disabled={isSharing}
-                title="Share"
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSendToFolder}
-                title="Send to folder"
-              >
-                <FolderInput className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleMoveToMission}
-                title="Move to mission"
-              >
-                <Target className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDeleteSelected}
-                title="Delete"
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelSelection}
+            >
+              Cancel
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedItems.size} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSendToFolderOpen(true)}
+              disabled={selectedItems.size === 0}
+              title="Send to folder"
+            >
+              <FolderInput className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMoveToMissionOpen(true)}
+              disabled={selectedItems.size === 0}
+              title="Send to mission"
+            >
+              <Target className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShareSelected}
+              disabled={selectedItems.size === 0 || isSharing}
+              title="Share"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDownloadSelected}
+              disabled={selectedItems.size === 0}
+              title="Download"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDeleteSelected}
+              disabled={selectedItems.size === 0}
+              title="Delete"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Dialogs */}
-      {files && files.length > 0 && (
+      {viewerOpen && files && (
         <FullScreenViewer
           files={files}
           initialIndex={selectedIndex}
@@ -757,7 +713,7 @@ export default function GallerySection({ selectedFolder, onBackToMain, onBulkSel
         />
       )}
 
-      {selectedNote && (
+      {noteViewerOpen && selectedNote && (
         <NoteViewerDialog
           note={selectedNote}
           open={noteViewerOpen}

@@ -1,470 +1,281 @@
-import { useCallback, useState, useEffect } from 'react';
-import { Upload, Link as LinkIcon, Plus, FileText, Mic, MicOff } from 'lucide-react';
+import { useRef, useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Plus, Upload, Link as LinkIcon, StickyNote } from 'lucide-react';
 import { useUploadFile, useCreateLink } from '@/hooks/useQueries';
 import { useCreateNote } from '@/hooks/useNotesQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
 import { useUpload } from '@/contexts/UploadContext';
-import { persistedQueue } from '@/utils/persistedUploadQueue';
-import { fileBytesWorker } from '@/utils/fileBytesWorkerSingleton';
-import { createConcurrencyLimiter } from '@/utils/uploadConcurrency';
+import { ExternalBlob } from '@/backend';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { perfDiag } from '@/utils/performanceDiagnostics';
-import { useSpeechToText } from '@/hooks/useSpeechToText';
-import { ExternalBlob } from '@/backend';
-
-const uploadLimiter = createConcurrencyLimiter(3);
+import { fileBytesWorker } from '@/utils/fileBytesWorkerSingleton';
 
 export default function FileUploadSection() {
-  const uploadFileMutation = useUploadFile();
-  const createLinkMutation = useCreateLink();
-  const createNoteMutation = useCreateNote();
-  const { status } = useBackendActor();
-  const { startUpload, startLinkUpload, startNoteUpload, updateProgress, completeUpload } = useUpload();
-  const [showLinkForm, setShowLinkForm] = useState(false);
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
 
-  const { isListening, isSupported, startListening, stopListening } = useSpeechToText({
-    onTranscript: (transcript, isFinal) => {
-      if (isFinal && transcript) {
-        setNoteBody((prev) => {
-          if (!prev.trim()) {
-            return transcript;
-          }
-          return `${prev} ${transcript}`;
+  const uploadFile = useUploadFile();
+  const createLink = useCreateLink();
+  const createNote = useCreateNote();
+  const { startUpload, updateProgress, completeUpload, startLinkUpload, startNoteUpload } = useUpload();
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const batchId = startUpload(files);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const itemId = `${batchId}-${i}`;
+
+      try {
+        updateProgress(batchId, itemId, 10);
+
+        const bytes = await fileBytesWorker.readFileBytes(file, itemId);
+        updateProgress(batchId, itemId, 50);
+
+        // Create a new Uint8Array with a proper ArrayBuffer (not SharedArrayBuffer)
+        const buffer = new ArrayBuffer(bytes.length);
+        const standardBytes = new Uint8Array(buffer);
+        standardBytes.set(bytes);
+        
+        const blob = ExternalBlob.fromBytes(standardBytes).withUploadProgress((percentage) => {
+          const adjustedProgress = 50 + (percentage * 0.5);
+          updateProgress(batchId, itemId, adjustedProgress);
         });
+
+        const result = await uploadFile.mutateAsync({
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          size: BigInt(file.size),
+          blob,
+          missionId: null,
+        });
+
+        completeUpload(itemId, result.id);
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error(`Failed to upload ${file.name}`);
       }
-    },
-    onError: (error) => {
-      toast.error(error);
-    },
-  });
-
-  useEffect(() => {
-    if (!showNoteForm && isListening) {
-      stopListening();
     }
-  }, [showNoteForm, isListening, stopListening]);
 
-  const validateUrl = (url: string): boolean => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setShowMenu(false);
+  }, [startUpload, updateProgress, completeUpload, uploadFile]);
+
+  const handleLinkSubmit = useCallback(async () => {
+    if (!linkName.trim() || !linkUrl.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    const batchId = startLinkUpload(linkName);
+    const itemId = `${batchId}-0`;
+
     try {
-      const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
-
-  const handleFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-
-      if (status !== 'ready') {
-        toast.error('Please wait for the application to initialize');
-        return;
-      }
-
-      const fileArray = Array.from(files);
-      const batchId = startUpload(fileArray);
-
-      const operationId = `upload-files-${Date.now()}`;
-      perfDiag.startTiming(operationId, 'Upload files (UI)', { fileCount: fileArray.length });
-
-      // Process files in background with controlled parallelism
-      const uploadPromises = fileArray.map((file, index) => {
-        const itemId = `${batchId}-${index}`;
-
-        return uploadLimiter(async () => {
-          try {
-            // Read file bytes using singleton worker
-            const bytes = await fileBytesWorker.readFileBytes(file, itemId);
-
-            // Persist to IndexedDB (best-effort, non-blocking)
-            persistedQueue.enqueueBytesDirectly(
-              itemId,
-              file.name,
-              file.type || 'application/octet-stream',
-              file.size,
-              bytes,
-              0
-            ).catch(err => {
-              console.warn('Failed to persist upload:', err);
-            });
-
-            // Create a proper Uint8Array with ArrayBuffer (not ArrayBufferLike)
-            const buffer = new ArrayBuffer(bytes.byteLength);
-            const standardBytes = new Uint8Array(buffer);
-            standardBytes.set(bytes);
-
-            // Upload with progress tracking
-            const blobWithProgress = ExternalBlob.fromBytes(standardBytes).withUploadProgress((progress) => {
-              updateProgress(batchId, itemId, progress);
-              persistedQueue.updateProgress(itemId, progress).catch(() => {});
-            });
-
-            await uploadFileMutation.mutateAsync({
-              name: file.name,
-              mimeType: file.type || 'application/octet-stream',
-              size: BigInt(file.size),
-              blob: blobWithProgress,
-            });
-
-            // Mark as completed and remove from persisted queue on success
-            await persistedQueue.markCompleted(itemId);
-            await persistedQueue.dequeue(itemId);
-            completeUpload(itemId);
-
-            return { success: true, name: file.name };
-          } catch (error) {
-            console.error(`Upload error for ${file.name}:`, error);
-            completeUpload(itemId);
-            return { success: false, name: file.name, error };
-          }
-        });
+      updateProgress(batchId, itemId, 50);
+      await createLink.mutateAsync({
+        name: linkName,
+        url: linkUrl,
+        folderId: null,
+        missionId: null,
       });
+      updateProgress(batchId, itemId, 100);
+      completeUpload(itemId);
+      
+      setLinkName('');
+      setLinkUrl('');
+      setLinkDialogOpen(false);
+      toast.success('Link added');
+    } catch (error) {
+      console.error('Link creation error:', error);
+      toast.error('Failed to add link');
+    }
+  }, [linkName, linkUrl, startLinkUpload, updateProgress, completeUpload, createLink]);
 
-      // Don't await - let uploads continue in background
-      Promise.allSettled(uploadPromises).then((results) => {
-        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-        const failCount = results.filter(r => r.status === 'fulfilled' && !r.value.success).length;
+  const handleNoteSubmit = useCallback(async () => {
+    if (!noteTitle.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
 
-        perfDiag.endTiming(operationId, { success: failCount === 0 });
+    const batchId = startNoteUpload(noteTitle);
+    const itemId = `${batchId}-0`;
 
-        if (successCount > 0) {
-          toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}`);
-        }
-        if (failCount > 0) {
-          toast.error(`Failed to upload ${failCount} file${failCount > 1 ? 's' : ''}`);
-        }
+    try {
+      updateProgress(batchId, itemId, 50);
+      await createNote.mutateAsync({
+        title: noteTitle,
+        body: noteBody,
+        folderId: null,
+        missionId: null,
       });
-
-      event.target.value = '';
-    },
-    [uploadFileMutation, status, startUpload, updateProgress, completeUpload]
-  );
-
-  const handleLinkSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (status !== 'ready') {
-        toast.error('Please wait for the application to initialize');
-        return;
-      }
-
-      if (!linkUrl.trim()) {
-        toast.error('Please enter a URL');
-        return;
-      }
-
-      if (!validateUrl(linkUrl)) {
-        toast.error('Please enter a valid http:// or https:// URL');
-        return;
-      }
-
-      const displayName = linkName.trim() || new URL(linkUrl).hostname;
+      updateProgress(batchId, itemId, 100);
+      completeUpload(itemId);
       
-      const batchId = startLinkUpload(displayName);
-      const itemId = `${batchId}-0`;
-      let currentProgress = 0;
-
-      try {
-        const progressInterval = setInterval(() => {
-          currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(batchId, itemId, currentProgress);
-        }, 200);
-
-        await createLinkMutation.mutateAsync({
-          name: displayName,
-          url: linkUrl,
-        });
-
-        clearInterval(progressInterval);
-        
-        updateProgress(batchId, itemId, 100);
-        completeUpload(itemId);
-
-        toast.success('Link added successfully');
-        setLinkUrl('');
-        setLinkName('');
-        setShowLinkForm(false);
-      } catch (error) {
-        completeUpload(itemId);
-        console.error('Create link error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to add link. Please try again.';
-        toast.error(errorMessage);
-      }
-    },
-    [linkUrl, linkName, status, createLinkMutation, startLinkUpload, updateProgress, completeUpload]
-  );
-
-  const handleNoteSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (isListening) {
-        stopListening();
-      }
-
-      if (status !== 'ready') {
-        toast.error('Please wait for the application to initialize');
-        return;
-      }
-
-      if (!noteTitle.trim()) {
-        toast.error('Please enter a title');
-        return;
-      }
-
-      const displayTitle = noteTitle.trim();
-      
-      const batchId = startNoteUpload(displayTitle);
-      const itemId = `${batchId}-0`;
-      let currentProgress = 0;
-      let progressInterval: NodeJS.Timeout | null = null;
-
-      try {
-        progressInterval = setInterval(() => {
-          currentProgress = Math.min(currentProgress + 15, 90);
-          updateProgress(batchId, itemId, currentProgress);
-        }, 200);
-
-        await createNoteMutation.mutateAsync({
-          title: displayTitle,
-          body: noteBody.trim(),
-        });
-
-        clearInterval(progressInterval);
-        progressInterval = null;
-        
-        updateProgress(batchId, itemId, 100);
-        completeUpload(itemId);
-
-        toast.success('Note added successfully');
-        setNoteTitle('');
-        setNoteBody('');
-        setShowNoteForm(false);
-      } catch (error) {
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
-        completeUpload(itemId);
-        console.error('Create note error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to add note. Please try again.';
-        toast.error(errorMessage);
-      }
-    },
-    [noteTitle, noteBody, status, createNoteMutation, startNoteUpload, updateProgress, completeUpload, isListening, stopListening]
-  );
-
-  const handleCancelNote = () => {
-    if (isListening) {
-      stopListening();
+      setNoteTitle('');
+      setNoteBody('');
+      setNoteDialogOpen(false);
+      toast.success('Note created');
+    } catch (error) {
+      console.error('Note creation error:', error);
+      toast.error('Failed to create note');
     }
-    setShowNoteForm(false);
-    setNoteTitle('');
-    setNoteBody('');
-  };
-
-  const toggleDictation = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
-  };
-
-  const isDisabled = status !== 'ready';
-
-  const triggerFileInput = () => {
-    if (!isDisabled) {
-      document.getElementById('file-upload')?.click();
-    }
-  };
+  }, [noteTitle, noteBody, startNoteUpload, updateProgress, completeUpload, createNote]);
 
   return (
-    <div className="mb-8 flex justify-center">
-      {!showLinkForm && !showNoteForm ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild disabled={isDisabled}>
-            <button
-              aria-label="Upload"
-              disabled={isDisabled}
-              className={`p-0 bg-transparent border-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-400 rounded-full ${
-                isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-110'
-              }`}
-            >
-              <Plus className="w-10 h-10 text-sky-400" strokeWidth={2.5} />
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                multiple
-                onChange={handleFileChange}
-                disabled={isDisabled}
-              />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="center" 
-            side="bottom"
-            sideOffset={8}
-            className="floating-action-menu"
-          >
-            <DropdownMenuItem onClick={triggerFileInput} className="floating-menu-item" style={{ '--item-index': 0 } as React.CSSProperties}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload files
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowLinkForm(true)} className="floating-menu-item" style={{ '--item-index': 1 } as React.CSSProperties}>
-              <LinkIcon className="mr-2 h-4 w-4" />
-              Paste link
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowNoteForm(true)} className="floating-menu-item" style={{ '--item-index': 2 } as React.CSSProperties}>
-              <FileText className="mr-2 h-4 w-4" />
-              Add note
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : showLinkForm ? (
-        <form onSubmit={handleLinkSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5 w-full">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <LinkIcon className="h-4 w-4" />
-              Add Link
-            </h3>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowLinkForm(false);
-                setLinkUrl('');
-                setLinkName('');
-              }}
-              disabled={isDisabled || createLinkMutation.isPending}
-            >
-              Cancel
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="link-url">URL *</Label>
-            <Input
-              id="link-url"
-              type="text"
-              placeholder="https://example.com"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              disabled={isDisabled || createLinkMutation.isPending}
-              className="w-full"
+    <>
+      <div className="relative">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+          accept="*/*"
+        />
+
+        <Button
+          onClick={() => setShowMenu(!showMenu)}
+          size="lg"
+          className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg"
+        >
+          <Plus className={`h-6 w-6 transition-transform duration-200 ${showMenu ? 'rotate-45' : ''}`} />
+        </Button>
+
+        {showMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setShowMenu(false)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="link-name">Name (optional)</Label>
-            <Input
-              id="link-name"
-              type="text"
-              placeholder="My favorite website"
-              value={linkName}
-              onChange={(e) => setLinkName(e.target.value)}
-              disabled={isDisabled || createLinkMutation.isPending}
-              className="w-full"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={isDisabled || createLinkMutation.isPending}
-            className="w-full"
-          >
-            {createLinkMutation.isPending ? 'Adding...' : 'Add Link'}
-          </Button>
-        </form>
-      ) : (
-        <form onSubmit={handleNoteSubmit} className="space-y-4 p-6 border-2 border-dashed rounded-lg border-primary/30 bg-primary/5 w-full">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Add Note
-            </h3>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelNote}
-              disabled={isDisabled || createNoteMutation.isPending}
-            >
-              Cancel
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="note-title">Title *</Label>
-            <Input
-              id="note-title"
-              type="text"
-              placeholder="Note title"
-              value={noteTitle}
-              onChange={(e) => setNoteTitle(e.target.value)}
-              disabled={isDisabled || createNoteMutation.isPending}
-              className="w-full"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="note-body">Body</Label>
-              {isSupported && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleDictation}
-                  disabled={isDisabled || createNoteMutation.isPending}
-                  className="h-8 px-2"
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff className="h-4 w-4 mr-1" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-4 w-4 mr-1" />
-                      Dictate
-                    </>
-                  )}
-                </Button>
-              )}
+            <div className="fixed bottom-36 right-4 z-40 flex flex-col gap-3">
+              <Button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowMenu(false);
+                }}
+                size="lg"
+                variant="secondary"
+                className="h-12 gap-2 shadow-lg animate-float-menu-item"
+                style={{ animationDelay: '0ms' }}
+              >
+                <Upload className="h-5 w-5" />
+                Upload files
+              </Button>
+              <Button
+                onClick={() => {
+                  setLinkDialogOpen(true);
+                  setShowMenu(false);
+                }}
+                size="lg"
+                variant="secondary"
+                className="h-12 gap-2 shadow-lg animate-float-menu-item"
+                style={{ animationDelay: '150ms' }}
+              >
+                <LinkIcon className="h-5 w-5" />
+                Paste link
+              </Button>
+              <Button
+                onClick={() => {
+                  setNoteDialogOpen(true);
+                  setShowMenu(false);
+                }}
+                size="lg"
+                variant="secondary"
+                className="h-12 gap-2 shadow-lg animate-float-menu-item"
+                style={{ animationDelay: '300ms' }}
+              >
+                <StickyNote className="h-5 w-5" />
+                Add note
+              </Button>
             </div>
-            <Textarea
-              id="note-body"
-              placeholder="Note content"
-              value={noteBody}
-              onChange={(e) => setNoteBody(e.target.value)}
-              disabled={isDisabled || createNoteMutation.isPending}
-              className="w-full min-h-[120px]"
-            />
+          </>
+        )}
+      </div>
+
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Link</DialogTitle>
+            <DialogDescription>Save a link to your collection</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="link-name">Name</Label>
+              <Input
+                id="link-name"
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="My favorite website"
+              />
+            </div>
+            <div>
+              <Label htmlFor="link-url">URL</Label>
+              <Input
+                id="link-url"
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setLinkDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleLinkSubmit}>Add Link</Button>
+            </div>
           </div>
-          <Button
-            type="submit"
-            disabled={isDisabled || createNoteMutation.isPending}
-            className="w-full"
-          >
-            {createNoteMutation.isPending ? 'Adding...' : 'Save Note'}
-          </Button>
-        </form>
-      )}
-    </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+            <DialogDescription>Create a new note</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="note-title">Title</Label>
+              <Input
+                id="note-title"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+                placeholder="Note title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="note-body">Content</Label>
+              <Textarea
+                id="note-body"
+                value={noteBody}
+                onChange={(e) => setNoteBody(e.target.value)}
+                placeholder="Write your note here..."
+                rows={6}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setNoteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleNoteSubmit}>Create Note</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -10,6 +10,7 @@ export interface UploadProgress {
   progress: number;
   size: number;
   completed: boolean;
+  backendId?: string;
 }
 
 interface UploadContextType {
@@ -20,14 +21,17 @@ interface UploadContextType {
   startLinkUpload: (name: string) => string;
   startNoteUpload: (title: string) => string;
   updateProgress: (batchId: string, itemId: string, progress: number) => void;
-  completeUpload: (itemId: string) => void;
+  completeUpload: (itemId: string, backendId?: string) => void;
   restoreItem: (itemId: string, name: string, type: UploadType, size: number, progress: number) => void;
+  getCompletedUploads: () => UploadProgress[];
+  clearCompletedUploads: () => void;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
+  const [completedUploads, setCompletedUploads] = useState<UploadProgress[]>([]);
 
   const startUpload = useCallback((files: File[]): string => {
     const batchId = `batch-${Date.now()}`;
@@ -87,16 +91,25 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const completeUpload = useCallback((itemId: string) => {
+  const completeUpload = useCallback((itemId: string, backendId?: string) => {
     setUploads(prev =>
       prev.map(upload =>
         upload.itemId === itemId
-          ? { ...upload, progress: 100, completed: true }
+          ? { ...upload, progress: 100, completed: true, backendId }
           : upload
       )
     );
 
-    // Remove completed uploads after a delay
+    // Store completed upload for stack animation
+    setUploads(prev => {
+      const completed = prev.find(u => u.itemId === itemId);
+      if (completed && completed.type === 'file') {
+        setCompletedUploads(prevCompleted => [...prevCompleted, { ...completed, backendId }]);
+      }
+      return prev;
+    });
+
+    // Remove from active uploads after delay
     setTimeout(() => {
       setUploads(prev => prev.filter(upload => upload.itemId !== itemId));
     }, 2000);
@@ -110,7 +123,6 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     progress: number
   ) => {
     setUploads(prev => {
-      // Check if item already exists (prevent duplicates)
       const exists = prev.some(u => u.itemId === itemId);
       if (exists) {
         return prev;
@@ -128,6 +140,14 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         completed: false,
       }];
     });
+  }, []);
+
+  const getCompletedUploads = useCallback(() => {
+    return completedUploads;
+  }, [completedUploads]);
+
+  const clearCompletedUploads = useCallback(() => {
+    setCompletedUploads([]);
   }, []);
 
   const isUploading = uploads.some(u => !u.completed);
@@ -157,6 +177,8 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         updateProgress,
         completeUpload,
         restoreItem,
+        getCompletedUploads,
+        clearCompletedUploads,
       }}
     >
       {children}
