@@ -1,0 +1,110 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Adaptive Orbit Dock — Animated Semi-Circular Navigation",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Create OrbitDock component with semi-circular arc layout positioning three icons at the screen bottom",
+      "acceptanceCriteria": [
+        "Three icons (Upload, Folders, Mission) are rendered on a semi-circular arc at the screen bottom.",
+        "Active icon is always at the center apex of the arc with scale 1.0 and opacity 100%.",
+        "Inactive icons are at symmetric arc positions with scale 0.75–0.85 and opacity 50–60%.",
+        "The dock is positioned 24–32px above the bottom safe area using env(safe-area-inset-bottom).",
+        "Arc radius is visually 60–70px."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/OrbitDock.tsx",
+          "operation": "create",
+          "description": "Create the OrbitDock component implementing semi-circular navigation with three icons (Upload, Folders, Mission). Position icons on a 60–70px radius arc at the screen bottom with the active icon at center apex (scale 1.0, opacity 100%) and inactive icons flanking symmetrically (scale 0.75–0.85, opacity 50–60%). Position the dock container 24–32px above bottom safe area using calc(24px + env(safe-area-inset-bottom)). Use Lucide icons (Upload, FolderOpen, Target) matching the existing app design. Calculate icon positions using trigonometry to place them on the arc. Apply CSS transforms for positioning, scaling, and opacity. Accept activeIndex and onIndexChange props for external state control."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Implement swipe gesture handling with orbital arc animation for icon rotation",
+      "acceptanceCriteria": [
+        "Swiping left or right triggers orbital rotation of all three icons along the arc path.",
+        "Animation duration is 220–260ms with ease-in-out easing.",
+        "Icons follow a curved (not linear) trajectory during the transition.",
+        "Cycling is infinite: swiping past Mission wraps back to Upload and vice versa.",
+        "Swipe is detected via pointer/touch events (reusing useSwipeGesture hook if appropriate)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/OrbitDock.tsx",
+          "operation": "modify",
+          "description": "Integrate the existing useSwipeGesture hook (frontend/src/hooks/useSwipeGesture.ts) to detect left/right swipes on the dock container. On swipe detection, increment or decrement activeIndex with modulo wrapping for infinite cycling. Animate icon transitions along the orbital arc path using CSS transitions with 240ms duration and ease-in-out timing function. Ensure each icon moves along its calculated arc position (not a horizontal slide) by transitioning the transform properties that include both translate and rotation values. Implement state to track the current animation and prevent gesture conflicts during transitions."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add adaptive feedback with glow arc indicator, active label, and momentum effect",
+      "acceptanceCriteria": [
+        "A subtle glow arc or underline is rendered beneath the active center icon.",
+        "A small text label for the active section appears with a fade-in transition.",
+        "On swipe initiation, the glow arc and label fade out before/during the rotation.",
+        "The rotation animation has a subtle momentum feel (slight overshoot or ease-out deceleration)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/OrbitDock.tsx",
+          "operation": "modify",
+          "description": "Add a glow arc SVG element or CSS box-shadow element positioned beneath the center active icon with subtle blur and theme-aware color. Render a small text label ('Upload', 'Folders', or 'Mission') below the active icon with fade-in transition (opacity 0 to 1 over 200ms). Track swipe gesture initiation state; when a swipe begins, fade out both the glow arc and label (opacity to 0 over 150ms) before the rotation animation starts. Adjust the animation timing function to include a subtle momentum effect by using a custom cubic-bezier curve that provides slight overshoot or ease-out deceleration, enhancing the physical feel of orbital motion."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add professional micro-interactions to each dock icon",
+      "acceptanceCriteria": [
+        "Upload icon subtly pulses (scale or opacity flicker) every 8–10 seconds when idle.",
+        "Folders icon has a subtle depth/shadow-stack visual treatment.",
+        "Mission icon plays a brief subtle animation each time it transitions to the center active position.",
+        "All micro-interactions are understated and professional in character."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/OrbitDock.tsx",
+          "operation": "modify",
+          "description": "Implement three professional micro-interactions: (1) Upload icon: add a CSS animation that pulses scale from 1.0 to 1.05 or opacity from 100% to 85% every 9 seconds when the Upload icon is not active and no swipe is in progress. Use setInterval or CSS @keyframes with animation-delay. (2) Folders icon: apply a subtle layered depth effect using multiple box-shadows (e.g., 0 2px 4px, 0 4px 8px) or a pseudo-element with slight offset to create a stacked appearance. (3) Mission icon: trigger a brief scale or rotation animation (duration ~300ms) each time it transitions to the center active position by detecting activeIndex changes. Keep all effects minimal and non-playful to maintain a professional aesthetic."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Implement reduced-motion mode support with simplified horizontal slide fallback",
+      "acceptanceCriteria": [
+        "When prefers-reduced-motion is active, the dock switches to a flat horizontal slide with no scale changes.",
+        "The useReducedMotion hook is used to detect the preference.",
+        "Orbital arc animation, scale transitions, and micro-interactions are all disabled under reduced motion."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/OrbitDock.tsx",
+          "operation": "modify",
+          "description": "Import and use the existing useReducedMotion hook (frontend/src/hooks/useReducedMotion.ts) to detect the user's motion preference. When reduced motion is active, replace the orbital arc positioning logic with a simple horizontal layout (icons arranged in a straight line). Disable all scale transformations, keeping icons at uniform size. Use a flat horizontal slide transition (translate-x only) with no rotation or curved path. Disable all micro-interactions (Upload pulse, Folders depth, Mission animation) and momentum effects. Retain swipe gesture support but apply only the simplified horizontal transition. Keep the glow arc and label visible but remove their fade-in/fade-out animations."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Integrate OrbitDock into HomePage, replacing CircularBottomNavigation with new dock UI",
+      "acceptanceCriteria": [
+        "OrbitDock is rendered at the bottom of the HomePage in place of the previous bottom navigation.",
+        "Tapping each icon or swiping navigates to the correct section (Upload, Folders, Mission) using the same state/callback as before.",
+        "All Upload, Folders, and Mission section functionality remains completely unchanged.",
+        "No backend calls, context providers, query hooks, or data structures are modified."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Replace the CircularBottomNavigation component rendering with the new OrbitDock component. Wire the OrbitDock's activeIndex to the existing currentSection state (mapped to indices: 0 = Upload, 1 = Folders, 2 = Mission). Pass an onIndexChange callback that updates currentSection based on the selected index. Remove or comment out the CircularBottomNavigation import and JSX usage. Ensure the OrbitDock receives the same positioning context and container constraints. Verify that tapping icons or swiping triggers the correct section switches by reusing the existing setCurrentSection logic. Do not modify any Upload, Folders, or Mission section rendering, state, or functionality. Do not alter any backend queries, contexts, or data flows."
+        }
+      ]
+    }
+  ]
+}

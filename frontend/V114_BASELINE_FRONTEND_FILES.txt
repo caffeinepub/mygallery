@@ -1,0 +1,94 @@
+# Live Version 114 - Canonical Frontend File List
+# Generated: February 3, 2026
+# Purpose: Record all frontend files that define the v114 baseline for repeatable 1:1 Draft sync validation
+
+## Core Application Files
+frontend/src/App.tsx
+frontend/src/main.tsx
+frontend/src/config.ts
+frontend/index.html
+
+## Pages
+frontend/src/pages/HomePage.tsx
+
+## Components - Core
+frontend/src/components/Header.tsx
+frontend/src/components/Footer.tsx
+frontend/src/components/IntroScreen.tsx
+frontend/src/components/LoginButton.tsx
+frontend/src/components/AnimatedGalleryIcon.tsx
+frontend/src/components/DecorativeBottomLine.tsx
+frontend/src/components/ActorInitErrorState.tsx
+
+## Components - File Management
+frontend/src/components/FileUploadSection.tsx
+frontend/src/components/GallerySection.tsx
+frontend/src/components/FilePreviewDialog.tsx
+frontend/src/components/FullScreenViewer.tsx
+frontend/src/components/ExternalOpenFallbackDialog.tsx
+
+## Components - Folders
+frontend/src/components/FoldersButton.tsx
+frontend/src/components/FoldersDialog.tsx
+frontend/src/components/SendToFolderDialog.tsx
+
+## Components - Upload Progress
+frontend/src/components/UnifiedProgressBar.tsx
+
+## Components - Profile (if exists)
+frontend/src/components/ProfileSetupDialog.tsx
+
+## Contexts
+frontend/src/contexts/ActorContext.tsx
+frontend/src/contexts/UploadContext.tsx
+
+## Hooks
+frontend/src/hooks/useActor.ts
+frontend/src/hooks/useInternetIdentity.ts
+frontend/src/hooks/useQueries.ts
+
+## Utilities
+frontend/src/lib/utils.ts
+frontend/src/utils/filePreview.ts
+frontend/src/utils/externalOpen.ts
+frontend/src/utils/fileOpenRules.ts
+frontend/src/utils/actorInitializationMessaging.ts
+frontend/src/utils/urlParams.ts
+
+## Styling
+frontend/src/index.css
+frontend/tailwind.config.js
+frontend/postcss.config.js
+
+## PWA & Service Worker
+frontend/public/manifest.json
+frontend/public/sw.js
+
+## Configuration
+frontend/components.json
+frontend/src/ui-summary.json
+frontend/tsconfig.json
+frontend/vite.config.js
+frontend/package.json
+
+## UI Components (Read-Only)
+frontend/src/components/ui/* (all shadcn/ui components - not modified)
+
+## Assets
+frontend/public/assets/generated/light-blue-folder-icon-transparent.dim_64x64.png
+frontend/public/assets/generated/intro-camera-icon-transparent.dim_256x256.png
+frontend/public/assets/generated/mugalley-icon-48.dim_48x48.png
+frontend/public/assets/generated/mugalley-icon-96.dim_96x96.png
+frontend/public/assets/generated/mugalley-icon-192.dim_192x192.png
+frontend/public/assets/generated/mugalley-icon-512.dim_512x512.png
+(and other generated assets)
+
+## Backend Interface (Generated)
+frontend/src/backend.d.ts
+
+## Total Files
+Approximately 40+ frontend source files (excluding node_modules, dist, and read-only ui components)
+
+## Verification Hash
+This list represents the complete frontend file structure of Live version 114.
+Any deviation from this list indicates potential drift from the v114 baseline.
