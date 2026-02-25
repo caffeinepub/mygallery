@@ -6,6 +6,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 interface OrbitDockProps {
   activeIndex: number;
   onIndexChange: (index: number) => void;
+  onItemActivate: (index: number) => void;
   disabled?: boolean;
   behindOverlay?: boolean;
 }
@@ -18,26 +19,36 @@ const ITEMS = [
 
 const ITEM_COUNT = ITEMS.length;
 
-// Semi-circular arc: center icon at top of arc (270° = bottom of circle = top of arc visually)
-// We place icons on the upper half of a circle so the arc curves upward
-// Center: angle = 270° (top), Left: 270° - 65° = 205°, Right: 270° + 65° = 335°
-const ARC_RADIUS = 65; // px
-const ARC_ANGLES_DEG = [-65, 0, 65]; // relative to center (0 = top of arc)
+// Semi-circular arc geometry
+// Radius: 130px — gives clear separation without overlap at max icon size (50px active)
+// Angular separation: 120° between each icon (left=-120°, center=0°, right=+120°)
+const ARC_RADIUS = 130; // px — increased from 100px to prevent overlap with larger icons
+const ARC_ANGLES_DEG = [-120, 0, 120]; // left, center, right — 120° separation
+
+// Active icon base size: 50px (in range 48–52px)
+// Inactive icon base size: 36px (in range 34–38px)
+// Scale ratio: 36/50 = 0.72 ≈ 0.75 (within 0.75–0.8 range)
+const ACTIVE_ICON_SIZE = 50;
+const INACTIVE_ICON_SIZE = 36;
+
+// Animation duration for rotation (ms) — used for interaction gating
+const ROTATION_DURATION_MS = 260;
 
 function getArcPosition(relativeSlot: number, radius: number): { x: number; y: number } {
   // relativeSlot: -1 = left, 0 = center, 1 = right
   const angleDeg = ARC_ANGLES_DEG[relativeSlot + 1];
-  // We want the arc to curve upward: center is highest, sides are lower
-  // Using angle from vertical (0° = straight up)
+  // Arc curves upward: center is highest, sides are lower
   const angleRad = (angleDeg * Math.PI) / 180;
   const x = Math.sin(angleRad) * radius;
-  const y = (1 - Math.cos(angleRad)) * radius * 0.45; // positive y = downward
+  // Use a gentle vertical factor so the arc is visible but not too deep
+  const y = (1 - Math.cos(angleRad)) * radius * 0.32;
   return { x, y };
 }
 
 export default function OrbitDock({
   activeIndex,
   onIndexChange,
+  onItemActivate,
   disabled = false,
   behindOverlay = false,
 }: OrbitDockProps) {
@@ -46,8 +57,24 @@ export default function OrbitDock({
   const [missionJustActivated, setMissionJustActivated] = useState(false);
   const prevActiveIndexRef = useRef(activeIndex);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const uploadPulseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const uploadPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [uploadPulseActive, setUploadPulseActive] = useState(false);
+
+  // Tap feedback state: which icon is being pressed (for scale-down effect)
+  const [tappedIndex, setTappedIndex] = useState<number | null>(null);
+  const tapFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Rotation-in-progress guard: prevents firing action until rotation completes
+  const isRotatingRef = useRef(false);
+  const rotationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Internal display index — tracks what's visually centered (may differ from activeIndex during rotation)
+  const [displayIndex, setDisplayIndex] = useState(activeIndex);
+
+  // Keep displayIndex in sync when activeIndex changes externally (e.g. swipe from parent)
+  useEffect(() => {
+    setDisplayIndex(activeIndex);
+  }, [activeIndex]);
 
   // Detect Mission becoming active for micro-interaction
   useEffect(() => {
@@ -61,32 +88,67 @@ export default function OrbitDock({
 
   // Upload idle pulse every 8–10 seconds
   useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout>;
     const scheduleNext = () => {
       const delay = 8000 + Math.random() * 2000;
-      uploadPulseTimerRef.current = setTimeout(() => {
+      timerId = setTimeout(() => {
         setUploadPulseActive(true);
         setTimeout(() => setUploadPulseActive(false), 700);
         scheduleNext();
       }, delay);
     };
     scheduleNext();
+    return () => clearTimeout(timerId);
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
     return () => {
-      if (uploadPulseTimerRef.current) clearTimeout(uploadPulseTimerRef.current);
+      if (tapFeedbackTimerRef.current) clearTimeout(tapFeedbackTimerRef.current);
+      if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
     };
   }, []);
 
+  // Trigger haptic feedback if supported
+  const triggerHaptic = useCallback(() => {
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(10);
+      } catch {
+        // Silently ignore — some browsers throw on vibrate
+      }
+    }
+  }, []);
+
+  // Apply tap feedback (scale-down) to the tapped icon
+  const applyTapFeedback = useCallback((index: number) => {
+    setTappedIndex(index);
+    triggerHaptic();
+    if (tapFeedbackTimerRef.current) clearTimeout(tapFeedbackTimerRef.current);
+    tapFeedbackTimerRef.current = setTimeout(() => {
+      setTappedIndex(null);
+    }, 120);
+  }, [triggerHaptic]);
+
+  // Swipe left: advance to next item (index + 1), visual only — no open action
   const handleSwipeLeft = useCallback(() => {
     if (disabled) return;
     setIsSwiping(true);
-    onIndexChange((activeIndex + 1) % ITEM_COUNT);
+    const newIndex = (activeIndex + 1) % ITEM_COUNT;
+    setDisplayIndex(newIndex);
+    onIndexChange(newIndex);
     if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
     swipeTimeoutRef.current = setTimeout(() => setIsSwiping(false), 300);
   }, [disabled, activeIndex, onIndexChange]);
 
+  // Swipe right: go to previous item (index - 1), visual only — no open action
   const handleSwipeRight = useCallback(() => {
     if (disabled) return;
     setIsSwiping(true);
-    onIndexChange((activeIndex - 1 + ITEM_COUNT) % ITEM_COUNT);
+    const newIndex = (activeIndex - 1 + ITEM_COUNT) % ITEM_COUNT;
+    setDisplayIndex(newIndex);
+    onIndexChange(newIndex);
     if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
     swipeTimeoutRef.current = setTimeout(() => setIsSwiping(false), 300);
   }, [disabled, activeIndex, onIndexChange]);
@@ -101,17 +163,39 @@ export default function OrbitDock({
   const handleItemClick = useCallback(
     (index: number) => {
       if (disabled) return;
-      // Only allow clicking the center (active) item
-      if (index === activeIndex) {
+      if (isRotatingRef.current) return;
+
+      const isCurrentlyCenter = index === displayIndex;
+
+      if (isCurrentlyCenter) {
+        // Already centered — apply tap feedback and fire the open action
+        applyTapFeedback(index);
+        onItemActivate(index);
+      } else {
+        // Side icon tapped — apply tap feedback, rotate to center only (no open action)
+        applyTapFeedback(index);
+        isRotatingRef.current = true;
+
+        // Update display index immediately for visual rotation
+        setDisplayIndex(index);
+        // Notify parent of index change (visual only, no open)
         onIndexChange(index);
+
+        // Clear any pending rotation timer
+        if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+
+        // After rotation animation completes, release the guard
+        rotationTimerRef.current = setTimeout(() => {
+          isRotatingRef.current = false;
+        }, ROTATION_DURATION_MS);
       }
     },
-    [disabled, activeIndex, onIndexChange]
+    [disabled, displayIndex, onIndexChange, onItemActivate, applyTapFeedback]
   );
 
-  // Calculate position for each item based on its slot relative to active
+  // Calculate position for each item based on its slot relative to displayIndex
   const getItemStyle = (itemIndex: number) => {
-    const relativeSlot = ((itemIndex - activeIndex + ITEM_COUNT) % ITEM_COUNT);
+    const relativeSlot = (itemIndex - displayIndex + ITEM_COUNT) % ITEM_COUNT;
     // Map: 0 = center, 1 = right, 2 = left
     let slot: -1 | 0 | 1;
     if (relativeSlot === 0) slot = 0;
@@ -119,19 +203,18 @@ export default function OrbitDock({
     else slot = -1;
 
     if (prefersReducedMotion) {
-      // Flat horizontal slide, no scale
-      const x = slot * 110;
+      // Flat horizontal slide, no arc — wider spacing for larger icons
+      const x = slot * 150;
       return {
         transform: `translateX(${x}px)`,
         opacity: slot === 0 ? 1 : 0.55,
-        scale: 1,
         isCenter: slot === 0,
         slot,
       };
     }
 
     const { x, y } = getArcPosition(slot, ARC_RADIUS);
-    const scale = slot === 0 ? 1.0 : 0.8;
+    const scale = slot === 0 ? 1.0 : 0.72;
     const opacity = slot === 0 ? 1.0 : 0.55;
 
     return {
@@ -144,13 +227,23 @@ export default function OrbitDock({
 
   const showGlow = !isSwiping;
 
+  // Arc path for the decorative guide
+  const arcEndX = Math.sin((120 * Math.PI) / 180) * ARC_RADIUS;
+  const arcEndY = (1 - Math.cos((120 * Math.PI) / 180)) * ARC_RADIUS * 0.32;
+  const arcCtrlY = -ARC_RADIUS * 0.10;
+
+  // Suppress unused ref warning
+  void uploadPulseTimerRef;
+
   return (
     <div
-      className={`fixed left-1/2 -translate-x-1/2 ${behindOverlay ? 'z-30' : 'z-40'}`}
+      className={`fixed left-1/2 ${behindOverlay ? 'z-30' : 'z-40'}`}
       style={{
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)',
-        width: '300px',
-        height: '130px',
+        // Position the arc center at ~62% of viewport height
+        top: '62vh',
+        transform: 'translateX(-50%) translateY(-50%)',
+        width: '380px',
+        height: '200px',
         touchAction: 'none',
       }}
       onPointerDown={handlePointerDown}
@@ -162,26 +255,24 @@ export default function OrbitDock({
       {!prefersReducedMotion && (
         <svg
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-          style={{ bottom: '8px', width: '200px', height: '80px', overflow: 'visible' }}
-          viewBox="-100 -10 200 80"
+          style={{ bottom: '24px', width: '320px', height: '120px', overflow: 'visible' }}
+          viewBox="-160 -20 320 120"
           fill="none"
         >
           <path
-            d={`M -${ARC_RADIUS * Math.sin((65 * Math.PI) / 180)} ${ARC_RADIUS * (1 - Math.cos((65 * Math.PI) / 180)) * 0.45} 
-               Q 0 ${-ARC_RADIUS * 0.08} 
-               ${ARC_RADIUS * Math.sin((65 * Math.PI) / 180)} ${ARC_RADIUS * (1 - Math.cos((65 * Math.PI) / 180)) * 0.45}`}
+            d={`M ${-arcEndX} ${arcEndY} Q 0 ${arcCtrlY} ${arcEndX} ${arcEndY}`}
             stroke="oklch(var(--border))"
             strokeWidth="1"
-            strokeDasharray="3 4"
-            opacity="0.35"
+            strokeDasharray="3 5"
+            opacity="0.30"
           />
         </svg>
       )}
 
       {/* Icons container */}
-      <div className="relative w-full h-full flex items-end justify-center" style={{ paddingBottom: '16px' }}>
+      <div className="relative w-full h-full flex items-end justify-center" style={{ paddingBottom: '20px' }}>
         {ITEMS.map((item, index) => {
-          const { transform, opacity, isCenter, slot } = getItemStyle(index);
+          const { transform, opacity, isCenter } = getItemStyle(index);
           const Icon = item.Icon;
 
           // Micro-interaction classes
@@ -189,7 +280,13 @@ export default function OrbitDock({
           const isFolders = item.id === 'folders';
           const isMission = item.id === 'mission';
 
-          const iconSize = isCenter ? 32 : 22;
+          // Icon sizes: active = 50px, inactive = 36px
+          const iconSize = isCenter ? ACTIVE_ICON_SIZE : INACTIVE_ICON_SIZE;
+          // Wrapper padding: gives breathing room around the icon
+          const wrapperPad = isCenter ? 20 : 16;
+
+          // Tap feedback: scale-down to 0.95 for 120ms on any tap
+          const isTapped = tappedIndex === index;
 
           // Color tokens
           let iconColorClass = 'text-primary';
@@ -200,33 +297,42 @@ export default function OrbitDock({
             <button
               key={item.id}
               onClick={() => handleItemClick(index)}
-              disabled={disabled || !isCenter}
+              disabled={disabled}
               aria-label={item.label}
               data-transition-source={
                 item.id === 'folders' ? 'folders' : item.id === 'mission' ? 'missions' : undefined
               }
               className={`absolute flex flex-col items-center gap-1 focus:outline-none select-none ${
-                isCenter && !disabled ? 'cursor-pointer' : 'cursor-default'
+                !disabled ? 'cursor-pointer' : 'cursor-default'
               }`}
               style={{
                 transform,
                 opacity,
-                pointerEvents: isCenter ? 'auto' : 'none',
+                // All icons are pointer-events enabled so side icons can be tapped to rotate
+                pointerEvents: disabled ? 'none' : 'auto',
                 transition: prefersReducedMotion
                   ? 'opacity 0.15s ease'
-                  : 'transform 240ms cubic-bezier(0.34, 1.20, 0.64, 1), opacity 240ms ease-in-out',
+                  : `transform ${ROTATION_DURATION_MS}ms cubic-bezier(0.34, 1.20, 0.64, 1), opacity ${ROTATION_DURATION_MS}ms ease-in-out`,
                 bottom: 0,
                 left: '50%',
-                marginLeft: '-28px',
-                width: '56px',
+                marginLeft: `-${Math.round((iconSize + wrapperPad) / 2)}px`,
+                width: `${iconSize + wrapperPad}px`,
               }}
             >
               {/* Icon wrapper with micro-interaction effects */}
               <div
                 className="relative flex items-center justify-center"
                 style={{
-                  width: iconSize + 16,
-                  height: iconSize + 16,
+                  width: iconSize + wrapperPad,
+                  height: iconSize + wrapperPad,
+                  // Tap feedback: subtle scale-down on any icon press
+                  transform: isTapped ? 'scale(0.95)' : 'scale(1)',
+                  transition: isTapped
+                    ? 'transform 60ms ease-out'
+                    : 'transform 120ms ease-in',
+                  // Ensure crisp rendering — use will-change only on active icon
+                  willChange: isCenter ? 'transform' : 'auto',
+                  imageRendering: 'crisp-edges',
                 }}
               >
                 {/* Folders depth shadow layers */}
@@ -287,9 +393,13 @@ export default function OrbitDock({
                       : ''
                   }`}
                   style={{
+                    // Use explicit integer pixel dimensions for crisp vector rendering
                     width: iconSize,
                     height: iconSize,
-                    transition: prefersReducedMotion ? 'none' : 'width 240ms ease, height 240ms ease',
+                    minWidth: iconSize,
+                    minHeight: iconSize,
+                    // No transition on icon itself — transitions are on the container
+                    transition: 'none',
                     filter:
                       isCenter
                         ? isMission
@@ -298,7 +408,9 @@ export default function OrbitDock({
                           ? 'drop-shadow(0 2px 6px oklch(0.55 0.15 220 / 0.35))'
                           : 'drop-shadow(0 2px 6px oklch(var(--primary) / 0.35))'
                         : 'brightness(0.75)',
-                  }}
+                    // Ensure crisp SVG rendering
+                    shapeRendering: 'geometricPrecision',
+                  } as React.CSSProperties}
                   strokeWidth={isCenter ? 1.5 : 1.75}
                 />
               </div>
@@ -323,10 +435,10 @@ export default function OrbitDock({
               {isCenter && (
                 <div
                   style={{
-                    width: '28px',
+                    width: '32px',
                     height: '2px',
                     borderRadius: '2px',
-                    marginTop: '1px',
+                    marginTop: '2px',
                     background: isMission
                       ? 'oklch(var(--missions-accent))'
                       : isFolders

@@ -1,18 +1,18 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-24T17:29:46.177Z",
+  "generatedAt": "2026-02-25T18:26:13.875Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 6,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Create a new `OrbitDock` component (frontend/src/components/OrbitDock.tsx) implementing the 'Adaptive Orbit Dock' bottom navigation. Position three icons (Upload, Folders, Mission) on a semi-circular arc at the bottom of the screen. The active icon must always sit at the center-bottom apex of the arc (scale 1.0, opacity 100%, subtle drop-shadow/elevation). The two inactive icons must flank it symmetrically on the arc (scale 0.75–0.85, opacity 50–60%, slight brightness reduction). Semi-circle radius: 60–70px. The dock container must sit 24–32px above the bottom safe area (env(safe-area-inset-bottom)).",
+        "summary": "In the OrbitDock component (frontend/src/components/OrbitDock.tsx), remove any logic that automatically opens/activates a function when a swipe gesture lands an item in the center position. Swiping must only update the visual active state (the centered item) without triggering navigation or opening any view.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/OrbitDock.tsx"
@@ -23,7 +23,7 @@
       },
       {
         "id": "REQ-2",
-        "summary": "Implement swipe-left and swipe-right gesture handling on the OrbitDock. On swipe, icons must animate along the orbital arc path (not a flat horizontal slide) to simulate real circular motion. The transition must use an ease-in-out curve, last 220–260ms, and give a physical sense of rotation around the arc. Implement infinite loop cycling through the three items in both directions.",
+        "summary": "In OrbitDock, implement open-on-tap logic: a function (Upload, Folders, Mission) opens only when (a) its icon is already in the center/active position AND (b) the user taps that centered icon. A tap on the centered icon must fire the appropriate navigation/open callback.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/OrbitDock.tsx"
@@ -34,7 +34,7 @@
       },
       {
         "id": "REQ-3",
-        "summary": "Add adaptive feedback to the OrbitDock active state: display a subtle glow arc or underline indicator beneath the active icon, and show a small fade-in label ('Upload', 'Folders', or 'Mission') below the active icon. When a swipe begins, the glow arc and label must fade out smoothly before the rotation animation starts. Include a light momentum effect on the swipe motion.",
+        "summary": "In OrbitDock, implement rotation-first behavior for side (inactive) icon taps: when the user taps an icon that is NOT currently centered, the dock smoothly rotates to bring that icon to the center (active state), but does NOT open the function. A second tap on the now-centered icon is required to open it.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/OrbitDock.tsx"
@@ -45,47 +45,23 @@
       },
       {
         "id": "REQ-4",
-        "summary": "Add professional micro-interactions to each dock icon: (1) Upload icon performs a very subtle pulse animation every 8–10 seconds when it is not being interacted with. (2) Folders icon displays a subtle layered-depth visual effect (e.g., a gentle shadow stack). (3) Mission icon plays a very subtle motion micro-animation when it becomes the active center icon. All micro-interactions must be minimal and non-playful.",
+        "summary": "Add subtle tap visual and haptic feedback to all OrbitDock icon interactions: on every tap (whether on the centered icon or a side icon), the tapped icon scales down to 0.95 for 100–120ms before returning to its normal scale. Additionally, trigger a light haptic vibration (using navigator.vibrate([10]) or equivalent) if the browser/device supports it.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/OrbitDock.tsx"
         ],
         "matchedFiles": [
           "frontend/src/components/OrbitDock.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Implement reduced-motion mode support in the OrbitDock. When the user's OS/browser has 'prefers-reduced-motion: reduce' set, fall back to a simple horizontal slide transition between icons with no scale transformation and no orbital arc motion. Reuse the existing useReducedMotion hook (frontend/src/hooks/useReducedMotion.ts).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/OrbitDock.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/OrbitDock.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Integrate the OrbitDock into the existing HomePage (frontend/src/pages/HomePage.tsx) and CircularBottomNavigation area, replacing or wrapping the current bottom navigation rendering. The OrbitDock must trigger the exact same section-switching logic (Upload / Folders / Mission) that the existing navigation triggers. No backend logic, data queries, upload flows, folder operations, or mission operations may be altered. Only the visual navigation UI layer changes.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/components/OrbitDock.tsx",
-    "frontend/src/index.css",
     "frontend/src/pages/HomePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

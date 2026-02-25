@@ -1,151 +1,99 @@
 {
   "kind": "build_request",
-  "title": "Adaptive Orbit Dock — Animated Semi-Circular Navigation",
-  "projectName": "Orbit Dock Nav",
+  "title": "Fix Orbit Dock interaction: swipe-only active state, tap-to-open, side-icon rotation-first behavior",
+  "projectName": "MYL Orbit Dock",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Create a new `OrbitDock` component (frontend/src/components/OrbitDock.tsx) implementing the 'Adaptive Orbit Dock' bottom navigation. Position three icons (Upload, Folders, Mission) on a semi-circular arc at the bottom of the screen. The active icon must always sit at the center-bottom apex of the arc (scale 1.0, opacity 100%, subtle drop-shadow/elevation). The two inactive icons must flank it symmetrically on the arc (scale 0.75–0.85, opacity 50–60%, slight brightness reduction). Semi-circle radius: 60–70px. The dock container must sit 24–32px above the bottom safe area (env(safe-area-inset-bottom)).",
+      "text": "In the OrbitDock component (frontend/src/components/OrbitDock.tsx), remove any logic that automatically opens/activates a function when a swipe gesture lands an item in the center position. Swiping must only update the visual active state (the centered item) without triggering navigation or opening any view.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Τοποθέτησε τα 3 εικονίδια σε ημικυκλική διάταξη (semi-circular dock) στο κάτω μέρος της οθόνης.",
-          "Ακτίνα ημικυκλίου περίπου 60–70px.",
-          "Το dock να απέχει 24–32px από το κάτω safe area."
+          "Όταν ο χρήστης κάνει swipe στο dock και μία λειτουργία μετακινείται στο κέντρο: Να ΜΗΝ ανοίγει αυτόματα η λειτουργία. Το swipe να αλλάζει μόνο την ενεργή (active) κατάσταση οπτικά."
         ]
       },
       "acceptanceCriteria": [
-        "Three icons (Upload, Folders, Mission) are rendered on a semi-circular arc at the screen bottom.",
-        "Active icon is always at the center apex of the arc with scale 1.0 and opacity 100%.",
-        "Inactive icons are at symmetric arc positions with scale 0.75–0.85 and opacity 50–60%.",
-        "The dock is positioned 24–32px above the bottom safe area using env(safe-area-inset-bottom).",
-        "Arc radius is visually 60–70px."
+        "Swiping the dock left or right moves items along the arc and updates which item is visually active (centered).",
+        "After a swipe completes, no view, dialog, or panel opens automatically.",
+        "The existing infinite circular swipe, scale hierarchy, opacity hierarchy, and orbital animation remain unchanged."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Implement swipe-left and swipe-right gesture handling on the OrbitDock. On swipe, icons must animate along the orbital arc path (not a flat horizontal slide) to simulate real circular motion. The transition must use an ease-in-out curve, last 220–260ms, and give a physical sense of rotation around the arc. Implement infinite loop cycling through the three items in both directions.",
+      "text": "In OrbitDock, implement open-on-tap logic: a function (Upload, Folders, Mission) opens only when (a) its icon is already in the center/active position AND (b) the user taps that centered icon. A tap on the centered icon must fire the appropriate navigation/open callback.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Τα εικονίδια να περιστρέφονται πάνω σε ημικυκλική τροχιά.",
-          "Να δίνεται αίσθηση πραγματικής κυκλικής κίνησης (όχι απλό horizontal slide).",
-          "Διάρκεια 220–260ms. Ease-in-out καμπύλη.",
-          "Φυσική καμπυλωτή τροχιά (orbital motion).",
-          "Να υποστηρίζεται infinite loop εναλλαγή μεταξύ των 3 λειτουργιών."
+          "Η λειτουργία να ανοίγει μόνο όταν: Το εικονίδιο βρίσκεται στο κέντρο (active state) ΚΑΙ Ο χρήστης κάνει tap επάνω στο κεντρικό εικονίδιο."
         ]
       },
       "acceptanceCriteria": [
-        "Swiping left or right triggers orbital rotation of all three icons along the arc path.",
-        "Animation duration is 220–260ms with ease-in-out easing.",
-        "Icons follow a curved (not linear) trajectory during the transition.",
-        "Cycling is infinite: swiping past Mission wraps back to Upload and vice versa.",
-        "Swipe is detected via pointer/touch events (reusing useSwipeGesture hook if appropriate)."
+        "Tapping the centered (active) icon opens the corresponding function (Upload, Folders, or Mission).",
+        "All existing open/navigation callbacks for each function continue to work correctly once triggered by this tap.",
+        "No other interaction (swipe, tap on side icon) opens a function."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add adaptive feedback to the OrbitDock active state: display a subtle glow arc or underline indicator beneath the active icon, and show a small fade-in label ('Upload', 'Folders', or 'Mission') below the active icon. When a swipe begins, the glow arc and label must fade out smoothly before the rotation animation starts. Include a light momentum effect on the swipe motion.",
+      "text": "In OrbitDock, implement rotation-first behavior for side (inactive) icon taps: when the user taps an icon that is NOT currently centered, the dock smoothly rotates to bring that icon to the center (active state), but does NOT open the function. A second tap on the now-centered icon is required to open it.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Να εμφανίζεται διακριτικό underline ή glow arc κάτω από το ενεργό εικονίδιο.",
-          "Να εμφανίζεται μικρό label με fade-in (π.χ. 'Upload', 'Folders', 'Mission').",
-          "Το underline/glow να διαλύεται ομαλά.",
-          "Να υπάρχει ελαφρύ momentum effect στην κίνηση."
+          "Αν ο χρήστης κάνει tap σε πλαϊνό (inactive) εικονίδιο: Να εκτελείται πρώτα ομαλή περιστροφή ώστε να έρθει στο κέντρο. Να ΜΗΝ ανοίγει ακόμη η λειτουργία. Να απαιτείται δεύτερο tap για να ανοίξει."
         ]
       },
       "acceptanceCriteria": [
-        "A subtle glow arc or underline is rendered beneath the active center icon.",
-        "A small text label for the active section appears with a fade-in transition.",
-        "On swipe initiation, the glow arc and label fade out before/during the rotation.",
-        "The rotation animation has a subtle momentum feel (slight overshoot or ease-out deceleration)."
+        "Tapping a side icon triggers a smooth rotation animation that brings it to the center position.",
+        "After the rotation, only the visual active state changes — the function does not open.",
+        "A subsequent tap on the now-centered icon opens the function.",
+        "The rotation animation reuses the existing orbital/smooth-rotation mechanism without introducing new animation systems."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add professional micro-interactions to each dock icon: (1) Upload icon performs a very subtle pulse animation every 8–10 seconds when it is not being interacted with. (2) Folders icon displays a subtle layered-depth visual effect (e.g., a gentle shadow stack). (3) Mission icon plays a very subtle motion micro-animation when it becomes the active center icon. All micro-interactions must be minimal and non-playful.",
+      "text": "Add subtle tap visual and haptic feedback to all OrbitDock icon interactions: on every tap (whether on the centered icon or a side icon), the tapped icon scales down to 0.95 for 100–120ms before returning to its normal scale. Additionally, trigger a light haptic vibration (using navigator.vibrate([10]) or equivalent) if the browser/device supports it.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Upload: ελαφρύ pulse κάθε 8–10 δευτερόλεπτα.",
-          "Folders: subtle layered depth effect.",
-          "Mission: πολύ διακριτικό motion όταν γίνεται active."
+          "Πρόσθεσε διακριτικό visual feedback στο tap: Scale 0.95 για 100–120ms. Ελαφρύ haptic feedback (αν υποστηρίζεται)."
         ]
       },
       "acceptanceCriteria": [
-        "Upload icon subtly pulses (scale or opacity flicker) every 8–10 seconds when idle.",
-        "Folders icon has a subtle depth/shadow-stack visual treatment.",
-        "Mission icon plays a brief subtle animation each time it transitions to the center active position.",
-        "All micro-interactions are understated and professional in character."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Implement reduced-motion mode support in the OrbitDock. When the user's OS/browser has 'prefers-reduced-motion: reduce' set, fall back to a simple horizontal slide transition between icons with no scale transformation and no orbital arc motion. Reuse the existing useReducedMotion hook (frontend/src/hooks/useReducedMotion.ts).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Υποστήριξη reduced motion mode (fallback: απλό horizontal slide χωρίς scale)."
-        ]
-      },
-      "acceptanceCriteria": [
-        "When prefers-reduced-motion is active, the dock switches to a flat horizontal slide with no scale changes.",
-        "The useReducedMotion hook is used to detect the preference.",
-        "Orbital arc animation, scale transitions, and micro-interactions are all disabled under reduced motion."
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Integrate the OrbitDock into the existing HomePage (frontend/src/pages/HomePage.tsx) and CircularBottomNavigation area, replacing or wrapping the current bottom navigation rendering. The OrbitDock must trigger the exact same section-switching logic (Upload / Folders / Mission) that the existing navigation triggers. No backend logic, data queries, upload flows, folder operations, or mission operations may be altered. Only the visual navigation UI layer changes.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Χωρίς να αλλάξει καμία λειτουργία, καμία λογική και καμία αρχιτεκτονική της εφαρμογής.",
-          "Να επηρεάζεται μόνο το UI navigation layer."
-        ]
-      },
-      "acceptanceCriteria": [
-        "OrbitDock is rendered at the bottom of the HomePage in place of the previous bottom navigation.",
-        "Tapping each icon or swiping navigates to the correct section (Upload, Folders, Mission) using the same state/callback as before.",
-        "All Upload, Folders, and Mission section functionality remains completely unchanged.",
-        "No backend calls, context providers, query hooks, or data structures are modified."
+        "Every tap on any dock icon (center or side) produces a brief scale-down to 0.95 lasting 100–120ms, then returns to the normal scale.",
+        "On devices/browsers that support navigator.vibrate, a short light vibration (≤15ms) fires on each tap.",
+        "On devices that do not support haptics, the tap interaction proceeds silently without errors.",
+        "The scale feedback does not conflict with the existing scale/opacity hierarchy applied by the carousel positioning."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any backend logic, data models, or Motoko code.",
-    "Do not alter the internal functionality of Upload, Folders, or Mission sections.",
-    "Do not edit files listed in frontend.immutablePaths.",
-    "Only the navigation UI layer (bottom dock component) may change.",
-    "The existing useReducedMotion hook must be reused for motion preference detection.",
-    "The existing useSwipeGesture hook should be reused for swipe detection where compatible."
+    "Do not change any backend logic, data models, or API calls.",
+    "Do not modify any other component, hook, page, or utility outside of OrbitDock.tsx and its direct tap/swipe interaction logic.",
+    "Preserve the existing infinite circular swipe behavior.",
+    "Preserve the existing scale and opacity hierarchy for dock items.",
+    "Preserve the existing orbital animation.",
+    "Do not alter any open/navigation callbacks consumed by HomePage.tsx — only change when they are invoked.",
+    "Do not edit any files listed under frontend.immutablePaths."
   ],
   "nonGoals": [
-    "Changing any Upload, Folders, or Mission section content or logic.",
-    "Modifying backend actor, queries, or data flow.",
-    "Adding new application features or sections.",
-    "Changing authentication, actor initialization, or context providers.",
-    "Using 3D (Three.js/React Three Fiber) for the dock animation."
+    "Changing the visual design, colors, or layout of the Orbit Dock.",
+    "Adding new dock items or changing the Upload/Folders/Mission functions.",
+    "Modifying any full-screen views (FoldersFullScreenView, MissionsFullScreenView, FileUploadSection).",
+    "Changing authentication, file management, or any other app logic.",
+    "Altering the useCircularCarousel hook internals beyond what is needed to decouple swipe from open."
   ],
   "imageRequirements": {
     "required": [],

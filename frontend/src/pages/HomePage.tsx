@@ -200,9 +200,13 @@ export default function HomePage() {
     setShowUploadMenu(prev => !prev);
   }, []);
 
-  // Handle OrbitDock index changes — map index to section actions
+  // Handle OrbitDock index changes (swipe or side-icon rotation) — visual only, no open action
   const handleDockIndexChange = useCallback((index: number) => {
     setDockActiveIndex(index);
+  }, []);
+
+  // Handle OrbitDock item activation (tap on centered icon) — fires the open action
+  const handleDockItemActivate = useCallback((index: number) => {
     if (index === DOCK_INDEX_UPLOAD) {
       handleUploadClick();
     } else if (index === DOCK_INDEX_FOLDERS) {
@@ -290,6 +294,7 @@ export default function HomePage() {
                 <OrbitDock
                   activeIndex={dockActiveIndex}
                   onIndexChange={handleDockIndexChange}
+                  onItemActivate={handleDockItemActivate}
                   disabled={!isActorReady}
                   behindOverlay={isBulkSelectionActive}
                 />
@@ -321,7 +326,7 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isStackOpen, isBulkSelectionActive, transitionState, newlyUploadedFiles, showUploadMenu, dockActiveIndex, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect, handleTransitionComplete, handleUploadClick, handleOpenFolders, handleOpenMissions, handleDockIndexChange]);
+  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isStackOpen, isBulkSelectionActive, transitionState, newlyUploadedFiles, showUploadMenu, dockActiveIndex, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect, handleTransitionComplete, handleUploadClick, handleOpenFolders, handleOpenMissions, handleDockIndexChange, handleDockItemActivate]);
 
   return mainContent;
 }
