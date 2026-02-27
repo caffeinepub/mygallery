@@ -1,42 +1,60 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Mobile app with an 'Adaptive Orbit Dock' (Upload, Folders, Mission). Interaction behavior updated: swipe only changes active state visually (no auto-open); opening a function requires a tap on the centered (active) icon; tapping a side icon first rotates it to center (no open), then a second tap opens it. Tap feedback includes scale 0.95 for 100–120ms and light haptic feedback.",
+  "summary": "Mobile app with Adaptive Orbit Dock featuring 4 items: Upload, Folders, Mission, and Collections. Collections is a new aggregated view of all uploaded files (files, notes, links) displayed in a 4-column thumbnail grid with lazy loading, using existing file selection logic.",
   "architectural_notes": [
-    "Adaptive Orbit Dock has 3 items: Upload, Folders, Mission with infinite circular swipe, scale/opacity hierarchy, and orbital animation"
+    "Adaptive Orbit Dock: circular orbital layout, active icon at bottom center, swipe rotates, tap on active opens feature, infinite rotation",
+    "Collections is read-only aggregated view of Upload data — no new upload logic, existing bottom-left upload display unchanged",
+    "Reuse existing file selection logic for Collections (no new selection state or handlers)"
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-orbitdock-component-frontend-src-components-orbitdock-tsx-remove-any-logic-that-automatically-opens-activates-a-function-when-a-swipe-gesture-lands-an-item-in-the-center-position-swiping-must-only-update-the-visual-active-state-the-centered-item-without-triggering-navigation-or-opening-any-view",
-      "title": "In the OrbitDock component (frontend/src/components/OrbitDock.tsx), remove any logic that automatically opens/activates a function when a swipe gesture lands an item in the center position. Swiping must only update the visual active state (the centered item) without triggering navigation or opening any view.",
+      "id": "feature-extend-the-orbitdock-component-frontend-src-components-orbitdock-tsx-to-include-a-4th-dock-item-collections-alongside-the-existing-upload-folders-and-mission-items-the-four-items-must-be-distributed-symmetrically-at-90-intervals-on-the-circular-orbit-the-active-bottom-center-item-remains-the-tap-target-swipe-gestures-only-rotate-the-orbit-without-opening-any-screen-all-existing-swipe-behavior-infinite-rotation-scale-opacity-transitions-reduced-motion-support-and-orbital-geometry-must-remain-unchanged",
+      "title": "Extend the OrbitDock component (frontend/src/components/OrbitDock.tsx) to include a 4th dock item — Collections — alongside the existing Upload, Folders, and Mission items. The four items must be distributed symmetrically at 90° intervals on the circular orbit. The active (bottom-center) item remains the tap target; swipe gestures only rotate the orbit without opening any screen. All existing swipe behavior, infinite rotation, scale/opacity transitions, reduced-motion support, and orbital geometry must remain unchanged.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-in-orbitdock-implement-open-on-tap-logic-a-function-upload-folders-mission-opens-only-when-a-its-icon-is-already-in-the-center-active-position-and-b-the-user-taps-that-centered-icon-a-tap-on-the-centered-icon-must-fire-the-appropriate-navigation-open-callback",
-      "title": "In OrbitDock, implement open-on-tap logic: a function (Upload, Folders, Mission) opens only when (a) its icon is already in the center/active position AND (b) the user taps that centered icon. A tap on the centered icon must fire the appropriate navigation/open callback.",
+      "id": "feature-design-and-implement-the-collections-svg-icon-inside-orbitdock-with-a-professional-minimal-2-2-grid-of-squares-style-thumbnail-gallery-symbolism-the-icon-must-use-rounded-corners-and-a-stroke-width-of-2-2-2-5px-color-warm-amber-d97706-in-light-mode-and-fbbf24-in-dark-mode-when-inactive-the-icon-renders-at-60-opacity-matching-the-visual-treatment-of-the-other-dock-icons",
+      "title": "Design and implement the Collections SVG icon inside OrbitDock with a professional, minimal 2×2 grid-of-squares style (thumbnail gallery symbolism). The icon must use rounded corners and a stroke width of 2.2–2.5px. Color: warm amber #D97706 in light mode and #FBBF24 in dark mode. When inactive, the icon renders at 60% opacity, matching the visual treatment of the other dock icons.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-in-orbitdock-implement-rotation-first-behavior-for-side-inactive-icon-taps-when-the-user-taps-an-icon-that-is-not-currently-centered-the-dock-smoothly-rotates-to-bring-that-icon-to-the-center-active-state-but-does-not-open-the-function-a-second-tap-on-the-now-centered-icon-is-required-to-open-it",
-      "title": "In OrbitDock, implement rotation-first behavior for side (inactive) icon taps: when the user taps an icon that is NOT currently centered, the dock smoothly rotates to bring that icon to the center (active state), but does NOT open the function. A second tap on the now-centered icon is required to open it.",
+      "id": "feature-create-a-new-collectionsfullscreenview-component-frontend-src-components-collectionsfullscreenview-tsx-that-opens-when-the-collections-dock-icon-is-tapped-while-active-this-screen-displays-all-uploaded-items-files-notes-links-from-the-existing-uploadcontext-and-react-query-file-note-queries-the-same-data-that-already-appears-in-the-bottom-left-floating-stack-as-an-additional-aggregated-view-the-existing-bottom-left-upload-display-must-not-change-in-any-way",
+      "title": "Create a new CollectionsFullScreenView component (frontend/src/components/CollectionsFullScreenView.tsx) that opens when the Collections dock icon is tapped while active. This screen displays all uploaded items (files, notes, links) from the existing UploadContext and React Query file/note queries — the same data that already appears in the bottom-left floating stack — as an additional aggregated view. The existing bottom-left upload display must not change in any way.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-subtle-tap-visual-and-haptic-feedback-to-all-orbitdock-icon-interactions-on-every-tap-whether-on-the-centered-icon-or-a-side-icon-the-tapped-icon-scales-down-to-0-95-for-100-120ms-before-returning-to-its-normal-scale-additionally-trigger-a-light-haptic-vibration-using-navigator-vibrate-10-or-equivalent-if-the-browser-device-supports-it",
-      "title": "Add subtle tap visual and haptic feedback to all OrbitDock icon interactions: on every tap (whether on the centered icon or a side icon), the tapped icon scales down to 0.95 for 100–120ms before returning to its normal scale. Additionally, trigger a light haptic vibration (using navigator.vibrate([10]) or equivalent) if the browser/device supports it.",
+      "id": "feature-in-collectionsfullscreenview-render-all-items-in-a-responsive-4-column-thumbnail-grid-each-thumbnail-cell-is-80-80px-on-a-390px-wide-mobile-screen-internal-spacing-between-thumbnails-is-8-12px-screen-edge-padding-is-16px-on-left-and-right-thumbnail-corners-are-rounded-8-10px-images-and-files-render-as-visual-previews-notes-render-as-card-thumbnails-with-a-note-icon-links-render-with-a-small-favicon-or-a-generic-link-icon-fallback-implement-lazy-loading-for-large-collections",
+      "title": "In CollectionsFullScreenView, render all items in a responsive 4-column thumbnail grid. Each thumbnail cell is 80×80px on a 390px-wide mobile screen. Internal spacing between thumbnails is 8–12px. Screen-edge padding is 16px on left and right. Thumbnail corners are rounded 8–10px. Images and files render as visual previews. Notes render as card thumbnails with a note icon. Links render with a small favicon or a generic link-icon fallback. Implement lazy loading for large collections.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-collectionsfullscreenview-reuse-the-existing-file-selection-logic-from-the-app-single-select-multi-select-select-all-move-to-mission-move-to-folder-delete-share-exactly-as-implemented-in-gallerysection-and-stackfilesfullscreenview-do-not-create-any-new-selection-mutation-or-action-logic-wire-up-the-existing-hooks-dialogs-sendtofolderdialog-movetomissiondialog-and-mutation-calls",
+      "title": "In CollectionsFullScreenView, reuse the existing file-selection logic from the app (single select, multi-select, select all, move to Mission, move to Folder, delete, share) exactly as implemented in GallerySection and StackFilesFullScreenView. Do not create any new selection, mutation, or action logic — wire up the existing hooks, dialogs (SendToFolderDialog, MoveToMissionDialog), and mutation calls.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-wire-collectionsfullscreenview-into-homepage-tsx-frontend-src-pages-homepage-tsx-using-the-same-conditional-rendering-pattern-as-foldersfullscreenview-and-missionsfullscreenview-add-a-showcollections-state-flag-and-pass-the-oncollectionstap-callback-to-orbitdock-no-other-existing-state-routing-layout-or-component-behavior-in-homepage-must-change",
+      "title": "Wire CollectionsFullScreenView into HomePage.tsx (frontend/src/pages/HomePage.tsx) using the same conditional rendering pattern as FoldersFullScreenView and MissionsFullScreenView. Add a showCollections state flag and pass the onCollectionsTap callback to OrbitDock. No other existing state, routing, layout, or component behavior in HomePage must change.",
+      "reqIds": [
+        "REQ-6"
       ],
       "version": 1
     }
@@ -44,25 +62,31 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Swipe on Orbit Dock only changes active state visually — does not auto-open function",
+      "summary": "Add Collections to Adaptive Orbit Dock as 4th item with 90° symmetric distribution and existing swipe/tap behavior",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Function opens only on tap of centered (active) icon; tap on side icon rotates to center first, requires second tap to open",
+      "summary": "Collections icon: minimal 2x2 grid style, rounded corners, stroke 2.2-2.5px, amber #D97706 light / #FBBF24 dark, 60% opacity when inactive",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Tap visual feedback: scale 0.95 for 100–120ms + light haptic feedback",
+      "summary": "Collections screen: aggregated view of all uploads (files, notes, links) in 4-column responsive grid, 80x80px thumbnails, lazy loading, note cards with icon, links with favicon fallback",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Collections screen uses existing file selection logic: single select, multi-select, select all, move to Mission/Folder, delete, share",
       "reqIds": [],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "MYL Orbit Dock",
+  "projectName": "Orbit Dock Collections",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

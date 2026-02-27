@@ -21,15 +21,18 @@ import type { Folder, FileMetadata } from '@/backend';
 
 const FoldersFullScreenView = lazy(() => import('@/components/FoldersFullScreenView'));
 const MissionsFullScreenView = lazy(() => import('@/components/MissionsFullScreenView'));
+const CollectionsFullScreenView = lazy(() => import('@/components/CollectionsFullScreenView'));
 
-// OrbitDock index mapping: 0 = Upload, 1 = Folders, 2 = Mission
-const DOCK_INDEX_UPLOAD = 0;
-const DOCK_INDEX_FOLDERS = 1;
-const DOCK_INDEX_MISSION = 2;
+// OrbitDock index mapping: 0 = Upload, 1 = Folders, 2 = Mission, 3 = Collections
+const DOCK_INDEX_UPLOAD      = 0;
+const DOCK_INDEX_FOLDERS     = 1;
+const DOCK_INDEX_MISSION     = 2;
+const DOCK_INDEX_COLLECTIONS = 3;
 
 export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
+  const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
   const [isStackOpen, setIsStackOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [folderOpenedFromFoldersView, setFolderOpenedFromFoldersView] = useState(false);
@@ -67,7 +70,7 @@ export default function HomePage() {
     const completedUploads = getCompletedUploads();
     if (completedUploads.length > 0 && files) {
       const matchedFiles: FileMetadata[] = [];
-      
+
       completedUploads.forEach(upload => {
         if (upload.backendId) {
           const file = files.find(f => f.id === upload.backendId);
@@ -80,7 +83,7 @@ export default function HomePage() {
       if (matchedFiles.length > 0) {
         setNewlyUploadedFiles(matchedFiles);
         clearCompletedUploads();
-        
+
         // Clear after animation completes
         setTimeout(() => {
           setNewlyUploadedFiles([]);
@@ -96,20 +99,20 @@ export default function HomePage() {
         urlParams.delete('runSmokeTest');
         const newUrl = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
         window.history.replaceState({}, '', newUrl);
-        
+
         console.log('[Dev] Running core flows smoke test...');
-        
+
         Promise.all([
           import('@/utils/smokeTestCoreFlows'),
           import('sonner')
         ]).then(([{ runCoreFlowsSmokeTest, formatSmokeTestResults }, { toast }]) => {
           toast.info('Running smoke test...');
-          
+
           runCoreFlowsSmokeTest(actor)
             .then((results) => {
               const formatted = formatSmokeTestResults(results);
               console.log(formatted);
-              
+
               const allPassed = results.every(r => r.success);
               if (allPassed) {
                 toast.success('Smoke test passed! Check console for details.');
@@ -200,7 +203,15 @@ export default function HomePage() {
     setShowUploadMenu(prev => !prev);
   }, []);
 
-  // Handle OrbitDock index changes (swipe or side-icon rotation) — visual only, no open action
+  const handleOpenCollections = useCallback(() => {
+    setIsCollectionsOpen(true);
+  }, []);
+
+  const handleCloseCollections = useCallback(() => {
+    setIsCollectionsOpen(false);
+  }, []);
+
+  // Handle OrbitDock index changes (swipe or rotation) — visual only, no open action
   const handleDockIndexChange = useCallback((index: number) => {
     setDockActiveIndex(index);
   }, []);
@@ -213,8 +224,10 @@ export default function HomePage() {
       handleOpenFolders();
     } else if (index === DOCK_INDEX_MISSION) {
       handleOpenMissions();
+    } else if (index === DOCK_INDEX_COLLECTIONS) {
+      handleOpenCollections();
     }
-  }, [handleUploadClick, handleOpenFolders, handleOpenMissions]);
+  }, [handleUploadClick, handleOpenFolders, handleOpenMissions, handleOpenCollections]);
 
   const mainContent = useMemo(() => {
     if (!isAuthenticated && !isInitializing) {
@@ -228,12 +241,12 @@ export default function HomePage() {
     if (isAuthenticated && isFinalFailure && error) {
       return (
         <MobileOnlyLayout>
-          <ActorInitErrorState 
+          <ActorInitErrorState
             summary={error.summary}
             technicalDetails={error.technicalDetails}
             classification={error.classification}
-            onRetry={retry} 
-            onLogout={signOut} 
+            onRetry={retry}
+            onLogout={signOut}
           />
         </MobileOnlyLayout>
       );
@@ -256,11 +269,13 @@ export default function HomePage() {
           }>
             {isStackOpen ? (
               <StackFilesFullScreenView onClose={() => setIsStackOpen(false)} />
+            ) : isCollectionsOpen ? (
+              <CollectionsFullScreenView onClose={handleCloseCollections} />
             ) : isMissionsOpen ? (
               <MissionsFullScreenView onClose={handleCloseMissions} />
             ) : isFoldersOpen ? (
-              <FoldersFullScreenView 
-                onClose={handleCloseFolders} 
+              <FoldersFullScreenView
+                onClose={handleCloseFolders}
                 onSelectFolder={handleFolderSelect}
               />
             ) : (
@@ -270,16 +285,16 @@ export default function HomePage() {
                   {selectedFolder === null ? (
                     <>
                       <FileUploadSection showMenu={showUploadMenu} onMenuChange={setShowUploadMenu} />
-                      <GallerySection 
-                        selectedFolder={null} 
+                      <GallerySection
+                        selectedFolder={null}
                         onBackToMain={handleBackToMain}
                         onBulkSelectionChange={handleBulkSelectionChange}
                         hideCollection={true}
                       />
                     </>
                   ) : (
-                    <GallerySection 
-                      selectedFolder={selectedFolder} 
+                    <GallerySection
+                      selectedFolder={selectedFolder}
                       onBackToMain={handleBackToMain}
                       onBulkSelectionChange={handleBulkSelectionChange}
                       hideCollection={false}
@@ -287,7 +302,7 @@ export default function HomePage() {
                   )}
                 </main>
                 <DecorativeBottomLine />
-                <FloatingFileStack 
+                <FloatingFileStack
                   onOpenStack={() => setIsStackOpen(true)}
                   newlyUploadedFiles={newlyUploadedFiles}
                 />
@@ -326,7 +341,15 @@ export default function HomePage() {
         </div>
       </MobileOnlyLayout>
     );
-  }, [isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut, selectedFolder, isFoldersOpen, isMissionsOpen, isStackOpen, isBulkSelectionActive, transitionState, newlyUploadedFiles, showUploadMenu, dockActiveIndex, handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions, handleFolderSelect, handleTransitionComplete, handleUploadClick, handleOpenFolders, handleOpenMissions, handleDockIndexChange, handleDockItemActivate]);
+  }, [
+    isAuthenticated, isInitializing, status, isActorReady, isFinalFailure, error, retry, signOut,
+    selectedFolder, isFoldersOpen, isMissionsOpen, isCollectionsOpen, isStackOpen,
+    isBulkSelectionActive, transitionState, newlyUploadedFiles, showUploadMenu, dockActiveIndex,
+    handleBackToMain, handleBulkSelectionChange, handleCloseFolders, handleCloseMissions,
+    handleCloseCollections, handleFolderSelect, handleTransitionComplete, handleUploadClick,
+    handleOpenFolders, handleOpenMissions, handleOpenCollections,
+    handleDockIndexChange, handleDockItemActivate,
+  ]);
 
   return mainContent;
 }

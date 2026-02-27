@@ -1,71 +1,122 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Orbit Dock interaction: swipe-only active state, tap-to-open, side-icon rotation-first behavior",
+  "title": "Add Collections to Adaptive Orbit Dock (4th item) with Collections screen",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove auto-open on swipe: swiping updates only visual active state without triggering navigation",
+      "summary": "Extend OrbitDock to include a 4th dock item (Collections) with 90° symmetrical distribution while preserving all existing swipe behavior and animations",
       "acceptanceCriteria": [
-        "Swiping the dock left or right moves items along the arc and updates which item is visually active (centered).",
-        "After a swipe completes, no view, dialog, or panel opens automatically.",
-        "The existing infinite circular swipe, scale hierarchy, opacity hierarchy, and orbital animation remain unchanged."
+        "Dock renders exactly 4 icons: Upload, Folders, Mission, Collections",
+        "Icons are distributed at exactly 90° intervals on the orbit circle",
+        "Active icon always appears at the bottom-center position",
+        "Swiping left/right rotates the orbit and cycles items without opening any view",
+        "Tapping the center (active) icon opens the corresponding feature",
+        "No icon overlap at any rotation state",
+        "All existing scale/opacity/animation transitions are preserved",
+        "Reduced-motion mode works correctly with 4 items"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/OrbitDock.tsx",
           "operation": "modify",
-          "description": "Remove any auto-open logic triggered by swipe gesture completion or currentIndex changes. Ensure swipe handlers (onSwipeLeft, onSwipeRight) only update the currentIndex state via setCurrentIndex, without invoking any of the open/navigation callbacks (onUploadOpen, onFoldersOpen, onMissionsOpen). Preserve all existing visual behaviors: infinite circular positioning, scale hierarchy, opacity hierarchy, and orbital animation. Review the component to identify where swipe completion might trigger opens (e.g., useEffect watching currentIndex, or direct callback invocations in swipe handlers) and remove those triggers."
+          "description": "Add Collections as the 4th dock item. Update the items array to include a Collections entry with id 'collections', label 'Collections', and onTap callback. Adjust the angular distribution logic to space 4 items at exactly 90° intervals (0°, 90°, 180°, 270°) around the orbit circle. Ensure the activeIndex cycling logic accounts for 4 items. Preserve all existing swipe gesture handling, infinite rotation, scale/opacity transitions, and reduced-motion support. The active item must remain at the bottom-center position (270° or equivalent in the coordinate system). Verify the SVG icon rendering for Collections is included inline (see REQ-2)."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Implement open-on-tap logic: centered icon opens only when tapped while already in center position",
+      "summary": "Design and implement the Collections SVG icon with a 2×2 grid-of-squares style, warm amber theming, and 60% opacity when inactive",
       "acceptanceCriteria": [
-        "Tapping the centered (active) icon opens the corresponding function (Upload, Folders, or Mission).",
-        "All existing open/navigation callbacks for each function continue to work correctly once triggered by this tap.",
-        "No other interaction (swipe, tap on side icon) opens a function."
+        "Collections icon is an inline SVG 2×2 grid of squares with rounded corners",
+        "Stroke width is between 2.2 and 2.5px",
+        "Icon color is #D97706 in light mode and #FBBF24 in dark mode",
+        "Inactive state renders at 60% opacity",
+        "Icon aesthetic is consistent with Upload, Folders, and Mission icons"
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/OrbitDock.tsx",
           "operation": "modify",
-          "description": "Add onClick handlers to each dock icon that check if the tapped item's index matches currentIndex. If the tapped item is the centered (active) item, invoke the corresponding open callback (onUploadOpen for Upload, onFoldersOpen for Folders, onMissionsOpen for Mission). If the tapped item is not centered, do not invoke any open callback (rotation-first behavior will be handled in REQ-3). Ensure the tap logic distinguishes between center taps (which open) and side taps (which rotate)."
+          "description": "Add an inline SVG icon for Collections within the OrbitDock component's icon rendering logic. The icon must be a 2×2 grid of four rounded squares (rect elements with rx/ry for rounded corners). Use a stroke width of 2.2–2.5px and no fill. Apply theme-aware colors: #D97706 in light mode and #FBBF24 in dark mode, matching the conditional color logic used for the other icons. Ensure the icon respects the 60% opacity rule when inactive, consistent with the existing opacity transitions for Upload, Folders, and Mission icons. The icon viewBox and dimensions should match the scale of the other dock icons."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Implement rotation-first for side icon taps: tapping inactive icon rotates it to center without opening; second tap opens",
+      "summary": "Create CollectionsFullScreenView component that aggregates all uploaded items from UploadContext and React Query without altering the floating bottom-left stack",
       "acceptanceCriteria": [
-        "Tapping a side icon triggers a smooth rotation animation that brings it to the center position.",
-        "After the rotation, only the visual active state changes — the function does not open.",
-        "A subsequent tap on the now-centered icon opens the function.",
-        "The rotation animation reuses the existing orbital/smooth-rotation mechanism without introducing new animation systems."
+        "Tapping Collections icon when active opens CollectionsFullScreenView",
+        "Screen aggregates all uploaded files, notes, and links from existing data sources",
+        "Floating bottom-left upload stack is unchanged and still visible when Collections is closed",
+        "Screen has a back/close action to return to the main view",
+        "Component follows the same full-screen view pattern as FoldersFullScreenView and MissionsFullScreenView"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/OrbitDock.tsx",
-          "operation": "modify",
-          "description": "Extend the onClick handlers added in REQ-2 to implement rotation-first behavior for side (non-centered) icon taps. When a side icon is tapped (tapped index !== currentIndex), call setCurrentIndex to the tapped item's index, triggering the existing smooth rotation animation provided by useCircularCarousel. Do not invoke any open callback during this rotation. The existing carousel transition logic will animate the rotation. After rotation completes and the item becomes centered, a second tap will trigger the open logic from REQ-2. Ensure the rotation uses the existing CSS transitions and does not introduce new animation systems."
+          "path": "frontend/src/components/CollectionsFullScreenView.tsx",
+          "operation": "create",
+          "description": "Create a new full-screen view component that displays all uploaded files, notes, and links as an aggregated collection. The component must accept an onClose callback prop and render a full-screen overlay with a back button in the header. Query all uploaded items by combining data from UploadContext (for in-progress and recently completed uploads) and React Query hooks (useGetAllFiles from useQueries.ts and useGetAllNotes from useNotesQueries.ts). Merge and deduplicate items by id. Render the aggregated list in a 4-column thumbnail grid (see REQ-4 for grid layout specifics). Follow the same structural pattern as FoldersFullScreenView and MissionsFullScreenView: fixed header with title and back button, scrollable content area, and theme-aware styling. Do not modify or interfere with the existing FloatingFileStack or StackFilesFullScreenView components."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Add subtle tap feedback: scale-down animation and light haptic vibration on all icon taps",
+      "summary": "Render all items in CollectionsFullScreenView as a responsive 4-column thumbnail grid with 80×80px cells, 8–12px gaps, 16px edge padding, and lazy loading",
       "acceptanceCriteria": [
-        "Every tap on any dock icon (center or side) produces a brief scale-down to 0.95 lasting 100–120ms, then returns to the normal scale.",
-        "On devices/browsers that support navigator.vibrate, a short light vibration (≤15ms) fires on each tap.",
-        "On devices that do not support haptics, the tap interaction proceeds silently without errors.",
-        "The scale feedback does not conflict with the existing scale/opacity hierarchy applied by the carousel positioning."
+        "Grid renders 4 columns at 390px screen width",
+        "Each cell is 80×80px with 8–12px gap between cells",
+        "16px padding on left and right screen edges",
+        "Thumbnail corners have 8–10px border-radius",
+        "Image/file items show a visual preview thumbnail",
+        "Note items show a card with a note/document icon",
+        "Link items show a favicon or fallback link icon",
+        "Lazy loading is applied so off-screen thumbnails load on scroll"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/OrbitDock.tsx",
+          "path": "frontend/src/components/CollectionsFullScreenView.tsx",
           "operation": "modify",
-          "description": "Add visual and haptic feedback to all dock icon onClick handlers. On every tap (whether center or side icon), apply a temporary scale transform to 0.95 for 100–120ms using inline style or a CSS class, then remove it to return to the carousel-computed scale. Use CSS transition for the scale animation. Additionally, invoke navigator.vibrate([10]) (or a duration ≤15ms) on each tap if the API is supported; wrap the vibrate call in a try-catch or feature-detection check to avoid errors on unsupported devices. Ensure the temporary scale does not interfere with the existing scale hierarchy from useCircularCarousel by applying it additively or using a separate CSS property/class that animates independently."
+          "description": "Implement the thumbnail grid layout within CollectionsFullScreenView. Use CSS Grid with 4 columns (grid-cols-4) and a gap of 8–12px (gap-2 or gap-3). Apply 16px horizontal padding (px-4) to the grid container. Each thumbnail cell must be 80×80px (w-20 h-20) with 8–10px rounded corners (rounded-lg or rounded-xl). For files with image MIME types, render an <img> tag using the file's blob.getDirectURL(). For notes, render a card thumbnail with a document/note icon (reuse or adapt the note icon from existing components). For links, attempt to display a favicon using the link's domain, or fall back to a generic link icon. Implement lazy loading using the loading='lazy' attribute on <img> tags or a lazy-load library like react-intersection-observer to defer off-screen thumbnail rendering until the user scrolls. Ensure touch-friendly tap targets by adding appropriate padding or min-height to each cell."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Reuse existing file-selection logic (single, multi, select-all, move, delete, share) from GallerySection and StackFilesFullScreenView without creating new logic",
+      "acceptanceCriteria": [
+        "Long-press or tap initiates single-item selection using existing selection state",
+        "Multi-select works the same as in GallerySection/StackFilesFullScreenView",
+        "Select All selects all items in the Collections grid",
+        "Move to Mission opens the existing MoveToMissionDialog",
+        "Move to Folder opens the existing SendToFolderDialog",
+        "Delete triggers the existing delete mutation/confirmation flow",
+        "Share triggers the existing share utility",
+        "No new mutation hooks or selection state managers are introduced"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/CollectionsFullScreenView.tsx",
+          "operation": "modify",
+          "description": "Wire up the existing selection and action logic from GallerySection and StackFilesFullScreenView. Import and use the useStackedFiles hook from frontend/src/hooks/useStackedFiles.ts to manage selected items. Add long-press detection (via touch events or a timer-based approach) to enter selection mode and add items to the stack. Render a selection toolbar at the bottom (similar to GallerySection) when selectedFiles.length > 0, with buttons for Select All, Move to Mission, Move to Folder, Delete, and Share. For Move to Mission, conditionally render <MoveToMissionDialog> with the selected file/note ids. For Move to Folder, conditionally render <SendToFolderDialog>. For Delete, call the existing deleteFiles/deleteNotes mutations from useQueries.ts and useNotesQueries.ts with confirmation. For Share, invoke the existing share utility from frontend/src/utils/externalOpen.ts. Do not create new mutation hooks or duplicate selection state management; strictly reuse the existing patterns."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Wire CollectionsFullScreenView into HomePage using the same conditional rendering pattern as FoldersFullScreenView and MissionsFullScreenView",
+      "acceptanceCriteria": [
+        "HomePage gains a showCollections boolean state, defaulting to false",
+        "OrbitDock receives an onCollectionsTap prop that sets showCollections to true",
+        "CollectionsFullScreenView mounts/unmounts based on showCollections",
+        "All other HomePage state and rendered components are unaffected",
+        "Existing Upload, Folders, and Mission tap callbacks are unchanged"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Add a showCollections boolean state using useState, defaulting to false. Define an onCollectionsTap callback that sets showCollections to true. Pass onCollectionsTap as a new prop to the <OrbitDock> component (which will be wired up in REQ-1). Conditionally render <CollectionsFullScreenView> when showCollections is true, passing an onClose callback that sets showCollections back to false. Follow the exact same conditional rendering and state management pattern used for showFolders/FoldersFullScreenView and showMissions/MissionsFullScreenView. Ensure no other HomePage state, hooks, or component rendering logic is modified. Verify that all existing tap callbacks (onUploadTap, onFoldersTap, onMissionTap) remain unchanged."
         }
       ]
     }

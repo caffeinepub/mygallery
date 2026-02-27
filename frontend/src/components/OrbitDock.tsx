@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Upload, FolderOpen, Target } from 'lucide-react';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 interface OrbitDockProps {
   activeIndex: number;
@@ -11,39 +10,78 @@ interface OrbitDockProps {
   behindOverlay?: boolean;
 }
 
-const ITEMS = [
-  { id: 'upload', label: 'Upload', Icon: Upload },
-  { id: 'folders', label: 'Folders', Icon: FolderOpen },
-  { id: 'mission', label: 'Mission', Icon: Target },
-] as const;
+// ── Icon components ──────────────────────────────────────────────────────────
 
-const ITEM_COUNT = ITEMS.length;
-
-// Semi-circular arc geometry
-// Radius: 130px — gives clear separation without overlap at max icon size (50px active)
-// Angular separation: 120° between each icon (left=-120°, center=0°, right=+120°)
-const ARC_RADIUS = 130; // px — increased from 100px to prevent overlap with larger icons
-const ARC_ANGLES_DEG = [-120, 0, 120]; // left, center, right — 120° separation
-
-// Active icon base size: 50px (in range 48–52px)
-// Inactive icon base size: 36px (in range 34–38px)
-// Scale ratio: 36/50 = 0.72 ≈ 0.75 (within 0.75–0.8 range)
-const ACTIVE_ICON_SIZE = 50;
-const INACTIVE_ICON_SIZE = 36;
-
-// Animation duration for rotation (ms) — used for interaction gating
-const ROTATION_DURATION_MS = 260;
-
-function getArcPosition(relativeSlot: number, radius: number): { x: number; y: number } {
-  // relativeSlot: -1 = left, 0 = center, 1 = right
-  const angleDeg = ARC_ANGLES_DEG[relativeSlot + 1];
-  // Arc curves upward: center is highest, sides are lower
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const x = Math.sin(angleRad) * radius;
-  // Use a gentle vertical factor so the arc is visible but not too deep
-  const y = (1 - Math.cos(angleRad)) * radius * 0.32;
-  return { x, y };
+function UploadIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 16 12 12 8 16" />
+      <line x1="12" y1="12" x2="12" y2="21" />
+      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+    </svg>
+  );
 }
+
+function FoldersIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
+
+function MissionIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function CollectionsIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="1.5" ry="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" ry="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" ry="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" ry="1.5" />
+    </svg>
+  );
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const ITEMS = [
+  { id: 'upload', label: 'Upload' },
+  { id: 'folders', label: 'Folders' },
+  { id: 'mission', label: 'Mission' },
+  { id: 'collections', label: 'Collections' },
+];
+
+const ITEM_COUNT = ITEMS.length; // 4
+const ORBIT_RADIUS = 160;
+const ACTIVE_SIZE = 56;
+const INACTIVE_SIZE = 42;
+const TRANSITION_MS = 225;
+const SWIPE_THRESHOLD = 40;
+const SWIPE_VELOCITY = 0.3;
+
+// CSS coordinate system: angle 0° = right, 90° = bottom, 180° = left, 270° = top
+// Active item sits at the bottom = 90°
+// 4 items spaced 90° apart
+
+function angleToPosition(angleDeg: number, radius: number): { x: number; y: number } {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: Math.cos(rad) * radius,
+    y: Math.sin(rad) * radius,
+  };
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function OrbitDock({
   activeIndex,
@@ -52,412 +90,237 @@ export default function OrbitDock({
   disabled = false,
   behindOverlay = false,
 }: OrbitDockProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const prefersReducedMotion = useReducedMotion();
-  const [isSwiping, setIsSwiping] = useState(false);
-  const [missionJustActivated, setMissionJustActivated] = useState(false);
-  const prevActiveIndexRef = useRef(activeIndex);
-  const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const uploadPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [uploadPulseActive, setUploadPulseActive] = useState(false);
 
-  // Tap feedback state: which icon is being pressed (for scale-down effect)
-  const [tappedIndex, setTappedIndex] = useState<number | null>(null);
-  const tapFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Continuous rotation offset in degrees (accumulates with each index change)
+  const [rotationOffset, setRotationOffset] = useState(0);
+  const targetRotation = useRef(0);
+  const currentRotation = useRef(0);
+  const animFrameRef = useRef<number | null>(null);
+  const prevActiveIndex = useRef(activeIndex);
 
-  // Rotation-in-progress guard: prevents firing action until rotation completes
-  const isRotatingRef = useRef(false);
-  const rotationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Swipe gesture state
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
+  const pointerStartTime = useRef<number>(0);
+  const isDragging = useRef(false);
+  const hasSwiped = useRef(false);
 
-  // Internal display index — tracks what's visually centered (may differ from activeIndex during rotation)
-  const [displayIndex, setDisplayIndex] = useState(activeIndex);
-
-  // Keep displayIndex in sync when activeIndex changes externally (e.g. swipe from parent)
-  useEffect(() => {
-    setDisplayIndex(activeIndex);
-  }, [activeIndex]);
-
-  // Detect Mission becoming active for micro-interaction
-  useEffect(() => {
-    if (activeIndex === 2 && prevActiveIndexRef.current !== 2) {
-      setMissionJustActivated(true);
-      const t = setTimeout(() => setMissionJustActivated(false), 400);
-      return () => clearTimeout(t);
-    }
-    prevActiveIndexRef.current = activeIndex;
-  }, [activeIndex]);
-
-  // Upload idle pulse every 8–10 seconds
-  useEffect(() => {
-    let timerId: ReturnType<typeof setTimeout>;
-    const scheduleNext = () => {
-      const delay = 8000 + Math.random() * 2000;
-      timerId = setTimeout(() => {
-        setUploadPulseActive(true);
-        setTimeout(() => setUploadPulseActive(false), 700);
-        scheduleNext();
-      }, delay);
+  // Animate rotation smoothly
+  const animateToTarget = useCallback(() => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    const animate = () => {
+      const diff = targetRotation.current - currentRotation.current;
+      if (Math.abs(diff) < 0.05) {
+        currentRotation.current = targetRotation.current;
+        setRotationOffset(targetRotation.current);
+        return;
+      }
+      currentRotation.current += diff * 0.18;
+      setRotationOffset(currentRotation.current);
+      animFrameRef.current = requestAnimationFrame(animate);
     };
-    scheduleNext();
-    return () => clearTimeout(timerId);
+    animFrameRef.current = requestAnimationFrame(animate);
   }, []);
 
-  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (tapFeedbackTimerRef.current) clearTimeout(tapFeedbackTimerRef.current);
-      if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
-      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
 
-  // Trigger haptic feedback if supported
-  const triggerHaptic = useCallback(() => {
-    if ('vibrate' in navigator) {
-      try {
-        navigator.vibrate(10);
-      } catch {
-        // Silently ignore — some browsers throw on vibrate
-      }
-    }
-  }, []);
-
-  // Apply tap feedback (scale-down) to the tapped icon
-  const applyTapFeedback = useCallback((index: number) => {
-    setTappedIndex(index);
-    triggerHaptic();
-    if (tapFeedbackTimerRef.current) clearTimeout(tapFeedbackTimerRef.current);
-    tapFeedbackTimerRef.current = setTimeout(() => {
-      setTappedIndex(null);
-    }, 120);
-  }, [triggerHaptic]);
-
-  // Swipe left: advance to next item (index + 1), visual only — no open action
-  const handleSwipeLeft = useCallback(() => {
-    if (disabled) return;
-    setIsSwiping(true);
-    const newIndex = (activeIndex + 1) % ITEM_COUNT;
-    setDisplayIndex(newIndex);
-    onIndexChange(newIndex);
-    if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
-    swipeTimeoutRef.current = setTimeout(() => setIsSwiping(false), 300);
-  }, [disabled, activeIndex, onIndexChange]);
-
-  // Swipe right: go to previous item (index - 1), visual only — no open action
-  const handleSwipeRight = useCallback(() => {
-    if (disabled) return;
-    setIsSwiping(true);
-    const newIndex = (activeIndex - 1 + ITEM_COUNT) % ITEM_COUNT;
-    setDisplayIndex(newIndex);
-    onIndexChange(newIndex);
-    if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
-    swipeTimeoutRef.current = setTimeout(() => setIsSwiping(false), 300);
-  }, [disabled, activeIndex, onIndexChange]);
-
-  const { handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel } =
-    useSwipeGesture({
-      onSwipeLeft: handleSwipeLeft,
-      onSwipeRight: handleSwipeRight,
-      threshold: 40,
-    });
-
-  const handleItemClick = useCallback(
-    (index: number) => {
-      if (disabled) return;
-      if (isRotatingRef.current) return;
-
-      const isCurrentlyCenter = index === displayIndex;
-
-      if (isCurrentlyCenter) {
-        // Already centered — apply tap feedback and fire the open action
-        applyTapFeedback(index);
-        onItemActivate(index);
+  useEffect(() => {
+    if (prevActiveIndex.current !== activeIndex) {
+      const diff = activeIndex - prevActiveIndex.current;
+      // Shortest path for 4 items
+      let normalizedDiff = diff;
+      if (normalizedDiff > ITEM_COUNT / 2) normalizedDiff -= ITEM_COUNT;
+      if (normalizedDiff < -ITEM_COUNT / 2) normalizedDiff += ITEM_COUNT;
+      // Each step rotates by -90° (moving active item to bottom)
+      targetRotation.current = currentRotation.current - normalizedDiff * 90;
+      prevActiveIndex.current = activeIndex;
+      if (!prefersReducedMotion) {
+        animateToTarget();
       } else {
-        // Side icon tapped — apply tap feedback, rotate to center only (no open action)
-        applyTapFeedback(index);
-        isRotatingRef.current = true;
-
-        // Update display index immediately for visual rotation
-        setDisplayIndex(index);
-        // Notify parent of index change (visual only, no open)
-        onIndexChange(index);
-
-        // Clear any pending rotation timer
-        if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
-
-        // After rotation animation completes, release the guard
-        rotationTimerRef.current = setTimeout(() => {
-          isRotatingRef.current = false;
-        }, ROTATION_DURATION_MS);
+        currentRotation.current = targetRotation.current;
+        setRotationOffset(targetRotation.current);
       }
-    },
-    [disabled, displayIndex, onIndexChange, onItemActivate, applyTapFeedback]
-  );
+    }
+  }, [activeIndex, prefersReducedMotion, animateToTarget]);
 
-  // Calculate position for each item based on its slot relative to displayIndex
-  const getItemStyle = (itemIndex: number) => {
-    const relativeSlot = (itemIndex - displayIndex + ITEM_COUNT) % ITEM_COUNT;
-    // Map: 0 = center, 1 = right, 2 = left
-    let slot: -1 | 0 | 1;
-    if (relativeSlot === 0) slot = 0;
-    else if (relativeSlot === 1) slot = 1;
-    else slot = -1;
+  // ── Pointer handlers ────────────────────────────────────────────────────────
 
-    if (prefersReducedMotion) {
-      // Flat horizontal slide, no arc — wider spacing for larger icons
-      const x = slot * 150;
-      return {
-        transform: `translateX(${x}px)`,
-        opacity: slot === 0 ? 1 : 0.55,
-        isCenter: slot === 0,
-        slot,
-      };
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (disabled || behindOverlay) return;
+    pointerStartX.current = e.clientX;
+    pointerStartY.current = e.clientY;
+    pointerStartTime.current = Date.now();
+    isDragging.current = true;
+    hasSwiped.current = false;
+  }, [disabled, behindOverlay]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current || pointerStartX.current === null) return;
+    const dx = e.clientX - pointerStartX.current;
+    const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current || pointerStartX.current === null) return;
+    isDragging.current = false;
+
+    const dx = e.clientX - pointerStartX.current;
+    const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+    const dt = Math.max(1, Date.now() - pointerStartTime.current);
+    const velocity = Math.abs(dx) / dt;
+
+    const isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
+    const isSwipe = isHorizontalSwipe && (Math.abs(dx) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY);
+
+    if (isSwipe) {
+      hasSwiped.current = true;
+      if (dx < 0) {
+        // Swipe left → next item
+        onIndexChange((activeIndex + 1) % ITEM_COUNT);
+      } else {
+        // Swipe right → previous item
+        onIndexChange((activeIndex - 1 + ITEM_COUNT) % ITEM_COUNT);
+      }
     }
 
-    const { x, y } = getArcPosition(slot, ARC_RADIUS);
-    const scale = slot === 0 ? 1.0 : 0.72;
-    const opacity = slot === 0 ? 1.0 : 0.55;
+    pointerStartX.current = null;
+    pointerStartY.current = null;
+  }, [activeIndex, onIndexChange]);
 
-    return {
-      transform: `translate(${x}px, ${y}px) scale(${scale})`,
-      opacity,
-      isCenter: slot === 0,
-      slot,
-    };
-  };
+  // ── Item tap handler ────────────────────────────────────────────────────────
 
-  const showGlow = !isSwiping;
+  const handleItemTap = useCallback((itemIndex: number, e: React.PointerEvent) => {
+    if (disabled || behindOverlay) return;
+    if (hasSwiped.current) return;
+    // Check it was a small movement (tap, not drag)
+    const dx = pointerStartX.current !== null ? e.clientX - pointerStartX.current : 0;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) return;
 
-  // Arc path for the decorative guide
-  const arcEndX = Math.sin((120 * Math.PI) / 180) * ARC_RADIUS;
-  const arcEndY = (1 - Math.cos((120 * Math.PI) / 180)) * ARC_RADIUS * 0.32;
-  const arcCtrlY = -ARC_RADIUS * 0.10;
+    if (itemIndex === activeIndex) {
+      onItemActivate(itemIndex);
+    } else {
+      onIndexChange(itemIndex);
+    }
+  }, [activeIndex, disabled, behindOverlay, onItemActivate, onIndexChange]);
 
-  // Suppress unused ref warning
-  void uploadPulseTimerRef;
+  // ── Color helpers ───────────────────────────────────────────────────────────
+
+  function getItemColor(itemId: string, isActive: boolean): string {
+    if (!isActive) {
+      return isDark ? 'oklch(0.75 0 0)' : 'oklch(0.55 0 0)';
+    }
+    switch (itemId) {
+      case 'upload':
+        return isDark ? '#60A5FA' : '#2563EB';
+      case 'folders':
+        return isDark ? '#2DD4BF' : '#0D9488';
+      case 'mission':
+        return isDark ? '#A78BFA' : '#7C3AED';
+      case 'collections':
+        return isDark ? '#FBBF24' : '#D97706';
+      default:
+        return isDark ? '#60A5FA' : '#2563EB';
+    }
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  // Container: orbit center is at bottom-center
+  // We need enough height to show the top of the circle
+  // Top item is at -ORBIT_RADIUS from center, center is at bottom
+  const containerHeight = ORBIT_RADIUS + ACTIVE_SIZE + 40;
+  const containerWidth = ORBIT_RADIUS * 2 + ACTIVE_SIZE + 20;
+
+  // Orbit center position within container
+  const centerX = containerWidth / 2;
+  const centerY = containerHeight - ACTIVE_SIZE / 2 - 20;
 
   return (
     <div
-      className={`fixed left-1/2 ${behindOverlay ? 'z-30' : 'z-40'}`}
+      className="relative select-none"
       style={{
-        // Position the arc center at ~62% of viewport height
-        top: '62vh',
-        transform: 'translateX(-50%) translateY(-50%)',
-        width: '380px',
-        height: '200px',
-        touchAction: 'none',
+        width: containerWidth,
+        height: containerHeight,
+        touchAction: 'pan-y',
+        pointerEvents: disabled || behindOverlay ? 'none' : 'auto',
+        opacity: behindOverlay ? 0.4 : 1,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
+      onPointerCancel={handlePointerUp}
     >
-      {/* Arc guide — subtle decorative arc */}
-      {!prefersReducedMotion && (
-        <svg
-          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-          style={{ bottom: '24px', width: '320px', height: '120px', overflow: 'visible' }}
-          viewBox="-160 -20 320 120"
-          fill="none"
-        >
-          <path
-            d={`M ${-arcEndX} ${arcEndY} Q 0 ${arcCtrlY} ${arcEndX} ${arcEndY}`}
-            stroke="oklch(var(--border))"
-            strokeWidth="1"
-            strokeDasharray="3 5"
-            opacity="0.30"
-          />
-        </svg>
-      )}
+      {ITEMS.map((item, idx) => {
+        const isActive = idx === activeIndex;
 
-      {/* Icons container */}
-      <div className="relative w-full h-full flex items-end justify-center" style={{ paddingBottom: '20px' }}>
-        {ITEMS.map((item, index) => {
-          const { transform, opacity, isCenter } = getItemStyle(index);
-          const Icon = item.Icon;
+        // Base angle: active item at 90° (bottom), others offset by 90° each
+        // rotationOffset shifts all items continuously
+        const baseAngleDeg = 90 + (idx - activeIndex) * 90 + rotationOffset;
+        const pos = angleToPosition(baseAngleDeg, ORBIT_RADIUS);
 
-          // Micro-interaction classes
-          const isUpload = item.id === 'upload';
-          const isFolders = item.id === 'folders';
-          const isMission = item.id === 'mission';
+        const iconSize = isActive ? ACTIVE_SIZE : INACTIVE_SIZE;
+        const scale = isActive ? 1 : 0.72;
+        const opacity = isActive ? 1 : 0.6;
+        const color = getItemColor(item.id, isActive);
 
-          // Icon sizes: active = 50px, inactive = 36px
-          const iconSize = isCenter ? ACTIVE_ICON_SIZE : INACTIVE_ICON_SIZE;
-          // Wrapper padding: gives breathing room around the icon
-          const wrapperPad = isCenter ? 20 : 16;
+        const itemLeft = centerX + pos.x - iconSize / 2;
+        const itemTop = centerY + pos.y - iconSize / 2;
 
-          // Tap feedback: scale-down to 0.95 for 120ms on any tap
-          const isTapped = tappedIndex === index;
-
-          // Color tokens
-          let iconColorClass = 'text-primary';
-          if (item.id === 'mission') iconColorClass = 'text-missions-accent';
-          if (item.id === 'folders') iconColorClass = 'text-sky-500 dark:text-sky-400';
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleItemClick(index)}
-              disabled={disabled}
-              aria-label={item.label}
-              data-transition-source={
-                item.id === 'folders' ? 'folders' : item.id === 'mission' ? 'missions' : undefined
-              }
-              className={`absolute flex flex-col items-center gap-1 focus:outline-none select-none ${
-                !disabled ? 'cursor-pointer' : 'cursor-default'
-              }`}
-              style={{
-                transform,
-                opacity,
-                // All icons are pointer-events enabled so side icons can be tapped to rotate
-                pointerEvents: disabled ? 'none' : 'auto',
-                transition: prefersReducedMotion
-                  ? 'opacity 0.15s ease'
-                  : `transform ${ROTATION_DURATION_MS}ms cubic-bezier(0.34, 1.20, 0.64, 1), opacity ${ROTATION_DURATION_MS}ms ease-in-out`,
-                bottom: 0,
-                left: '50%',
-                marginLeft: `-${Math.round((iconSize + wrapperPad) / 2)}px`,
-                width: `${iconSize + wrapperPad}px`,
-              }}
-            >
-              {/* Icon wrapper with micro-interaction effects */}
-              <div
-                className="relative flex items-center justify-center"
-                style={{
-                  width: iconSize + wrapperPad,
-                  height: iconSize + wrapperPad,
-                  // Tap feedback: subtle scale-down on any icon press
-                  transform: isTapped ? 'scale(0.95)' : 'scale(1)',
-                  transition: isTapped
-                    ? 'transform 60ms ease-out'
-                    : 'transform 120ms ease-in',
-                  // Ensure crisp rendering — use will-change only on active icon
-                  willChange: isCenter ? 'transform' : 'auto',
-                  imageRendering: 'crisp-edges',
-                }}
-              >
-                {/* Folders depth shadow layers */}
-                {isFolders && isCenter && !prefersReducedMotion && (
-                  <>
-                    <div
-                      className="absolute rounded-lg"
-                      style={{
-                        width: iconSize + 8,
-                        height: iconSize + 8,
-                        background: 'oklch(var(--primary) / 0.06)',
-                        transform: 'translate(3px, 3px)',
-                        borderRadius: '10px',
-                      }}
-                    />
-                    <div
-                      className="absolute rounded-lg"
-                      style={{
-                        width: iconSize + 8,
-                        height: iconSize + 8,
-                        background: 'oklch(var(--primary) / 0.10)',
-                        transform: 'translate(1.5px, 1.5px)',
-                        borderRadius: '10px',
-                      }}
-                    />
-                  </>
-                )}
-
-                {/* Active center glow background */}
-                {isCenter && (
-                  <div
-                    className="absolute inset-0 rounded-2xl"
-                    style={{
-                      background: isMission
-                        ? 'oklch(var(--missions-bg) / 0.7)'
-                        : isFolders
-                        ? 'oklch(0.88 0.06 220 / 0.5)'
-                        : 'oklch(var(--primary) / 0.08)',
-                      boxShadow: isMission
-                        ? '0 4px 16px oklch(var(--missions-accent) / 0.25)'
-                        : isFolders
-                        ? '0 4px 16px oklch(0.55 0.15 220 / 0.20)'
-                        : '0 4px 16px oklch(var(--primary) / 0.20)',
-                      transition: 'opacity 200ms ease',
-                      opacity: showGlow ? 1 : 0,
-                    }}
-                  />
-                )}
-
-                <Icon
-                  className={`relative z-10 ${iconColorClass} ${
-                    isUpload && isCenter && uploadPulseActive && !prefersReducedMotion
-                      ? 'animate-orbit-upload-pulse'
-                      : ''
-                  } ${
-                    isMission && isCenter && missionJustActivated && !prefersReducedMotion
-                      ? 'animate-orbit-mission-activate'
-                      : ''
-                  }`}
-                  style={{
-                    // Use explicit integer pixel dimensions for crisp vector rendering
-                    width: iconSize,
-                    height: iconSize,
-                    minWidth: iconSize,
-                    minHeight: iconSize,
-                    // No transition on icon itself — transitions are on the container
-                    transition: 'none',
-                    filter:
-                      isCenter
-                        ? isMission
-                          ? 'drop-shadow(0 2px 6px oklch(var(--missions-accent) / 0.4))'
-                          : isFolders
-                          ? 'drop-shadow(0 2px 6px oklch(0.55 0.15 220 / 0.35))'
-                          : 'drop-shadow(0 2px 6px oklch(var(--primary) / 0.35))'
-                        : 'brightness(0.75)',
-                    // Ensure crisp SVG rendering
-                    shapeRendering: 'geometricPrecision',
-                  } as React.CSSProperties}
-                  strokeWidth={isCenter ? 1.5 : 1.75}
-                />
-              </div>
-
-              {/* Label — fade in when center, fade out on swipe */}
+        return (
+          <div
+            key={item.id}
+            className="absolute flex flex-col items-center"
+            style={{
+              left: itemLeft,
+              top: itemTop,
+              width: iconSize,
+              cursor: 'pointer',
+              transition: prefersReducedMotion
+                ? 'none'
+                : `left ${TRANSITION_MS}ms ease-in-out, top ${TRANSITION_MS}ms ease-in-out, opacity ${TRANSITION_MS}ms ease-in-out, transform ${TRANSITION_MS}ms ease-in-out`,
+              opacity,
+              transform: `scale(${scale})`,
+              transformOrigin: 'center center',
+              zIndex: isActive ? 10 : 5,
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              handleItemTap(idx, e);
+            }}
+          >
+            {item.id === 'upload' && <UploadIcon color={color} size={iconSize} />}
+            {item.id === 'folders' && <FoldersIcon color={color} size={iconSize} />}
+            {item.id === 'mission' && <MissionIcon color={color} size={iconSize} />}
+            {item.id === 'collections' && <CollectionsIcon color={color} size={iconSize} />}
+            {isActive && (
               <span
-                className={`text-[10px] font-medium tracking-wide ${iconColorClass}`}
                 style={{
-                  opacity: isCenter && showGlow ? 1 : 0,
-                  transition: prefersReducedMotion
-                    ? 'none'
-                    : 'opacity 200ms ease-in-out',
-                  pointerEvents: 'none',
-                  whiteSpace: 'nowrap',
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color,
                   lineHeight: 1,
+                  marginTop: 8,
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                  textAlign: 'center',
                 }}
               >
                 {item.label}
               </span>
-
-              {/* Glow arc underline beneath active icon */}
-              {isCenter && (
-                <div
-                  style={{
-                    width: '32px',
-                    height: '2px',
-                    borderRadius: '2px',
-                    marginTop: '2px',
-                    background: isMission
-                      ? 'oklch(var(--missions-accent))'
-                      : isFolders
-                      ? 'oklch(0.55 0.18 220)'
-                      : 'oklch(var(--primary))',
-                    boxShadow: isMission
-                      ? '0 0 8px oklch(var(--missions-accent) / 0.6)'
-                      : isFolders
-                      ? '0 0 8px oklch(0.55 0.18 220 / 0.5)'
-                      : '0 0 8px oklch(var(--primary) / 0.5)',
-                    opacity: showGlow && !prefersReducedMotion ? 1 : prefersReducedMotion ? 1 : 0,
-                    transition: prefersReducedMotion ? 'none' : 'opacity 180ms ease-in-out',
-                  }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

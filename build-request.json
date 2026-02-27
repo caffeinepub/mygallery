@@ -1,99 +1,178 @@
 {
   "kind": "build_request",
-  "title": "Fix Orbit Dock interaction: swipe-only active state, tap-to-open, side-icon rotation-first behavior",
-  "projectName": "MYL Orbit Dock",
+  "title": "Add Collections to Adaptive Orbit Dock (4th item) with Collections screen",
+  "projectName": "Orbit Dock Collections",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the OrbitDock component (frontend/src/components/OrbitDock.tsx), remove any logic that automatically opens/activates a function when a swipe gesture lands an item in the center position. Swiping must only update the visual active state (the centered item) without triggering navigation or opening any view.",
+      "text": "Extend the OrbitDock component (frontend/src/components/OrbitDock.tsx) to include a 4th dock item — Collections — alongside the existing Upload, Folders, and Mission items. The four items must be distributed symmetrically at 90° intervals on the circular orbit. The active (bottom-center) item remains the tap target; swipe gestures only rotate the orbit without opening any screen. All existing swipe behavior, infinite rotation, scale/opacity transitions, reduced-motion support, and orbital geometry must remain unchanged.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-8"
         ],
         "quotes": [
-          "Όταν ο χρήστης κάνει swipe στο dock και μία λειτουργία μετακινείται στο κέντρο: Να ΜΗΝ ανοίγει αυτόματα η λειτουργία. Το swipe να αλλάζει μόνο την ενεργή (active) κατάσταση οπτικά."
+          "Το dock πλέον να περιλαμβάνει 4 εικονίδια: Upload, Folders, Mission, Collections",
+          "Συμμετρική κατανομή 90° μεταξύ των 4 εικονιδίων",
+          "Να διατηρηθεί το ίδιο circular/orbital swipe behavior με infinite rotation"
         ]
       },
       "acceptanceCriteria": [
-        "Swiping the dock left or right moves items along the arc and updates which item is visually active (centered).",
-        "After a swipe completes, no view, dialog, or panel opens automatically.",
-        "The existing infinite circular swipe, scale hierarchy, opacity hierarchy, and orbital animation remain unchanged."
+        "Dock renders exactly 4 icons: Upload, Folders, Mission, Collections",
+        "Icons are distributed at exactly 90° intervals on the orbit circle",
+        "Active icon always appears at the bottom-center position",
+        "Swiping left/right rotates the orbit and cycles items without opening any view",
+        "Tapping the center (active) icon opens the corresponding feature",
+        "No icon overlap at any rotation state",
+        "All existing scale/opacity/animation transitions are preserved",
+        "Reduced-motion mode works correctly with 4 items"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In OrbitDock, implement open-on-tap logic: a function (Upload, Folders, Mission) opens only when (a) its icon is already in the center/active position AND (b) the user taps that centered icon. A tap on the centered icon must fire the appropriate navigation/open callback.",
+      "text": "Design and implement the Collections SVG icon inside OrbitDock with a professional, minimal 2×2 grid-of-squares style (thumbnail gallery symbolism). The icon must use rounded corners and a stroke width of 2.2–2.5px. Color: warm amber #D97706 in light mode and #FBBF24 in dark mode. When inactive, the icon renders at 60% opacity, matching the visual treatment of the other dock icons.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-8"
         ],
         "quotes": [
-          "Η λειτουργία να ανοίγει μόνο όταν: Το εικονίδιο βρίσκεται στο κέντρο (active state) ΚΑΙ Ο χρήστης κάνει tap επάνω στο κεντρικό εικονίδιο."
+          "Στυλ: grid 2x2 τετραγώνων",
+          "Rounded corners",
+          "Stroke 2.2–2.5px",
+          "Light mode: warm amber #D97706",
+          "Dark mode: #FBBF24",
+          "Τα ανενεργά να εμφανίζονται με 60% opacity"
         ]
       },
       "acceptanceCriteria": [
-        "Tapping the centered (active) icon opens the corresponding function (Upload, Folders, or Mission).",
-        "All existing open/navigation callbacks for each function continue to work correctly once triggered by this tap.",
-        "No other interaction (swipe, tap on side icon) opens a function."
+        "Collections icon is an inline SVG 2×2 grid of squares with rounded corners",
+        "Stroke width is between 2.2 and 2.5px",
+        "Icon color is #D97706 in light mode and #FBBF24 in dark mode",
+        "Inactive state renders at 60% opacity",
+        "Icon aesthetic is consistent with Upload, Folders, and Mission icons"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "In OrbitDock, implement rotation-first behavior for side (inactive) icon taps: when the user taps an icon that is NOT currently centered, the dock smoothly rotates to bring that icon to the center (active state), but does NOT open the function. A second tap on the now-centered icon is required to open it.",
+      "text": "Create a new CollectionsFullScreenView component (frontend/src/components/CollectionsFullScreenView.tsx) that opens when the Collections dock icon is tapped while active. This screen displays all uploaded items (files, notes, links) from the existing UploadContext and React Query file/note queries — the same data that already appears in the bottom-left floating stack — as an additional aggregated view. The existing bottom-left upload display must not change in any way.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-8"
         ],
         "quotes": [
-          "Αν ο χρήστης κάνει tap σε πλαϊνό (inactive) εικονίδιο: Να εκτελείται πρώτα ομαλή περιστροφή ώστε να έρθει στο κέντρο. Να ΜΗΝ ανοίγει ακόμη η λειτουργία. Να απαιτείται δεύτερο tap για να ανοίξει."
+          "Να ανοίγει νέα οθόνη με όλα τα αρχεία που έχουν γίνει upload",
+          "Τα uploads να συνεχίσουν να εμφανίζονται όπως ήδη εμφανίζονται στο κάτω αριστερό μέρος της οθόνης",
+          "Το Collections να είναι επιπλέον προβολή όλων των uploads συγκεντρωτικά"
         ]
       },
       "acceptanceCriteria": [
-        "Tapping a side icon triggers a smooth rotation animation that brings it to the center position.",
-        "After the rotation, only the visual active state changes — the function does not open.",
-        "A subsequent tap on the now-centered icon opens the function.",
-        "The rotation animation reuses the existing orbital/smooth-rotation mechanism without introducing new animation systems."
+        "Tapping Collections icon when active opens CollectionsFullScreenView",
+        "Screen aggregates all uploaded files, notes, and links from existing data sources",
+        "Floating bottom-left upload stack is unchanged and still visible when Collections is closed",
+        "Screen has a back/close action to return to the main view",
+        "Component follows the same full-screen view pattern as FoldersFullScreenView and MissionsFullScreenView"
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add subtle tap visual and haptic feedback to all OrbitDock icon interactions: on every tap (whether on the centered icon or a side icon), the tapped icon scales down to 0.95 for 100–120ms before returning to its normal scale. Additionally, trigger a light haptic vibration (using navigator.vibrate([10]) or equivalent) if the browser/device supports it.",
+      "text": "In CollectionsFullScreenView, render all items in a responsive 4-column thumbnail grid. Each thumbnail cell is 80×80px on a 390px-wide mobile screen. Internal spacing between thumbnails is 8–12px. Screen-edge padding is 16px on left and right. Thumbnail corners are rounded 8–10px. Images and files render as visual previews. Notes render as card thumbnails with a note icon. Links render with a small favicon or a generic link-icon fallback. Implement lazy loading for large collections.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-8"
         ],
         "quotes": [
-          "Πρόσθεσε διακριτικό visual feedback στο tap: Scale 0.95 για 100–120ms. Ελαφρύ haptic feedback (αν υποστηρίζεται)."
+          "4 thumbnails ανά σειρά",
+          "80x80px σε τυπικό mobile πλάτος 390px",
+          "Εσωτερικό spacing μεταξύ thumbnails: 8–12px",
+          "Padding οθόνης: 16px αριστερά/δεξιά",
+          "Στρογγυλεμένες γωνίες 8–10px",
+          "Lazy loading αν υπάρχουν πολλά αρχεία",
+          "Notes: Να εμφανίζονται με card thumbnail με icon note",
+          "Links: Να εμφανίζονται με μικρό preview thumbnail ή favicon fallback"
         ]
       },
       "acceptanceCriteria": [
-        "Every tap on any dock icon (center or side) produces a brief scale-down to 0.95 lasting 100–120ms, then returns to the normal scale.",
-        "On devices/browsers that support navigator.vibrate, a short light vibration (≤15ms) fires on each tap.",
-        "On devices that do not support haptics, the tap interaction proceeds silently without errors.",
-        "The scale feedback does not conflict with the existing scale/opacity hierarchy applied by the carousel positioning."
+        "Grid renders 4 columns at 390px screen width",
+        "Each cell is 80×80px with 8–12px gap between cells",
+        "16px padding on left and right screen edges",
+        "Thumbnail corners have 8–10px border-radius",
+        "Image/file items show a visual preview thumbnail",
+        "Note items show a card with a note/document icon",
+        "Link items show a favicon or fallback link icon",
+        "Lazy loading is applied so off-screen thumbnails load on scroll"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "In CollectionsFullScreenView, reuse the existing file-selection logic from the app (single select, multi-select, select all, move to Mission, move to Folder, delete, share) exactly as implemented in GallerySection and StackFilesFullScreenView. Do not create any new selection, mutation, or action logic — wire up the existing hooks, dialogs (SendToFolderDialog, MoveToMissionDialog), and mutation calls.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Να χρησιμοποιείται η ήδη υπάρχουσα λογική επιλογής αρχείων",
+          "Επιλογή ενός αρχείου",
+          "Μαζική επιλογή",
+          "Select all",
+          "Μεταφορά σε Mission",
+          "Μεταφορά σε Folder",
+          "Delete",
+          "Share",
+          "Να μην δημιουργηθεί νέα λογική"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Long-press or tap initiates single-item selection using existing selection state",
+        "Multi-select works the same as in GallerySection/StackFilesFullScreenView",
+        "Select All selects all items in the Collections grid",
+        "Move to Mission opens the existing MoveToMissionDialog",
+        "Move to Folder opens the existing SendToFolderDialog",
+        "Delete triggers the existing delete mutation/confirmation flow",
+        "Share triggers the existing share utility",
+        "No new mutation hooks or selection state managers are introduced"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Wire CollectionsFullScreenView into HomePage.tsx (frontend/src/pages/HomePage.tsx) using the same conditional rendering pattern as FoldersFullScreenView and MissionsFullScreenView. Add a showCollections state flag and pass the onCollectionsTap callback to OrbitDock. No other existing state, routing, layout, or component behavior in HomePage must change.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8"
+        ],
+        "quotes": [
+          "Να μη μεταβληθεί καμία υπάρχουσα ροή",
+          "Να διατηρηθούν όλα τα υπάρχοντα animations",
+          "Να διατηρηθεί το professional, minimal ύφος"
+        ]
+      },
+      "acceptanceCriteria": [
+        "HomePage gains a showCollections boolean state, defaulting to false",
+        "OrbitDock receives an onCollectionsTap prop that sets showCollections to true",
+        "CollectionsFullScreenView mounts/unmounts based on showCollections",
+        "All other HomePage state and rendered components are unaffected",
+        "Existing Upload, Folders, and Mission tap callbacks are unchanged"
       ]
     }
   ],
   "constraints": [
-    "Do not change any backend logic, data models, or API calls.",
-    "Do not modify any other component, hook, page, or utility outside of OrbitDock.tsx and its direct tap/swipe interaction logic.",
-    "Preserve the existing infinite circular swipe behavior.",
-    "Preserve the existing scale and opacity hierarchy for dock items.",
-    "Preserve the existing orbital animation.",
-    "Do not alter any open/navigation callbacks consumed by HomePage.tsx — only change when they are invoked.",
-    "Do not edit any files listed under frontend.immutablePaths."
+    "Do not modify any existing functionality, logic, flow, animation, or architecture",
+    "Do not alter the floating bottom-left upload stack display",
+    "Do not create new selection, mutation, or file-action logic — reuse existing implementations",
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Preserve all existing OrbitDock animations and swipe behavior exactly"
   ],
   "nonGoals": [
-    "Changing the visual design, colors, or layout of the Orbit Dock.",
-    "Adding new dock items or changing the Upload/Folders/Mission functions.",
-    "Modifying any full-screen views (FoldersFullScreenView, MissionsFullScreenView, FileUploadSection).",
-    "Changing authentication, file management, or any other app logic.",
-    "Altering the useCircularCarousel hook internals beyond what is needed to decouple swipe from open."
+    "Changing how uploads are displayed in the bottom-left floating stack",
+    "Modifying the Upload, Folders, or Mission dock items or their screens",
+    "Adding backend schema changes for Collections (it reads existing upload data)",
+    "Creating a dedicated backend endpoint for Collections aggregation",
+    "Changing orbital radius, swipe velocity thresholds, or any carousel geometry beyond adding the 4th item at 90° distribution"
   ],
   "imageRequirements": {
     "required": [],
