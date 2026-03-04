@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { FileMetadata } from '@/backend';
+import type { FileMetadata } from "@/backend";
+import { create } from "zustand";
 
 interface StackedFilesState {
   stackedFiles: FileMetadata[];

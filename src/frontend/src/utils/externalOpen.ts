@@ -1,7 +1,7 @@
 /**
  * Attempts to open a URL in a new tab/window
  * Returns a promise that resolves to true if successful, false if blocked
- * 
+ *
  * Uses page visibility detection to distinguish between:
  * - True popup blocking (window.open returns null, page stays visible)
  * - Successful navigation (page loses focus/visibility)
@@ -25,19 +25,22 @@ export function openExternally(url: string): Promise<boolean> {
       };
 
       // Add listeners
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('blur', handleBlur);
-      window.addEventListener('pagehide', handleVisibilityChange);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("blur", handleBlur);
+      window.addEventListener("pagehide", handleVisibilityChange);
 
       // Cleanup function
       const cleanup = () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('blur', handleBlur);
-        window.removeEventListener('pagehide', handleVisibilityChange);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
+        window.removeEventListener("blur", handleBlur);
+        window.removeEventListener("pagehide", handleVisibilityChange);
       };
 
       // Attempt to open the window
-      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      const newWindow = window.open(url, "_blank", "noopener,noreferrer");
 
       // If window.open returns null, it's likely blocked
       if (!newWindow) {
@@ -62,7 +65,7 @@ export function openExternally(url: string): Promise<boolean> {
         }, 100);
       }
     } catch (error) {
-      console.error('Failed to open external window:', error);
+      console.error("Failed to open external window:", error);
       resolve(false);
     }
   });
@@ -79,22 +82,25 @@ export function openFileInSameTab(url: string): void {
 /**
  * Downloads a file from a URL
  */
-export async function downloadFile(url: string, filename: string): Promise<void> {
+export async function downloadFile(
+  url: string,
+  filename: string,
+): Promise<void> {
   try {
     const response = await fetch(url);
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = objectUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
+
     URL.revokeObjectURL(objectUrl);
   } catch (error) {
-    console.error('Download failed:', error);
+    console.error("Download failed:", error);
     throw error;
   }
 }
@@ -104,23 +110,26 @@ export async function downloadFile(url: string, filename: string): Promise<void>
  */
 export function downloadNoteAsText(title: string, body: string): void {
   const content = `${title}\n\n${body}`;
-  const blob = new Blob([content], { type: 'text/plain' });
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
+
+  const a = document.createElement("a");
   a.href = url;
   a.download = `${title}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  
+
   URL.revokeObjectURL(url);
 }
 
 /**
  * Shares a file using Web Share API
  */
-export async function shareFile(url: string, filename: string): Promise<boolean> {
+export async function shareFile(
+  url: string,
+  filename: string,
+): Promise<boolean> {
   if (!navigator.share) {
     return false;
   }
@@ -129,19 +138,19 @@ export async function shareFile(url: string, filename: string): Promise<boolean>
     const response = await fetch(url);
     const blob = await response.blob();
     const file = new File([blob], filename, { type: blob.type });
-    
+
     await navigator.share({
       files: [file],
       title: filename,
     });
-    
+
     return true;
   } catch (error) {
-    if ((error as Error).name === 'AbortError') {
+    if ((error as Error).name === "AbortError") {
       // User cancelled, not an error
       return true;
     }
-    console.error('Share failed:', error);
+    console.error("Share failed:", error);
     return false;
   }
 }
@@ -159,14 +168,14 @@ export async function shareNote(title: string, body: string): Promise<boolean> {
       title,
       text: body,
     });
-    
+
     return true;
   } catch (error) {
-    if ((error as Error).name === 'AbortError') {
+    if ((error as Error).name === "AbortError") {
       // User cancelled, not an error
       return true;
     }
-    console.error('Share failed:', error);
+    console.error("Share failed:", error);
     return false;
   }
 }

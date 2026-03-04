@@ -1,5 +1,5 @@
-import { Target } from 'lucide-react';
-import { forwardRef } from 'react';
+import { Target } from "lucide-react";
+import { forwardRef } from "react";
 
 interface MissionsButtonProps {
   onClick: () => void;
@@ -9,38 +9,46 @@ interface MissionsButtonProps {
 }
 
 const MissionsButton = forwardRef<HTMLButtonElement, MissionsButtonProps>(
-  ({ onClick, disabled = false, behindOverlay = false, pulse = false }, ref) => {
+  (
+    { onClick, disabled = false, behindOverlay = false, pulse = false },
+    ref,
+  ) => {
     return (
       <button
+        type="button"
         ref={ref}
         onClick={onClick}
         disabled={disabled}
         data-transition-source="missions"
         className={`fixed bottom-16 left-[17rem] flex flex-col items-center gap-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-missions-accent focus:ring-offset-2 rounded-lg p-2 group ${
-          disabled 
-            ? 'opacity-50 cursor-not-allowed' 
-            : 'hover:scale-105 cursor-pointer'
-        } ${behindOverlay ? 'z-30' : 'z-40'} ${pulse ? 'animate-icon-pulse' : ''}`}
+          disabled
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:scale-105 cursor-pointer"
+        } ${behindOverlay ? "z-30" : "z-40"} ${pulse ? "animate-icon-pulse" : ""}`}
         aria-label="Missions"
       >
         <div className="relative">
-          <div className={`w-[5.5rem] h-[5.5rem] flex items-center justify-center rounded-xl bg-missions-bg transition-all duration-200 ${
-            !disabled && 'group-hover:bg-missions-bg-hover'
-          }`}>
-            <Target 
+          <div
+            className={`w-[5.5rem] h-[5.5rem] flex items-center justify-center rounded-xl bg-missions-bg transition-all duration-200 ${
+              !disabled && "group-hover:bg-missions-bg-hover"
+            }`}
+          >
+            <Target
               className={`w-10 h-10 text-missions-accent transition-all duration-200 ${
-                !disabled && 'group-hover:scale-110 animate-missions-float'
+                !disabled && "group-hover:scale-110 animate-missions-float"
               }`}
               strokeWidth={1.5}
             />
           </div>
         </div>
-        <span className="text-xs font-medium text-missions-accent">Missions</span>
+        <span className="text-xs font-medium text-missions-accent">
+          Missions
+        </span>
       </button>
     );
-  }
+  },
 );
 
-MissionsButton.displayName = 'MissionsButton';
+MissionsButton.displayName = "MissionsButton";
 
 export default MissionsButton;

@@ -23,7 +23,7 @@ self.onmessage = async (e: MessageEvent<FileBytesRequest>) => {
     const response: FileBytesResponse = {
       itemId,
       name: file.name,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: file.type || "application/octet-stream",
       size: file.size,
       bytes,
     };
@@ -33,10 +33,10 @@ self.onmessage = async (e: MessageEvent<FileBytesRequest>) => {
     const response: FileBytesResponse = {
       itemId,
       name: file.name,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: file.type || "application/octet-stream",
       size: file.size,
       bytes: new Uint8Array(0),
-      error: error instanceof Error ? error.message : 'Failed to read file',
+      error: error instanceof Error ? error.message : "Failed to read file",
     };
 
     self.postMessage(response);

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import AnimatedGalleryIcon from './AnimatedGalleryIcon';
+import { useEffect, useState } from "react";
+import AnimatedGalleryIcon from "./AnimatedGalleryIcon";
 
 interface IntroScreenProps {
   onComplete: () => void;
@@ -28,7 +28,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-background intro-fade pointer-events-none ${
-        isVisible ? 'opacity-100' : 'opacity-0'
+        isVisible ? "opacity-100" : "opacity-0"
       }`}
     >
       {/* Icon-only splash screen - non-blocking overlay */}

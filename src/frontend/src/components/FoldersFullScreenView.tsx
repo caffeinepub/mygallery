@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { ArrowLeft, Folder, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import type { Folder as FolderType } from "@/backend";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,17 +8,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBackendActor } from "@/contexts/ActorContext";
 import {
-  useGetFolders,
   useCreateFolder,
-  useRenameFolder,
   useDeleteFolder,
-} from '@/hooks/useQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import type { Folder as FolderType } from '@/backend';
-import { toast } from 'sonner';
-import SwipeActionsRow from './SwipeActionsRow';
+  useGetFolders,
+  useRenameFolder,
+} from "@/hooks/useQueries";
+import { ArrowLeft, Folder, Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import SwipeActionsRow from "./SwipeActionsRow";
 
 interface FoldersFullScreenViewProps {
   onClose: () => void;
@@ -33,11 +33,13 @@ export default function FoldersFullScreenView({
   onClose,
   onSelectFolder,
 }: FoldersFullScreenViewProps) {
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingName, setEditingName] = useState("");
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
-  const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<bigint | null>(null);
+  const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<
+    bigint | null
+  >(null);
 
   const { status } = useBackendActor();
   const { data: folders = [], isLoading } = useGetFolders();
@@ -45,22 +47,23 @@ export default function FoldersFullScreenView({
   const renameFolderMutation = useRenameFolder();
   const deleteFolderMutation = useDeleteFolder();
 
-  const isActorReady = status === 'ready';
+  const isActorReady = status === "ready";
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
     try {
       await createFolderMutation.mutateAsync(newFolderName.trim());
-      setNewFolderName('');
-      toast.success('Folder created successfully');
+      setNewFolderName("");
+      toast.success("Folder created successfully");
     } catch (error) {
-      console.error('Failed to create folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create folder';
+      console.error("Failed to create folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create folder";
       toast.error(errorMessage);
     }
   };
@@ -68,19 +71,23 @@ export default function FoldersFullScreenView({
   const handleRenameFolder = async (folderId: bigint) => {
     if (!editingName.trim()) return;
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
     try {
-      await renameFolderMutation.mutateAsync({ folderId, newName: editingName.trim() });
+      await renameFolderMutation.mutateAsync({
+        folderId,
+        newName: editingName.trim(),
+      });
       setEditingFolderId(null);
-      setEditingName('');
+      setEditingName("");
       setOpenSwipeRowId(null);
-      toast.success('Folder renamed successfully');
+      toast.success("Folder renamed successfully");
     } catch (error) {
-      console.error('Failed to rename folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to rename folder';
+      console.error("Failed to rename folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to rename folder";
       toast.error(errorMessage);
     }
   };
@@ -92,7 +99,7 @@ export default function FoldersFullScreenView({
 
   const handleDeleteFolder = async (folderId: bigint) => {
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
@@ -100,10 +107,11 @@ export default function FoldersFullScreenView({
       await deleteFolderMutation.mutateAsync(folderId);
       setDeleteConfirmFolderId(null);
       setOpenSwipeRowId(null);
-      toast.success('Folder deleted successfully');
+      toast.success("Folder deleted successfully");
     } catch (error) {
-      console.error('Failed to delete folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete folder';
+      console.error("Failed to delete folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete folder";
       toast.error(errorMessage);
     }
   };
@@ -116,7 +124,7 @@ export default function FoldersFullScreenView({
 
   const cancelEditing = () => {
     setEditingFolderId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   const handleFolderSelect = (folder: FolderType) => {
@@ -136,8 +144,8 @@ export default function FoldersFullScreenView({
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameFolder(folder.id);
-                if (e.key === 'Escape') cancelEditing();
+                if (e.key === "Enter") handleRenameFolder(folder.id);
+                if (e.key === "Escape") cancelEditing();
               }}
               className="flex-1"
               autoFocus
@@ -149,11 +157,7 @@ export default function FoldersFullScreenView({
             >
               Save
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={cancelEditing}
-            >
+            <Button size="sm" variant="outline" onClick={cancelEditing}>
               Cancel
             </Button>
           </>
@@ -194,7 +198,7 @@ export default function FoldersFullScreenView({
     <>
       <div className="fixed inset-0 z-50 bg-background flex flex-col animate-page-scale-in">
         {/* Header */}
-        <div 
+        <div
           className="flex items-center gap-4 p-4 border-b border-border"
           data-transition-target="folders"
         >
@@ -217,14 +221,18 @@ export default function FoldersFullScreenView({
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder();
+                if (e.key === "Enter") handleCreateFolder();
               }}
               disabled={!isActorReady || createFolderMutation.isPending}
               className="flex-1"
             />
             <Button
               onClick={handleCreateFolder}
-              disabled={!newFolderName.trim() || !isActorReady || createFolderMutation.isPending}
+              disabled={
+                !newFolderName.trim() ||
+                !isActorReady ||
+                createFolderMutation.isPending
+              }
               size="icon"
             >
               <Plus className="h-4 w-4" />
@@ -259,13 +267,17 @@ export default function FoldersFullScreenView({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Folder</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this folder? All files and notes in this folder will also be deleted. This action cannot be undone.
+              Are you sure you want to delete this folder? All files and notes
+              in this folder will also be deleted. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteConfirmFolderId !== null && handleDeleteFolder(deleteConfirmFolderId)}
+              onClick={() =>
+                deleteConfirmFolderId !== null &&
+                handleDeleteFolder(deleteConfirmFolderId)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               OK

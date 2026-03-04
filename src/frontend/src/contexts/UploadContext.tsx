@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import type React from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
-export type UploadType = 'file' | 'link' | 'note';
+export type UploadType = "file" | "link" | "note";
 
 export interface UploadProgress {
   itemId: string;
@@ -22,7 +23,13 @@ interface UploadContextType {
   startNoteUpload: (title: string) => string;
   updateProgress: (batchId: string, itemId: string, progress: number) => void;
   completeUpload: (itemId: string, backendId?: string) => void;
-  restoreItem: (itemId: string, name: string, type: UploadType, size: number, progress: number) => void;
+  restoreItem: (
+    itemId: string,
+    name: string,
+    type: UploadType,
+    size: number,
+    progress: number,
+  ) => void;
   getCompletedUploads: () => UploadProgress[];
   clearCompletedUploads: () => void;
 }
@@ -31,7 +38,9 @@ const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
-  const [completedUploads, setCompletedUploads] = useState<UploadProgress[]>([]);
+  const [completedUploads, setCompletedUploads] = useState<UploadProgress[]>(
+    [],
+  );
 
   const startUpload = useCallback((files: File[]): string => {
     const batchId = `batch-${Date.now()}`;
@@ -39,13 +48,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       itemId: `${batchId}-${index}`,
       batchId,
       name: file.name,
-      type: 'file' as UploadType,
+      type: "file" as UploadType,
       progress: 0,
       size: file.size,
       completed: false,
     }));
 
-    setUploads(prev => [...prev, ...newUploads]);
+    setUploads((prev) => [...prev, ...newUploads]);
     return batchId;
   }, []);
 
@@ -55,13 +64,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       itemId: `${batchId}-0`,
       batchId,
       name,
-      type: 'link',
+      type: "link",
       progress: 0,
       size: 0,
       completed: false,
     };
 
-    setUploads(prev => [...prev, newUpload]);
+    setUploads((prev) => [...prev, newUpload]);
     return batchId;
   }, []);
 
@@ -71,76 +80,89 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       itemId: `${batchId}-0`,
       batchId,
       name: title,
-      type: 'note',
+      type: "note",
       progress: 0,
       size: 0,
       completed: false,
     };
 
-    setUploads(prev => [...prev, newUpload]);
+    setUploads((prev) => [...prev, newUpload]);
     return batchId;
   }, []);
 
-  const updateProgress = useCallback((batchId: string, itemId: string, progress: number) => {
-    setUploads(prev =>
-      prev.map(upload =>
-        upload.itemId === itemId
-          ? { ...upload, progress: Math.min(100, Math.max(0, progress)) }
-          : upload
-      )
-    );
-  }, []);
+  const updateProgress = useCallback(
+    (_batchId: string, itemId: string, progress: number) => {
+      setUploads((prev) =>
+        prev.map((upload) =>
+          upload.itemId === itemId
+            ? { ...upload, progress: Math.min(100, Math.max(0, progress)) }
+            : upload,
+        ),
+      );
+    },
+    [],
+  );
 
   const completeUpload = useCallback((itemId: string, backendId?: string) => {
-    setUploads(prev =>
-      prev.map(upload =>
+    setUploads((prev) =>
+      prev.map((upload) =>
         upload.itemId === itemId
           ? { ...upload, progress: 100, completed: true, backendId }
-          : upload
-      )
+          : upload,
+      ),
     );
 
     // Store completed upload for stack animation
-    setUploads(prev => {
-      const completed = prev.find(u => u.itemId === itemId);
-      if (completed && completed.type === 'file') {
-        setCompletedUploads(prevCompleted => [...prevCompleted, { ...completed, backendId }]);
+    setUploads((prev) => {
+      const completed = prev.find((u) => u.itemId === itemId);
+      if (completed && completed.type === "file") {
+        setCompletedUploads((prevCompleted) => [
+          ...prevCompleted,
+          { ...completed, backendId },
+        ]);
       }
       return prev;
     });
 
     // Remove from active uploads after delay
     setTimeout(() => {
-      setUploads(prev => prev.filter(upload => upload.itemId !== itemId));
+      setUploads((prev) => prev.filter((upload) => upload.itemId !== itemId));
     }, 2000);
   }, []);
 
-  const restoreItem = useCallback((
-    itemId: string,
-    name: string,
-    type: UploadType,
-    size: number,
-    progress: number
-  ) => {
-    setUploads(prev => {
-      const exists = prev.some(u => u.itemId === itemId);
-      if (exists) {
-        return prev;
-      }
+  const restoreItem = useCallback(
+    (
+      itemId: string,
+      name: string,
+      type: UploadType,
+      size: number,
+      progress: number,
+    ) => {
+      setUploads((prev) => {
+        const exists = prev.some((u) => u.itemId === itemId);
+        if (exists) {
+          return prev;
+        }
 
-      const batchId = itemId.split('-').slice(0, -1).join('-') || `restored-${Date.now()}`;
-      
-      return [...prev, {
-        itemId,
-        batchId,
-        name,
-        type,
-        progress,
-        size,
-        completed: false,
-      }];
-    });
-  }, []);
+        const batchId =
+          itemId.split("-").slice(0, -1).join("-") || `restored-${Date.now()}`;
+
+        return [
+          ...prev,
+          {
+            itemId,
+            batchId,
+            name,
+            type,
+            progress,
+            size,
+            completed: false,
+          },
+        ];
+      });
+    },
+    [],
+  );
 
   const getCompletedUploads = useCallback(() => {
     return completedUploads;
@@ -150,20 +172,21 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     setCompletedUploads([]);
   }, []);
 
-  const isUploading = uploads.some(u => !u.completed);
+  const isUploading = uploads.some((u) => !u.completed);
 
-  const totalProgress = uploads.length > 0
-    ? Math.round(
-        uploads.reduce((sum, upload) => {
-          const weight = upload.size > 0 ? upload.size : 1000;
-          return sum + (upload.progress * weight);
-        }, 0) /
-        uploads.reduce((sum, upload) => {
-          const weight = upload.size > 0 ? upload.size : 1000;
-          return sum + weight;
-        }, 0)
-      )
-    : 0;
+  const totalProgress =
+    uploads.length > 0
+      ? Math.round(
+          uploads.reduce((sum, upload) => {
+            const weight = upload.size > 0 ? upload.size : 1000;
+            return sum + upload.progress * weight;
+          }, 0) /
+            uploads.reduce((sum, upload) => {
+              const weight = upload.size > 0 ? upload.size : 1000;
+              return sum + weight;
+            }, 0),
+        )
+      : 0;
 
   return (
     <UploadContext.Provider
@@ -189,7 +212,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 export function useUpload() {
   const context = useContext(UploadContext);
   if (!context) {
-    throw new Error('useUpload must be used within UploadProvider');
+    throw new Error("useUpload must be used within UploadProvider");
   }
   return context;
 }

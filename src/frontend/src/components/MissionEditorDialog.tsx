@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Plus, Save, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
+import type { Task } from "@/backend";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { useCreateMission } from '@/hooks/useMissionsQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import { toast } from 'sonner';
-import type { Task } from '@/backend';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useCreateMission } from "@/hooks/useMissionsQueries";
+import { Plus, Save, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface MissionEditorDialogProps {
   open: boolean;
@@ -25,50 +25,50 @@ interface MissionEditorDialogProps {
 export default function MissionEditorDialog({
   open,
   onOpenChange,
-  missionId,
+  missionId: _missionId,
   isCreating,
 }: MissionEditorDialogProps) {
-  const [missionTitle, setMissionTitle] = useState('');
+  const [missionTitle, setMissionTitle] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskText, setNewTaskText] = useState("");
 
   const { status } = useBackendActor();
   const createMissionMutation = useCreateMission();
 
-  const isActorReady = status === 'ready';
+  const isActorReady = status === "ready";
 
   // Reset form when dialog opens for creation
   useEffect(() => {
     if (isCreating && open) {
-      setMissionTitle('');
+      setMissionTitle("");
       setTasks([]);
-      setNewTaskText('');
+      setNewTaskText("");
     }
   }, [isCreating, open]);
 
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
-      setMissionTitle('');
+      setMissionTitle("");
       setTasks([]);
-      setNewTaskText('');
+      setNewTaskText("");
     }
   }, [open]);
 
   const handleCreateMission = async () => {
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
     if (!missionTitle.trim()) {
-      toast.error('Please enter a mission title');
+      toast.error("Please enter a mission title");
       return;
     }
 
     try {
       // Create a defensive deep copy of tasks to avoid reference issues
-      const tasksCopy: Task[] = tasks.map(t => ({
+      const tasksCopy: Task[] = tasks.map((t) => ({
         taskId: t.taskId,
         task: t.task,
         completed: t.completed,
@@ -78,41 +78,48 @@ export default function MissionEditorDialog({
         title: missionTitle.trim(),
         tasks: tasksCopy,
       });
-      
-      toast.success('Mission created successfully');
+
+      toast.success("Mission created successfully");
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to create mission:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create mission';
+      console.error("Failed to create mission:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create mission";
       toast.error(errorMessage);
     }
   };
 
   const handleAddTask = () => {
     if (!newTaskText.trim()) return;
-    
+
     // Generate collision-resistant taskId using timestamp + random component
     // This matches the strategy used in useAddTaskToMission for optimistic tasks
-    const collisionResistantId = BigInt(`${Date.now()}${Math.random().toString().slice(2, 8)}`);
-    
+    const collisionResistantId = BigInt(
+      `${Date.now()}${Math.random().toString().slice(2, 8)}`,
+    );
+
     const newTask: Task = {
       taskId: collisionResistantId,
       task: newTaskText.trim(),
       completed: false,
     };
-    
+
     setTasks([...tasks, newTask]);
-    setNewTaskText('');
+    setNewTaskText("");
   };
 
   const handleToggleTask = (taskId: bigint) => {
-    setTasks(tasks.map(t => 
-      t.taskId.toString() === taskId.toString() ? { ...t, completed: !t.completed } : t
-    ));
+    setTasks(
+      tasks.map((t) =>
+        t.taskId.toString() === taskId.toString()
+          ? { ...t, completed: !t.completed }
+          : t,
+      ),
+    );
   };
 
   const handleRemoveTask = (taskId: bigint) => {
-    setTasks(tasks.filter(t => t.taskId.toString() !== taskId.toString()));
+    setTasks(tasks.filter((t) => t.taskId.toString() !== taskId.toString()));
   };
 
   return (
@@ -137,7 +144,7 @@ export default function MissionEditorDialog({
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleAddTask();
                 }
@@ -159,7 +166,9 @@ export default function MissionEditorDialog({
             <div className="space-y-2 py-3">
               {tasks.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
-                  <p className="text-sm">No tasks yet. Add tasks above to get started!</p>
+                  <p className="text-sm">
+                    No tasks yet. Add tasks above to get started!
+                  </p>
                 </div>
               ) : (
                 tasks.map((task, index) => (
@@ -174,10 +183,10 @@ export default function MissionEditorDialog({
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium">
-                        {index + 1}.
-                      </span>
-                      <span className={`ml-2 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                      <span className="text-sm font-medium">{index + 1}.</span>
+                      <span
+                        className={`ml-2 ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                      >
                         {task.task}
                       </span>
                     </div>
@@ -208,12 +217,16 @@ export default function MissionEditorDialog({
             </Button>
             <Button
               onClick={handleCreateMission}
-              disabled={!isActorReady || !missionTitle.trim() || createMissionMutation.isPending}
+              disabled={
+                !isActorReady ||
+                !missionTitle.trim() ||
+                createMissionMutation.isPending
+              }
               className="bg-missions-accent hover:bg-missions-accent-hover text-white"
             >
               {createMissionMutation.isPending ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent" />
                   Creating...
                 </>
               ) : (

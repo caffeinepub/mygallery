@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useBackendActor } from '@/contexts/ActorContext';
-import { useInternetIdentity } from './useInternetIdentity';
-import { SortDirection } from '@/backend';
-import type { FileMetadata, Folder, Mission } from '@/backend';
+import { SortDirection } from "@/backend";
+import type { FileMetadata, Folder, Mission } from "@/backend";
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useInternetIdentity } from "./useInternetIdentity";
 
 /**
  * Home-specific prefetch hook that triggers core data fetching
@@ -18,12 +18,12 @@ export function useHomePrefetch() {
 
   useEffect(() => {
     // Only prefetch once when actor becomes ready and user is authenticated
-    if (actor && status === 'ready' && identity && !hasPrefetchedRef.current) {
+    if (actor && status === "ready" && identity && !hasPrefetchedRef.current) {
       hasPrefetchedRef.current = true;
 
       // Prefetch folders
       queryClient.prefetchQuery<Folder[]>({
-        queryKey: ['folders'],
+        queryKey: ["folders"],
         queryFn: async () => {
           return actor.getAllFolders();
         },
@@ -32,9 +32,13 @@ export function useHomePrefetch() {
 
       // Prefetch main gallery files (not in folder)
       queryClient.prefetchQuery<FileMetadata[]>({
-        queryKey: ['files', 'not-in-folder'],
+        queryKey: ["files", "not-in-folder"],
         queryFn: async () => {
-          const result = await actor.getPaginatedFiles(SortDirection.desc, BigInt(0), BigInt(1000));
+          const result = await actor.getPaginatedFiles(
+            SortDirection.desc,
+            BigInt(0),
+            BigInt(1000),
+          );
           return result.files;
         },
         staleTime: 5 * 60 * 1000,
@@ -42,7 +46,7 @@ export function useHomePrefetch() {
 
       // Prefetch missions list
       queryClient.prefetchQuery<Mission[]>({
-        queryKey: ['missions', 'list'],
+        queryKey: ["missions", "list"],
         queryFn: async () => {
           const missions = await actor.listMissions();
           return missions.sort((a, b) => {
@@ -56,9 +60,13 @@ export function useHomePrefetch() {
 
       // Prefetch notes (not in folder)
       queryClient.prefetchQuery({
-        queryKey: ['notes', 'root'],
+        queryKey: ["notes", "root"],
         queryFn: async () => {
-          const result = await actor.getPaginatedNotes(SortDirection.desc, BigInt(0), BigInt(1000));
+          const result = await actor.getPaginatedNotes(
+            SortDirection.desc,
+            BigInt(0),
+            BigInt(1000),
+          );
           return result.notes;
         },
         staleTime: 5 * 60 * 1000,

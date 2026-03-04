@@ -1,13 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight, Download, Trash2, FolderInput, Share2, Target } from 'lucide-react';
-import { useDeleteFile } from '@/hooks/useQueries';
-import SendToFolderDialog from './SendToFolderDialog';
-import MoveToMissionDialog from './MoveToMissionDialog';
-import { getFileCategory } from '@/utils/filePreview';
-import { downloadFile } from '@/utils/externalOpen';
-import type { FileMetadata } from '@/backend';
+import type { FileMetadata } from "@/backend";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useDeleteFile } from "@/hooks/useQueries";
+import { downloadFile } from "@/utils/externalOpen";
+import { getFileCategory } from "@/utils/filePreview";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FolderInput,
+  Share2,
+  Target,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import MoveToMissionDialog from "./MoveToMissionDialog";
+import SendToFolderDialog from "./SendToFolderDialog";
 
 interface FullScreenViewerProps {
   files: FileMetadata[];
@@ -16,7 +25,12 @@ interface FullScreenViewerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function FullScreenViewer({ files, initialIndex, open, onOpenChange }: FullScreenViewerProps) {
+export default function FullScreenViewer({
+  files,
+  initialIndex,
+  open,
+  onOpenChange,
+}: FullScreenViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
   const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
@@ -28,7 +42,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
-  }, [initialIndex, open]);
+  }, [initialIndex]);
 
   const handlePrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : files.length - 1));
@@ -67,7 +81,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     try {
       await downloadFile(currentFile.blob.getDirectURL(), currentFile.name);
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error("Download failed:", error);
     }
   };
 
@@ -84,7 +98,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
         }
       }
     } catch (error) {
-      console.error('Delete failed:', error);
+      console.error("Delete failed:", error);
     }
   };
 
@@ -92,22 +106,24 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     if (!currentFile || !currentFile.blob) return;
 
     if (!navigator.share) {
-      console.log('Web Share API not supported');
+      console.log("Web Share API not supported");
       return;
     }
 
     try {
       const response = await fetch(currentFile.blob.getDirectURL());
       const blob = await response.blob();
-      const file = new File([blob], currentFile.name, { type: currentFile.mimeType });
+      const file = new File([blob], currentFile.name, {
+        type: currentFile.mimeType,
+      });
 
       await navigator.share({
         title: currentFile.name,
         files: [file],
       });
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Error sharing file:', error);
+      if ((error as Error).name !== "AbortError") {
+        console.error("Error sharing file:", error);
       }
     }
   };
@@ -134,20 +150,20 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') handlePrevious();
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'Escape') onOpenChange(false);
+      if (e.key === "ArrowLeft") handlePrevious();
+      if (e.key === "ArrowRight") handleNext();
+      if (e.key === "Escape") onOpenChange(false);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, handlePrevious, handleNext, onOpenChange]);
 
   if (!currentFile) return null;
 
   const fileCategory = getFileCategory(currentFile.mimeType);
-  const fileUrl = currentFile.blob?.getDirectURL() || '';
-  const canShare = 'share' in navigator;
+  const fileUrl = currentFile.blob?.getDirectURL() || "";
+  const canShare = "share" in navigator;
 
   return (
     <>
@@ -176,7 +192,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
 
             {/* Main content */}
             <div className="flex-1 flex items-center justify-center overflow-hidden">
-              {fileCategory === 'image' && currentFile.blob && (
+              {fileCategory === "image" && currentFile.blob && (
                 <img
                   src={fileUrl}
                   alt={currentFile.name}
@@ -184,15 +200,13 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                 />
               )}
 
-              {fileCategory === 'video' && currentFile.blob && (
-                <video
-                  src={fileUrl}
-                  controls
-                  className="max-w-full max-h-full"
-                />
+              {fileCategory === "video" && currentFile.blob && (
+                <video src={fileUrl} controls className="max-w-full max-h-full">
+                  <track kind="captions" />
+                </video>
               )}
 
-              {fileCategory === 'pdf' && currentFile.blob && (
+              {fileCategory === "pdf" && currentFile.blob && (
                 <div className="w-full h-full p-4">
                   <iframe
                     src={fileUrl}
@@ -202,7 +216,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                 </div>
               )}
 
-              {fileCategory === 'office' && currentFile.blob && (
+              {fileCategory === "office" && currentFile.blob && (
                 <div className="w-full h-full p-4">
                   <iframe
                     src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
@@ -212,7 +226,7 @@ export default function FullScreenViewer({ files, initialIndex, open, onOpenChan
                 </div>
               )}
 
-              {fileCategory === 'unsupported' && (
+              {fileCategory === "unsupported" && (
                 <div className="text-white text-center space-y-4 p-8">
                   <p className="text-lg font-medium">Preview not available</p>
                   <p className="text-sm text-white/70">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
 /**
  * Hook to detect if the device has a coarse pointer (touch device).
@@ -9,8 +9,8 @@ export function useIsCoarsePointer(): boolean {
 
   useEffect(() => {
     // Check if the device has a coarse pointer (touch)
-    const mediaQuery = window.matchMedia('(pointer: coarse)');
-    
+    const mediaQuery = window.matchMedia("(pointer: coarse)");
+
     const updatePointerType = () => {
       setIsCoarsePointer(mediaQuery.matches);
     };
@@ -19,10 +19,10 @@ export function useIsCoarsePointer(): boolean {
     updatePointerType();
 
     // Listen for changes (e.g., connecting/disconnecting external mouse)
-    mediaQuery.addEventListener('change', updatePointerType);
+    mediaQuery.addEventListener("change", updatePointerType);
 
     return () => {
-      mediaQuery.removeEventListener('change', updatePointerType);
+      mediaQuery.removeEventListener("change", updatePointerType);
     };
   }, []);
 

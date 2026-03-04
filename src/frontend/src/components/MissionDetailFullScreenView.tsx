@@ -1,22 +1,38 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit2, FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink, Trash2, StickyNote } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useGetMission, useToggleTaskCompletion, useAddTaskToMission } from '@/hooks/useMissionsQueries';
-import { useGetFilesForMission } from '@/hooks/useQueries';
-import { useGetNotesForMission } from '@/hooks/useNotesQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import { useMissionAutosave } from '@/hooks/useMissionAutosave';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import FullScreenViewer from './FullScreenViewer';
-import NoteViewerDialog from './NoteViewerDialog';
-import LinkOpenFallbackDialog from './LinkOpenFallbackDialog';
-import { openExternally } from '@/utils/externalOpen';
-import type { Task, FileMetadata, Note, Mission } from '@/backend';
+import type { FileMetadata, Mission, Note, Task } from "@/backend";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useMissionAutosave } from "@/hooks/useMissionAutosave";
+import {
+  useAddTaskToMission,
+  useGetMission,
+  useToggleTaskCompletion,
+} from "@/hooks/useMissionsQueries";
+import { useGetNotesForMission } from "@/hooks/useNotesQueries";
+import { useGetFilesForMission } from "@/hooks/useQueries";
+import { openExternally } from "@/utils/externalOpen";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  Edit2,
+  ExternalLink,
+  File as FileIcon,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileVideo,
+  Plus,
+  StickyNote,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import FullScreenViewer from "./FullScreenViewer";
+import LinkOpenFallbackDialog from "./LinkOpenFallbackDialog";
+import NoteViewerDialog from "./NoteViewerDialog";
 
 interface MissionDetailFullScreenViewProps {
   missionId: bigint;
@@ -27,38 +43,46 @@ export default function MissionDetailFullScreenView({
   missionId,
   onBack,
 }: MissionDetailFullScreenViewProps) {
-  const [missionTitle, setMissionTitle] = useState('');
-  const [newTaskText, setNewTaskText] = useState('');
+  const [missionTitle, setMissionTitle] = useState("");
+  const [newTaskText, setNewTaskText] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [noteViewerOpen, setNoteViewerOpen] = useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [linkFallbackOpen, setLinkFallbackOpen] = useState(false);
-  const [currentLinkUrl, setCurrentLinkUrl] = useState('');
+  const [currentLinkUrl, setCurrentLinkUrl] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
 
   const { status } = useBackendActor();
   const queryClient = useQueryClient();
-  const { data: selectedMission, isLoading: isLoadingMission } = useGetMission(missionId);
-  const { data: attachedFiles, isLoading: isLoadingFiles } = useGetFilesForMission(missionId);
-  const { data: attachedNotes, isLoading: isLoadingNotes } = useGetNotesForMission(missionId);
+  const { data: selectedMission, isLoading: isLoadingMission } =
+    useGetMission(missionId);
+  const { data: attachedFiles, isLoading: isLoadingFiles } =
+    useGetFilesForMission(missionId);
+  const { data: attachedNotes, isLoading: isLoadingNotes } =
+    useGetNotesForMission(missionId);
   const toggleTaskMutation = useToggleTaskCompletion();
   const addTaskMutation = useAddTaskToMission();
 
-  const isActorReady = status === 'ready';
+  const isActorReady = status === "ready";
 
   // Derive tasks directly from React Query cache - single source of truth
   const tasks = selectedMission?.tasks ?? [];
 
   // Auto-save hook - disabled while mutations are in flight
-  const autosaveEnabled = isHydrated && isActorReady && !addTaskMutation.isPending && !toggleTaskMutation.isPending;
-  const { isSaving, markAsHydrated, syncBaseline, flushPendingSave } = useMissionAutosave({
-    missionId,
-    title: missionTitle,
-    tasks,
-    enabled: autosaveEnabled,
-  });
+  const autosaveEnabled =
+    isHydrated &&
+    isActorReady &&
+    !addTaskMutation.isPending &&
+    !toggleTaskMutation.isPending;
+  const { isSaving, markAsHydrated, syncBaseline, flushPendingSave } =
+    useMissionAutosave({
+      missionId,
+      title: missionTitle,
+      tasks,
+      enabled: autosaveEnabled,
+    });
 
   // Hydrate local state from React Query cache on mount and when mission changes
   useEffect(() => {
@@ -89,18 +113,23 @@ export default function MissionDetailFullScreenView({
         task: taskTextToAdd,
       });
 
-      setNewTaskText('');
+      setNewTaskText("");
 
       // Sync autosave baseline after mutation settles using latest cache state
       setTimeout(() => {
-        const latestMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
+        const latestMission = queryClient.getQueryData<Mission | null>([
+          "missions",
+          "detail",
+          missionId.toString(),
+        ]);
         if (latestMission) {
           syncBaseline(missionTitle, latestMission.tasks);
         }
       }, 0);
     } catch (error) {
-      console.error('Failed to add task:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add task';
+      console.error("Failed to add task:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to add task";
       toast.error(errorMessage);
     }
   };
@@ -117,14 +146,19 @@ export default function MissionDetailFullScreenView({
 
       // Sync autosave baseline after mutation settles using latest cache state
       setTimeout(() => {
-        const latestMission = queryClient.getQueryData<Mission | null>(['missions', 'detail', missionId.toString()]);
+        const latestMission = queryClient.getQueryData<Mission | null>([
+          "missions",
+          "detail",
+          missionId.toString(),
+        ]);
         if (latestMission) {
           syncBaseline(missionTitle, latestMission.tasks);
         }
       }, 0);
     } catch (error) {
-      console.error('Failed to toggle task:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
+      console.error("Failed to toggle task:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update task";
       toast.error(errorMessage);
     }
   };
@@ -144,7 +178,7 @@ export default function MissionDetailFullScreenView({
           }
         })
         .catch((error) => {
-          console.error('Failed to open link:', error);
+          console.error("Failed to open link:", error);
           setCurrentLinkUrl(url);
           setLinkFallbackOpen(true);
         });
@@ -171,24 +205,35 @@ export default function MissionDetailFullScreenView({
       try {
         await navigator.clipboard.writeText(currentLinkUrl);
       } catch (error) {
-        console.error('Failed to copy link:', error);
-        toast.error('Failed to copy link');
+        console.error("Failed to copy link:", error);
+        toast.error("Failed to copy link");
       }
     }
   };
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return FileImage;
-    if (mimeType.startsWith('video/')) return FileVideo;
-    if (mimeType === 'application/pdf') return FileText;
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mimeType === 'application/msword') return FileText;
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimeType === 'application/vnd.ms-excel') return FileSpreadsheet;
+    if (mimeType.startsWith("image/")) return FileImage;
+    if (mimeType.startsWith("video/")) return FileVideo;
+    if (mimeType === "application/pdf") return FileText;
+    if (
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mimeType === "application/msword"
+    )
+      return FileText;
+    if (
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      mimeType === "application/vnd.ms-excel"
+    )
+      return FileSpreadsheet;
     return FileIcon;
   };
 
-  const completedTasks = tasks.filter(t => t.completed).length;
+  const completedTasks = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
-  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const progressPercentage =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const isLoading = isLoadingMission || isLoadingFiles || isLoadingNotes;
 
@@ -211,7 +256,7 @@ export default function MissionDetailFullScreenView({
               onChange={(e) => setMissionTitle(e.target.value)}
               onBlur={() => setIsEditingTitle(false)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   setIsEditingTitle(false);
                 }
               }}
@@ -221,7 +266,9 @@ export default function MissionDetailFullScreenView({
             />
           ) : (
             <div className="flex flex-1 items-center gap-2">
-              <h1 className="text-lg font-semibold truncate">{missionTitle || 'Untitled Mission'}</h1>
+              <h1 className="text-lg font-semibold truncate">
+                {missionTitle || "Untitled Mission"}
+              </h1>
               <Button
                 variant="ghost"
                 size="icon"
@@ -244,7 +291,7 @@ export default function MissionDetailFullScreenView({
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+              <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
               <p className="text-muted-foreground">Loading mission...</p>
             </div>
           </div>
@@ -265,8 +312,10 @@ export default function MissionDetailFullScreenView({
 
             {/* Tasks Section */}
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Tasks</h2>
-              
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Tasks
+              </h2>
+
               {/* Add Task Input */}
               <div className="flex gap-2">
                 <Input
@@ -274,7 +323,7 @@ export default function MissionDetailFullScreenView({
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleAddTask();
                     }
                   }}
@@ -283,7 +332,11 @@ export default function MissionDetailFullScreenView({
                 />
                 <Button
                   onClick={handleAddTask}
-                  disabled={!isActorReady || !newTaskText.trim() || addTaskMutation.isPending}
+                  disabled={
+                    !isActorReady ||
+                    !newTaskText.trim() ||
+                    addTaskMutation.isPending
+                  }
                   size="icon"
                 >
                   <Plus className="h-4 w-4" />
@@ -293,11 +346,16 @@ export default function MissionDetailFullScreenView({
               {/* Task List */}
               <ScrollArea className="h-[300px] rounded-md border p-4">
                 {tasks.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No tasks yet. Add one above!</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    No tasks yet. Add one above!
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {tasks.map((task) => (
-                      <div key={task.taskId.toString()} className="flex items-start gap-3 group">
+                      <div
+                        key={task.taskId.toString()}
+                        className="flex items-start gap-3 group"
+                      >
                         <Checkbox
                           checked={task.completed}
                           onCheckedChange={(checked) => {
@@ -308,7 +366,9 @@ export default function MissionDetailFullScreenView({
                           disabled={!isActorReady}
                           className="mt-1"
                         />
-                        <span className={`flex-1 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                        <span
+                          className={`flex-1 ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                        >
                           {task.task}
                         </span>
                       </div>
@@ -320,24 +380,39 @@ export default function MissionDetailFullScreenView({
 
             {/* Attachments Section */}
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Attachments</h2>
-              
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Attachments
+              </h2>
+
               {/* Files */}
               {attachedFiles && attachedFiles.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-medium text-muted-foreground mb-2">Files & Links</h3>
+                  <h3 className="text-xs font-medium text-muted-foreground mb-2">
+                    Files & Links
+                  </h3>
                   <div className="grid grid-cols-3 gap-3">
                     {attachedFiles.map((file, index) => {
                       const isLink = !!file.link;
-                      const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
-                      const isImage = !isLink && file.mimeType.startsWith('image/');
-                      const isVideo = !isLink && file.mimeType.startsWith('video/');
+                      const Icon = isLink
+                        ? ExternalLink
+                        : getFileIcon(file.mimeType);
+                      const isImage =
+                        !isLink && file.mimeType.startsWith("image/");
+                      const isVideo =
+                        !isLink && file.mimeType.startsWith("video/");
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={file.id}
                           onClick={() => handleFileClick(index)}
-                          className="group cursor-pointer relative"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleFileClick(index);
+                            }
+                          }}
+                          className="group cursor-pointer relative text-left bg-transparent border-0 p-0 w-full"
                         >
                           <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]">
                             {isLink ? (
@@ -352,7 +427,13 @@ export default function MissionDetailFullScreenView({
                                 loading="lazy"
                               />
                             ) : isVideo && file.blob ? (
-                              <video src={file.blob.getDirectURL()} className="h-full w-full object-cover" preload="metadata" />
+                              <video
+                                src={file.blob.getDirectURL()}
+                                className="h-full w-full object-cover"
+                                preload="metadata"
+                              >
+                                <track kind="captions" />
+                              </video>
                             ) : (
                               <div className="flex h-full w-full items-center justify-center">
                                 <Icon className="h-10 w-10 text-muted-foreground" />
@@ -365,10 +446,13 @@ export default function MissionDetailFullScreenView({
                               </div>
                             )}
                           </div>
-                          <p className="mt-1.5 text-xs truncate" title={file.name}>
+                          <p
+                            className="mt-1.5 text-xs truncate"
+                            title={file.name}
+                          >
                             {file.name}
                           </p>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -378,13 +462,22 @@ export default function MissionDetailFullScreenView({
               {/* Notes */}
               {attachedNotes && attachedNotes.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-medium text-muted-foreground mb-2">Notes</h3>
+                  <h3 className="text-xs font-medium text-muted-foreground mb-2">
+                    Notes
+                  </h3>
                   <div className="grid grid-cols-3 gap-3">
                     {attachedNotes.map((note) => (
-                      <div
+                      <button
+                        type="button"
                         key={note.id}
                         onClick={() => handleNoteClick(note)}
-                        className="group cursor-pointer relative"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleNoteClick(note);
+                          }
+                        }}
+                        className="group cursor-pointer relative text-left bg-transparent border-0 p-0 w-full"
                       >
                         <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-amber-50 dark:bg-amber-950/20 transition-all duration-150 hover:shadow-lg hover:scale-[1.02] border border-amber-200 dark:border-amber-800">
                           <div className="flex h-full w-full items-center justify-center">
@@ -392,18 +485,24 @@ export default function MissionDetailFullScreenView({
                           </div>
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
                         </div>
-                        <p className="mt-1.5 text-xs truncate" title={note.title}>
+                        <p
+                          className="mt-1.5 text-xs truncate"
+                          title={note.title}
+                        >
                           {note.title}
                         </p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {(!attachedFiles || attachedFiles.length === 0) && (!attachedNotes || attachedNotes.length === 0) && (
-                <p className="text-center text-muted-foreground py-8">No attachments yet</p>
-              )}
+              {(!attachedFiles || attachedFiles.length === 0) &&
+                (!attachedNotes || attachedNotes.length === 0) && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No attachments yet
+                  </p>
+                )}
             </div>
           </div>
         )}

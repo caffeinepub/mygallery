@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -5,9 +6,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Download, AlertCircle } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { AlertCircle, Download, ExternalLink } from "lucide-react";
 
 interface ExternalOpenFallbackDialogProps {
   open: boolean;
@@ -22,7 +22,7 @@ export default function ExternalOpenFallbackDialog({
   open,
   onOpenChange,
   fileName,
-  fileUrl,
+  fileUrl: _fileUrl,
   onRetryOpen,
   onDownload,
 }: ExternalOpenFallbackDialogProps) {
@@ -37,7 +37,8 @@ export default function ExternalOpenFallbackDialog({
             <DialogTitle>Unable to Open File</DialogTitle>
           </div>
           <DialogDescription className="pt-2">
-            Your browser blocked opening "{fileName}" in a new window. You can try again or download the file.
+            Your browser blocked opening "{fileName}" in a new window. You can
+            try again or download the file.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col sm:flex-row gap-2">

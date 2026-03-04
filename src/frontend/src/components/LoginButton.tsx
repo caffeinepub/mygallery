@@ -1,11 +1,11 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Button } from './ui/button';
-import { LogIn, Loader2 } from 'lucide-react';
+import { Loader2, LogIn } from "lucide-react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { Button } from "./ui/button";
 
 export default function LoginButton() {
   const { login, loginStatus } = useInternetIdentity();
 
-  const isLoggingIn = loginStatus === 'logging-in';
+  const isLoggingIn = loginStatus === "logging-in";
 
   const handleLogin = () => {
     login();

@@ -3,372 +3,415 @@
 @tailwind utilities;
 
 @layer base {
-    :root {
-        --radius: 0.75rem;
-        /* Optimized light mode - reduced brightness, warmer tones for natural daylight */
-        --background: 0.96 0.005 50;
-        --foreground: 0.20 0.01 264;
-        --card: 0.98 0.003 50;
-        --card-foreground: 0.20 0.01 264;
-        --popover: 0.98 0.003 50;
-        --popover-foreground: 0.20 0.01 264;
-        --primary: 0.55 0.18 264;
-        --primary-foreground: 0.98 0.003 50;
-        --secondary: 0.92 0.008 50;
-        --secondary-foreground: 0.20 0.01 264;
-        --muted: 0.93 0.008 50;
-        --muted-foreground: 0.48 0.01 264;
-        --accent: 0.92 0.008 50;
-        --accent-foreground: 0.20 0.01 264;
-        --destructive: 0.58 0.24 27;
-        --destructive-foreground: 0.98 0.003 50;
-        --border: 0.88 0.01 50;
-        --input: 0.88 0.01 50;
-        --ring: 0.55 0.18 264;
-        --chart-1: 0.65 0.22 264;
-        --chart-2: 0.60 0.20 180;
-        --chart-3: 0.70 0.18 140;
-        --chart-4: 0.55 0.22 320;
-        --chart-5: 0.60 0.20 40;
-        --sidebar: 0.96 0.005 50;
-        --sidebar-foreground: 0.20 0.01 264;
-        --sidebar-primary: 0.55 0.18 264;
-        --sidebar-primary-foreground: 0.98 0.003 50;
-        --sidebar-accent: 0.92 0.008 50;
-        --sidebar-accent-foreground: 0.20 0.01 264;
-        --sidebar-border: 0.88 0.01 50;
-        --sidebar-ring: 0.55 0.18 264;
-        --folder-icon-filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-        /* Notes green theme - light mode */
-        --notes-accent: 0.55 0.16 145;
-        --notes-accent-hover: 0.50 0.18 145;
-        --notes-bg: 0.94 0.08 145;
-        --notes-bg-hover: 0.90 0.10 145;
-        /* Missions purple theme - light mode */
-        --missions-accent: 0.55 0.20 290;
-        --missions-accent-hover: 0.50 0.22 290;
-        --missions-bg: 0.94 0.10 290;
-        --missions-bg-hover: 0.90 0.12 290;
-    }
+  :root {
+    --radius: 0.75rem;
+    /* Optimized light mode - reduced brightness, warmer tones for natural daylight */
+    --background: 0.96 0.005 50;
+    --foreground: 0.2 0.01 264;
+    --card: 0.98 0.003 50;
+    --card-foreground: 0.2 0.01 264;
+    --popover: 0.98 0.003 50;
+    --popover-foreground: 0.2 0.01 264;
+    --primary: 0.55 0.18 264;
+    --primary-foreground: 0.98 0.003 50;
+    --secondary: 0.92 0.008 50;
+    --secondary-foreground: 0.2 0.01 264;
+    --muted: 0.93 0.008 50;
+    --muted-foreground: 0.48 0.01 264;
+    --accent: 0.92 0.008 50;
+    --accent-foreground: 0.2 0.01 264;
+    --destructive: 0.58 0.24 27;
+    --destructive-foreground: 0.98 0.003 50;
+    --border: 0.88 0.01 50;
+    --input: 0.88 0.01 50;
+    --ring: 0.55 0.18 264;
+    --chart-1: 0.65 0.22 264;
+    --chart-2: 0.6 0.2 180;
+    --chart-3: 0.7 0.18 140;
+    --chart-4: 0.55 0.22 320;
+    --chart-5: 0.6 0.2 40;
+    --sidebar: 0.96 0.005 50;
+    --sidebar-foreground: 0.2 0.01 264;
+    --sidebar-primary: 0.55 0.18 264;
+    --sidebar-primary-foreground: 0.98 0.003 50;
+    --sidebar-accent: 0.92 0.008 50;
+    --sidebar-accent-foreground: 0.2 0.01 264;
+    --sidebar-border: 0.88 0.01 50;
+    --sidebar-ring: 0.55 0.18 264;
+    --folder-icon-filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    /* Notes green theme - light mode */
+    --notes-accent: 0.55 0.16 145;
+    --notes-accent-hover: 0.5 0.18 145;
+    --notes-bg: 0.94 0.08 145;
+    --notes-bg-hover: 0.9 0.1 145;
+    /* Missions purple theme - light mode */
+    --missions-accent: 0.55 0.2 290;
+    --missions-accent-hover: 0.5 0.22 290;
+    --missions-bg: 0.94 0.1 290;
+    --missions-bg-hover: 0.9 0.12 290;
+  }
 
-    .dark {
-        --background: 0.15 0.01 264;
-        --foreground: 0.96 0.01 50;
-        --card: 0.20 0.02 264;
-        --card-foreground: 0.96 0.01 50;
-        --popover: 0.18 0.02 264;
-        --popover-foreground: 0.96 0.01 50;
-        --primary: 0.72 0.22 264;
-        --primary-foreground: 0.15 0.01 264;
-        --secondary: 0.25 0.02 264;
-        --secondary-foreground: 0.96 0.01 50;
-        --muted: 0.25 0.02 264;
-        --muted-foreground: 0.68 0.02 50;
-        --accent: 0.30 0.03 264;
-        --accent-foreground: 0.96 0.01 50;
-        --destructive: 0.68 0.24 27;
-        --destructive-foreground: 0.96 0.01 50;
-        --border: 0.30 0.02 264;
-        --input: 0.30 0.02 264;
-        --ring: 0.72 0.22 264;
-        --chart-1: 0.72 0.24 264;
-        --chart-2: 0.68 0.22 180;
-        --chart-3: 0.75 0.20 140;
-        --chart-4: 0.65 0.24 320;
-        --chart-5: 0.68 0.22 40;
-        --sidebar: 0.20 0.02 264;
-        --sidebar-foreground: 0.96 0.01 50;
-        --sidebar-primary: 0.72 0.22 264;
-        --sidebar-primary-foreground: 0.96 0.01 50;
-        --sidebar-accent: 0.25 0.02 264;
-        --sidebar-accent-foreground: 0.96 0.01 50;
-        --sidebar-border: 0.30 0.02 264;
-        --sidebar-ring: 0.72 0.22 264;
-        --folder-icon-filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6)) drop-shadow(0 2px 6px rgba(255, 255, 255, 0.3));
-        /* Notes green theme - dark mode */
-        --notes-accent: 0.65 0.18 145;
-        --notes-accent-hover: 0.70 0.20 145;
-        --notes-bg: 0.22 0.08 145;
-        --notes-bg-hover: 0.26 0.10 145;
-        /* Missions purple theme - dark mode */
-        --missions-accent: 0.68 0.22 290;
-        --missions-accent-hover: 0.72 0.24 290;
-        --missions-bg: 0.22 0.10 290;
-        --missions-bg-hover: 0.26 0.12 290;
-    }
+  .dark {
+    --background: 0.15 0.01 264;
+    --foreground: 0.96 0.01 50;
+    --card: 0.2 0.02 264;
+    --card-foreground: 0.96 0.01 50;
+    --popover: 0.18 0.02 264;
+    --popover-foreground: 0.96 0.01 50;
+    --primary: 0.72 0.22 264;
+    --primary-foreground: 0.15 0.01 264;
+    --secondary: 0.25 0.02 264;
+    --secondary-foreground: 0.96 0.01 50;
+    --muted: 0.25 0.02 264;
+    --muted-foreground: 0.68 0.02 50;
+    --accent: 0.3 0.03 264;
+    --accent-foreground: 0.96 0.01 50;
+    --destructive: 0.68 0.24 27;
+    --destructive-foreground: 0.96 0.01 50;
+    --border: 0.3 0.02 264;
+    --input: 0.3 0.02 264;
+    --ring: 0.72 0.22 264;
+    --chart-1: 0.72 0.24 264;
+    --chart-2: 0.68 0.22 180;
+    --chart-3: 0.75 0.2 140;
+    --chart-4: 0.65 0.24 320;
+    --chart-5: 0.68 0.22 40;
+    --sidebar: 0.2 0.02 264;
+    --sidebar-foreground: 0.96 0.01 50;
+    --sidebar-primary: 0.72 0.22 264;
+    --sidebar-primary-foreground: 0.96 0.01 50;
+    --sidebar-accent: 0.25 0.02 264;
+    --sidebar-accent-foreground: 0.96 0.01 50;
+    --sidebar-border: 0.3 0.02 264;
+    --sidebar-ring: 0.72 0.22 264;
+    --folder-icon-filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6))
+      drop-shadow(0 2px 6px rgba(255, 255, 255, 0.3));
+    /* Notes green theme - dark mode */
+    --notes-accent: 0.65 0.18 145;
+    --notes-accent-hover: 0.7 0.2 145;
+    --notes-bg: 0.22 0.08 145;
+    --notes-bg-hover: 0.26 0.1 145;
+    /* Missions purple theme - dark mode */
+    --missions-accent: 0.68 0.22 290;
+    --missions-accent-hover: 0.72 0.24 290;
+    --missions-bg: 0.22 0.1 290;
+    --missions-bg-hover: 0.26 0.12 290;
+  }
 
-    * {
-        @apply border-border;
-    }
-    body {
-        @apply bg-background text-foreground transition-colors duration-200;
-    }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-200;
+  }
 }
 
 /* Mobile-only layout constraints */
 .mobile-only-container {
-    min-height: 100vh;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    background: oklch(var(--background));
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: oklch(var(--background));
 }
 
 .mobile-only-content {
-    width: 100%;
-    max-width: 430px;
-    min-height: 100vh;
-    position: relative;
-    background: oklch(var(--background));
-    box-shadow: 0 0 0 1px oklch(var(--border) / 0.1);
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  position: relative;
+  background: oklch(var(--background));
+  box-shadow: 0 0 0 1px oklch(var(--border) / 0.1);
 }
 
 /* Ensure safe area padding on mobile devices */
 @supports (padding: env(safe-area-inset-top)) {
-    .mobile-only-content {
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-    }
+  .mobile-only-content {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 /* Optimize touch interactions */
 @media (hover: none) and (pointer: coarse) {
-    * {
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-    }
+  * {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
 }
 
 /* Smooth transitions for all interactive elements */
-button, a, [role="button"] {
-    @apply transition-all duration-150;
+button,
+a,
+[role="button"] {
+  @apply transition-all duration-150;
 }
 
 /* Optimize image loading */
-img, video {
-    @apply will-change-auto;
+img,
+video {
+  @apply will-change-auto;
 }
 
 /* Intro screen fade - exactly 2000ms opacity transition */
 .intro-fade {
-    transition: opacity 2000ms ease-in-out;
+  transition: opacity 2000ms ease-in-out;
 }
 
 /* Intro screen animation - smooth pulse effect */
 @keyframes intro-pulse {
-    0% {
-        transform: scale(1);
-    }
-    40% {
-        transform: scale(1.15);
-    }
-    80% {
-        transform: scale(1);
-    }
-    100% {
-        transform: scale(1);
-    }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.15);
+  }
+  80% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-intro-pulse {
-    animation: intro-pulse 2.5s ease-in-out;
+  animation: intro-pulse 2.5s ease-in-out;
 }
 
 /* Notes icon float animation */
 @keyframes notes-float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-3px);
-    }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .animate-notes-float {
-    animation: notes-float 2s ease-in-out infinite;
+  animation: notes-float 2s ease-in-out infinite;
 }
 
 /* Missions icon float animation */
 @keyframes missions-float {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-3px) rotate(2deg);
-    }
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
 }
 
 .animate-missions-float {
-    animation: missions-float 2.5s ease-in-out infinite;
+  animation: missions-float 2.5s ease-in-out infinite;
 }
 
 /* Text reveal animation for welcome intro screen */
 @keyframes text-reveal {
-    0% {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-text-reveal {
-    opacity: 0;
-    animation: text-reveal 0.8s ease-out forwards;
+  opacity: 0;
+  animation: text-reveal 0.8s ease-out forwards;
 }
 
 /* Shared element transition animations */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes sharedElementOpen {
-    from {
-        transform: var(--transform-start);
-        opacity: 0.8;
-    }
-    to {
-        transform: translate(0, 0) scale(1, 1);
-        opacity: 1;
-    }
+  from {
+    transform: var(--transform-start);
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(0, 0) scale(1, 1);
+    opacity: 1;
+  }
 }
 
 @keyframes sharedElementClose {
-    from {
-        transform: translate(0, 0) scale(1, 1);
-        opacity: 1;
-    }
-    to {
-        transform: var(--transform-end);
-        opacity: 0.8;
-    }
+  from {
+    transform: translate(0, 0) scale(1, 1);
+    opacity: 1;
+  }
+  to {
+    transform: var(--transform-end);
+    opacity: 0.8;
+  }
 }
 
 @keyframes pageScaleIn {
-    from {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes iconPulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-page-scale-in {
-    animation: pageScaleIn 350ms ease-in-out;
+  animation: pageScaleIn 350ms ease-in-out;
 }
 
 .animate-icon-pulse {
-    animation: iconPulse 300ms ease-in-out;
+  animation: iconPulse 300ms ease-in-out;
 }
 
 /* Floating action menu styling */
 .floating-action-menu {
-    min-width: 180px;
-    padding: 0.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  padding: 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .dark .floating-action-menu {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* Staggered pop-up animation for menu items */
 @keyframes floatingMenuItemAppear {
-    0% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.9);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.floating-menu-item {
+  0% {
     opacity: 0;
-    animation: floatingMenuItemAppear 400ms ease-out forwards;
-    animation-delay: calc(var(--item-index) * 150ms);
+    transform: translateY(10px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* Respect user's motion preferences */
+.animate-floating-menu-item {
+  opacity: 0;
+  animation: floatingMenuItemAppear 400ms ease-out forwards;
+}
+
+/* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .animate-text-reveal {
-        opacity: 1;
-        animation: none;
-        transform: none;
-    }
-    
-    .animate-page-scale-in {
-        animation: none;
-        transform: none;
-        opacity: 1;
-    }
-    
-    .animate-icon-pulse {
-        animation: none;
-        transform: none;
-    }
-    
-    .floating-menu-item {
-        opacity: 1;
-        animation: none;
-        transform: none;
-    }
-    
-    @keyframes fadeIn {
-        from, to {
-            opacity: 1;
-        }
-    }
-    
-    @keyframes fadeOut {
-        from, to {
-            opacity: 0;
-        }
-    }
-    
-    @keyframes sharedElementOpen {
-        from, to {
-            transform: translate(0, 0) scale(1, 1);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes sharedElementClose {
-        from, to {
-            transform: translate(0, 0) scale(1, 1);
-            opacity: 1;
-        }
-    }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Stack animation for newly uploaded files */
+@keyframes stackSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-stack-slide-in {
+  animation: stackSlideIn 400ms ease-out;
+}
+
+/* Pulse animation for post-close micro-interaction */
+@keyframes buttonPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-button-pulse {
+  animation: buttonPulse 300ms ease-in-out;
+}
+
+/* ── OrbitDock micro-interaction keyframes ── */
+
+/* Upload icon: subtle idle pulse */
+@keyframes orbitUploadPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-orbit-upload-pulse {
+  animation: orbitUploadPulse 700ms ease-in-out;
+}
+
+/* Mission icon: brief activate pop when it becomes center */
+@keyframes orbitMissionActivate {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  70% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-orbit-mission-activate {
+  animation: orbitMissionActivate 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }

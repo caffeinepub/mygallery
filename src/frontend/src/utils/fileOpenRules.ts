@@ -1,28 +1,27 @@
-import type { FileMetadata } from '@/backend';
-import { getFileCategory, type FileCategory } from './filePreview';
+import type { FileMetadata } from "@/backend";
+import { type FileCategory, getFileCategory } from "./filePreview";
 
-export type FileOpenAction = 
-  | { type: 'in-app-viewer' }
-  | { type: 'download-only' };
+export type FileOpenAction =
+  | { type: "in-app-viewer" }
+  | { type: "download-only" };
 
 /**
  * Determines the primary action when a user taps/clicks a file
  */
 export function getFileOpenAction(file: FileMetadata): FileOpenAction {
   const category = getFileCategory(file.mimeType);
-  
+
   switch (category) {
-    case 'image':
-    case 'video':
-    case 'pdf':
-    case 'office':
+    case "image":
+    case "video":
+    case "pdf":
+    case "office":
       // PDFs, images, videos, and Office documents all open in the in-app viewer
-      return { type: 'in-app-viewer' };
-    
-    case 'unsupported':
+      return { type: "in-app-viewer" };
+
     default:
       // Unsupported files download directly
-      return { type: 'download-only' };
+      return { type: "download-only" };
   }
 }
 
@@ -31,7 +30,7 @@ export function getFileOpenAction(file: FileMetadata): FileOpenAction {
  */
 export function shouldOpenInViewer(file: FileMetadata): boolean {
   const action = getFileOpenAction(file);
-  return action.type === 'in-app-viewer';
+  return action.type === "in-app-viewer";
 }
 
 /**
@@ -39,7 +38,7 @@ export function shouldOpenInViewer(file: FileMetadata): boolean {
  */
 export function shouldDownloadDirectly(file: FileMetadata): boolean {
   const action = getFileOpenAction(file);
-  return action.type === 'download-only';
+  return action.type === "download-only";
 }
 
 /**
@@ -47,5 +46,5 @@ export function shouldDownloadDirectly(file: FileMetadata): boolean {
  */
 export function isOfficeDocument(file: FileMetadata): boolean {
   const category = getFileCategory(file.mimeType);
-  return category === 'office';
+  return category === "office";
 }

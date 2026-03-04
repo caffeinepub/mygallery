@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -5,10 +6,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Copy, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { AlertCircle, Copy, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 interface LinkOpenFallbackDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ export default function LinkOpenFallbackDialog({
 }: LinkOpenFallbackDialogProps) {
   const handleCopy = async () => {
     await onCopyLink();
-    toast.success('Link copied to clipboard');
+    toast.success("Link copied to clipboard");
     onOpenChange(false);
   };
 
@@ -42,7 +42,8 @@ export default function LinkOpenFallbackDialog({
             <DialogTitle>Unable to Open Link</DialogTitle>
           </div>
           <DialogDescription className="pt-2">
-            Your browser blocked opening this link in a new window. You can try again or copy the link to open it manually.
+            Your browser blocked opening this link in a new window. You can try
+            again or copy the link to open it manually.
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-md bg-muted p-3 text-sm break-all">
@@ -60,10 +61,7 @@ export default function LinkOpenFallbackDialog({
             <ExternalLink className="mr-2 h-4 w-4" />
             Try Again
           </Button>
-          <Button
-            onClick={handleCopy}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={handleCopy} className="w-full sm:w-auto">
             <Copy className="mr-2 h-4 w-4" />
             Copy Link
           </Button>

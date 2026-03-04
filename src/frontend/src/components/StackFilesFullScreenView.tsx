@@ -1,25 +1,49 @@
-import { useState, useCallback, useMemo } from 'react';
-import { X, Check, FolderInput, Target, Share2, Download, Trash2, CheckSquare, Square } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useStackedFiles } from '@/hooks/useStackedFiles';
-import { useDeleteFiles } from '@/hooks/useQueries';
-import { downloadFile, shareFile } from '@/utils/externalOpen';
-import { toast } from 'sonner';
-import SendToFolderDialog from './SendToFolderDialog';
-import MoveToMissionDialog from './MoveToMissionDialog';
-import FullScreenViewer from './FullScreenViewer';
-import { shouldOpenInViewer, shouldDownloadDirectly } from '@/utils/fileOpenRules';
-import type { FileMetadata } from '@/backend';
-import { FileImage, FileVideo, File as FileIcon, FileText, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import type { FileMetadata } from "@/backend";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useDeleteFiles } from "@/hooks/useQueries";
+import { useStackedFiles } from "@/hooks/useStackedFiles";
+import { downloadFile, shareFile } from "@/utils/externalOpen";
+import {
+  shouldDownloadDirectly,
+  shouldOpenInViewer,
+} from "@/utils/fileOpenRules";
+import {
+  Check,
+  CheckSquare,
+  Download,
+  FolderInput,
+  Share2,
+  Square,
+  Target,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
+  ExternalLink,
+  File as FileIcon,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileVideo,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+import FullScreenViewer from "./FullScreenViewer";
+import MoveToMissionDialog from "./MoveToMissionDialog";
+import SendToFolderDialog from "./SendToFolderDialog";
 
 interface StackFilesFullScreenViewProps {
   onClose: () => void;
 }
 
-export default function StackFilesFullScreenView({ onClose }: StackFilesFullScreenViewProps) {
+export default function StackFilesFullScreenView({
+  onClose,
+}: StackFilesFullScreenViewProps) {
   const { stackedFiles, removeFiles } = useStackedFiles();
-  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [sendToFolderOpen, setSendToFolderOpen] = useState(false);
   const [moveToMissionOpen, setMoveToMissionOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -27,41 +51,56 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
   const deleteFiles = useDeleteFiles();
 
   const getFileIcon = useCallback((mimeType: string) => {
-    if (mimeType.startsWith('image/')) return FileImage;
-    if (mimeType.startsWith('video/')) return FileVideo;
-    if (mimeType === 'application/pdf') return FileText;
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || mimeType === 'application/msword') return FileText;
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimeType === 'application/vnd.ms-excel') return FileSpreadsheet;
+    if (mimeType.startsWith("image/")) return FileImage;
+    if (mimeType.startsWith("video/")) return FileVideo;
+    if (mimeType === "application/pdf") return FileText;
+    if (
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      mimeType === "application/msword"
+    )
+      return FileText;
+    if (
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      mimeType === "application/vnd.ms-excel"
+    )
+      return FileSpreadsheet;
     return FileIcon;
   }, []);
 
-  const handleFileClick = useCallback((file: FileMetadata, index: number) => {
-    if (selectedFileIds.size > 0) {
-      setSelectedFileIds(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(file.id)) {
-          newSet.delete(file.id);
-        } else {
-          newSet.add(file.id);
+  const handleFileClick = useCallback(
+    (file: FileMetadata, index: number) => {
+      if (selectedFileIds.size > 0) {
+        setSelectedFileIds((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(file.id)) {
+            newSet.delete(file.id);
+          } else {
+            newSet.add(file.id);
+          }
+          return newSet;
+        });
+      } else {
+        if (file.link) {
+          window.open(file.link, "_blank");
+          return;
         }
-        return newSet;
-      });
-    } else {
-      if (file.link) {
-        window.open(file.link, '_blank');
-        return;
-      }
 
-      if (!file.blob) return;
+        if (!file.blob) return;
 
-      if (shouldDownloadDirectly(file)) {
-        downloadFile(file.blob.getDirectURL(), file.name).catch(console.error);
-      } else if (shouldOpenInViewer(file)) {
-        setSelectedFileIndex(index);
-        setViewerOpen(true);
+        if (shouldDownloadDirectly(file)) {
+          downloadFile(file.blob.getDirectURL(), file.name).catch(
+            console.error,
+          );
+        } else if (shouldOpenInViewer(file)) {
+          setSelectedFileIndex(index);
+          setViewerOpen(true);
+        }
       }
-    }
-  }, [selectedFileIds]);
+    },
+    [selectedFileIds],
+  );
 
   const handleLongPress = useCallback((fileId: string) => {
     setSelectedFileIds(new Set([fileId]));
@@ -71,7 +110,7 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
     if (selectedFileIds.size === stackedFiles.length) {
       setSelectedFileIds(new Set());
     } else {
-      setSelectedFileIds(new Set(stackedFiles.map(f => f.id)));
+      setSelectedFileIds(new Set(stackedFiles.map((f) => f.id)));
     }
   }, [selectedFileIds, stackedFiles]);
 
@@ -81,34 +120,36 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
       await deleteFiles.mutateAsync(fileIds);
       removeFiles(fileIds);
       setSelectedFileIds(new Set());
-      toast.success(`Deleted ${fileIds.length} file${fileIds.length > 1 ? 's' : ''}`);
+      toast.success(
+        `Deleted ${fileIds.length} file${fileIds.length > 1 ? "s" : ""}`,
+      );
     } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete files');
+      console.error("Delete error:", error);
+      toast.error("Failed to delete files");
     }
   }, [selectedFileIds, deleteFiles, removeFiles]);
 
   const handleDownload = useCallback(async () => {
     for (const fileId of selectedFileIds) {
-      const file = stackedFiles.find(f => f.id === fileId);
+      const file = stackedFiles.find((f) => f.id === fileId);
       if (file?.blob) {
         try {
           await downloadFile(file.blob.getDirectURL(), file.name);
         } catch (error) {
-          console.error('Download failed:', error);
+          console.error("Download failed:", error);
         }
       }
     }
   }, [selectedFileIds, stackedFiles]);
 
   const handleShare = useCallback(async () => {
-    const files = stackedFiles.filter(f => selectedFileIds.has(f.id));
+    const files = stackedFiles.filter((f) => selectedFileIds.has(f.id));
     for (const file of files) {
       if (file.blob) {
         try {
           await shareFile(file.blob.getDirectURL(), file.name);
         } catch (error) {
-          console.error('Share failed:', error);
+          console.error("Share failed:", error);
         }
       }
     }
@@ -128,7 +169,8 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
     setMoveToMissionOpen(false);
   }, [selectedFileIds, removeFiles]);
 
-  const allSelected = selectedFileIds.size === stackedFiles.length && stackedFiles.length > 0;
+  const allSelected =
+    selectedFileIds.size === stackedFiles.length && stackedFiles.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -144,7 +186,9 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
           </Button>
           <div>
             <h2 className="text-lg font-semibold">My Files</h2>
-            <p className="text-xs text-muted-foreground">{stackedFiles.length} file{stackedFiles.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-muted-foreground">
+              {stackedFiles.length} file{stackedFiles.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
         {selectedFileIds.size === 0 && (
@@ -154,8 +198,12 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
             onClick={handleToggleSelectAll}
             className="gap-2"
           >
-            {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-            {allSelected ? 'Deselect All' : 'Select All'}
+            {allSelected ? (
+              <CheckSquare className="h-4 w-4" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            {allSelected ? "Deselect All" : "Select All"}
           </Button>
         )}
       </div>
@@ -167,22 +215,33 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
               const isSelected = selectedFileIds.has(file.id);
               const isLink = !!file.link;
               const Icon = isLink ? ExternalLink : getFileIcon(file.mimeType);
-              const isImage = !isLink && file.mimeType.startsWith('image/');
-              const isVideo = !isLink && file.mimeType.startsWith('video/');
+              const isImage = !isLink && file.mimeType.startsWith("image/");
+              const isVideo = !isLink && file.mimeType.startsWith("video/");
 
               return (
-                <div
+                <button
+                  type="button"
                   key={file.id}
-                  className="group cursor-pointer relative select-none"
+                  className="group cursor-pointer relative select-none text-left w-full bg-transparent border-0 p-0"
                   onClick={() => handleFileClick(file, index)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleFileClick(file, index);
+                    }
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     handleLongPress(file.id);
                   }}
                 >
-                  <div className={`relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02] ${
-                    isSelected ? 'ring-4 ring-primary shadow-lg scale-[1.02]' : ''
-                  }`}>
+                  <div
+                    className={`relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02] ${
+                      isSelected
+                        ? "ring-4 ring-primary shadow-lg scale-[1.02]"
+                        : ""
+                    }`}
+                  >
                     {isLink ? (
                       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                         <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
@@ -195,15 +254,25 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
                         loading="lazy"
                       />
                     ) : isVideo && file.blob ? (
-                      <video src={file.blob.getDirectURL()} className="h-full w-full object-cover" preload="metadata" />
+                      <video
+                        src={file.blob.getDirectURL()}
+                        className="h-full w-full object-cover"
+                        preload="metadata"
+                      >
+                        <track kind="captions" />
+                      </video>
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Icon className="h-10 w-10 text-muted-foreground" />
                       </div>
                     )}
-                    <div className={`absolute inset-0 transition-colors duration-150 ${
-                      isSelected ? 'bg-primary/20' : 'bg-black/0 group-hover:bg-black/10'
-                    }`} />
+                    <div
+                      className={`absolute inset-0 transition-colors duration-150 ${
+                        isSelected
+                          ? "bg-primary/20"
+                          : "bg-black/0 group-hover:bg-black/10"
+                      }`}
+                    />
                     {isSelected && (
                       <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1 shadow-md">
                         <Check className="h-4 w-4" />
@@ -213,7 +282,7 @@ export default function StackFilesFullScreenView({ onClose }: StackFilesFullScre
                   <p className="mt-1.5 text-xs truncate" title={file.name}>
                     {file.name}
                   </p>
-                </div>
+                </button>
               );
             })}
           </div>

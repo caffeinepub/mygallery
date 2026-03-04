@@ -1,17 +1,17 @@
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LogOut } from 'lucide-react';
-import AnimatedGalleryIcon from './AnimatedGalleryIcon';
-import UnifiedProgressBar from './UnifiedProgressBar';
-import { useInternetIdentity } from '@/hooks/useInternetIdentity';
-import { useBackendActor } from '@/contexts/ActorContext';
+} from "@/components/ui/dropdown-menu";
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useInternetIdentity } from "@/hooks/useInternetIdentity";
+import { Moon, Sun } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { useTheme } from "next-themes";
+import AnimatedGalleryIcon from "./AnimatedGalleryIcon";
+import UnifiedProgressBar from "./UnifiedProgressBar";
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -21,7 +21,7 @@ export default function Header() {
   const isAuthenticated = !!identity;
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const handleSignOut = async () => {
@@ -35,12 +35,18 @@ export default function Header() {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex h-10 w-10 items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md">
+                <button
+                  type="button"
+                  className="flex h-10 w-10 items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md"
+                >
                   <AnimatedGalleryIcon />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </DropdownMenuItem>

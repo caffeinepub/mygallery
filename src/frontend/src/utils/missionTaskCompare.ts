@@ -1,4 +1,4 @@
-import type { Task } from '@/backend';
+import type { Task } from "@/backend";
 
 /**
  * BigInt-safe equality check for Task arrays.
@@ -7,16 +7,16 @@ import type { Task } from '@/backend';
  */
 export function areTaskArraysEqual(a: Task[], b: Task[]): boolean {
   if (a.length !== b.length) return false;
-  
+
   for (let i = 0; i < a.length; i++) {
     const taskA = a[i];
     const taskB = b[i];
-    
+
     // Compare BigInt taskId using toString() or direct comparison
     if (taskA.taskId.toString() !== taskB.taskId.toString()) return false;
     if (taskA.task !== taskB.task) return false;
     if (taskA.completed !== taskB.completed) return false;
   }
-  
+
   return true;
 }

@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface SwipeActionsRowProps {
   children: React.ReactNode;
@@ -39,23 +39,23 @@ export default function SwipeActionsRow({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (disabled) return;
-    
+
     setIsDragging(true);
     setStartX(e.clientX);
     setCurrentX(e.clientX);
-    
+
     if (contentRef.current) {
-      contentRef.current.style.transition = 'none';
+      contentRef.current.style.transition = "none";
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
-    
+
     setCurrentX(e.clientX);
     const deltaX = e.clientX - startX;
     const newTranslateX = isOpen ? -ACTION_WIDTH + deltaX : deltaX;
-    
+
     if (newTranslateX <= 0) {
       setTranslateX(Math.max(newTranslateX, -ACTION_WIDTH));
     }
@@ -63,15 +63,15 @@ export default function SwipeActionsRow({
 
   const handlePointerUp = () => {
     if (!isDragging) return;
-    
+
     setIsDragging(false);
-    
+
     if (contentRef.current) {
-      contentRef.current.style.transition = 'transform 0.3s ease-out';
+      contentRef.current.style.transition = "transform 0.3s ease-out";
     }
-    
+
     const deltaX = currentX - startX;
-    
+
     if (isOpen) {
       if (deltaX > SWIPE_THRESHOLD / 2) {
         onOpenChange(false);
@@ -132,7 +132,7 @@ export default function SwipeActionsRow({
         ref={contentRef}
         style={{
           transform: `translateX(${translateX}px)`,
-          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          transition: isDragging ? "none" : "transform 0.3s ease-out",
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

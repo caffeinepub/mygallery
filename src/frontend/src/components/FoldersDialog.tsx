@@ -1,11 +1,4 @@
-import { useState } from 'react';
-import { Folder, Plus } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import type { Folder as FolderType } from "@/backend";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,20 +8,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
-  useGetFolders,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBackendActor } from "@/contexts/ActorContext";
+import {
   useCreateFolder,
-  useRenameFolder,
   useDeleteFolder,
-} from '@/hooks/useQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import type { Folder as FolderType } from '@/backend';
-import { toast } from 'sonner';
-import SwipeActionsRow from './SwipeActionsRow';
+  useGetFolders,
+  useRenameFolder,
+} from "@/hooks/useQueries";
+import { Folder, Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import SwipeActionsRow from "./SwipeActionsRow";
 
 interface FoldersDialogProps {
   open: boolean;
@@ -46,11 +46,13 @@ export default function FoldersDialog({
   onOpenChange,
   onSelectFolder,
 }: FoldersDialogProps) {
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingName, setEditingName] = useState("");
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
-  const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<bigint | null>(null);
+  const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<
+    bigint | null
+  >(null);
 
   const { status } = useBackendActor();
   const { data: folders = [], isLoading } = useGetFolders();
@@ -58,22 +60,23 @@ export default function FoldersDialog({
   const renameFolderMutation = useRenameFolder();
   const deleteFolderMutation = useDeleteFolder();
 
-  const isActorReady = status === 'ready';
+  const isActorReady = status === "ready";
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
     try {
       await createFolderMutation.mutateAsync(newFolderName.trim());
-      setNewFolderName('');
-      toast.success('Folder created successfully');
+      setNewFolderName("");
+      toast.success("Folder created successfully");
     } catch (error) {
-      console.error('Failed to create folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create folder';
+      console.error("Failed to create folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create folder";
       toast.error(errorMessage);
     }
   };
@@ -81,19 +84,23 @@ export default function FoldersDialog({
   const handleRenameFolder = async (folderId: bigint) => {
     if (!editingName.trim()) return;
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
     try {
-      await renameFolderMutation.mutateAsync({ folderId, newName: editingName.trim() });
+      await renameFolderMutation.mutateAsync({
+        folderId,
+        newName: editingName.trim(),
+      });
       setEditingFolderId(null);
-      setEditingName('');
+      setEditingName("");
       setOpenSwipeRowId(null);
-      toast.success('Folder renamed successfully');
+      toast.success("Folder renamed successfully");
     } catch (error) {
-      console.error('Failed to rename folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to rename folder';
+      console.error("Failed to rename folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to rename folder";
       toast.error(errorMessage);
     }
   };
@@ -105,7 +112,7 @@ export default function FoldersDialog({
 
   const handleDeleteFolder = async (folderId: bigint) => {
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
@@ -113,10 +120,11 @@ export default function FoldersDialog({
       await deleteFolderMutation.mutateAsync(folderId);
       setDeleteConfirmFolderId(null);
       setOpenSwipeRowId(null);
-      toast.success('Folder deleted successfully');
+      toast.success("Folder deleted successfully");
     } catch (error) {
-      console.error('Failed to delete folder:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete folder';
+      console.error("Failed to delete folder:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete folder";
       toast.error(errorMessage);
     }
   };
@@ -129,7 +137,7 @@ export default function FoldersDialog({
 
   const cancelEditing = () => {
     setEditingFolderId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   const renderFolderRow = (folder: FolderType) => {
@@ -144,8 +152,8 @@ export default function FoldersDialog({
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameFolder(folder.id);
-                if (e.key === 'Escape') cancelEditing();
+                if (e.key === "Enter") handleRenameFolder(folder.id);
+                if (e.key === "Escape") cancelEditing();
               }}
               className="flex-1"
               autoFocus
@@ -157,11 +165,7 @@ export default function FoldersDialog({
             >
               Save
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={cancelEditing}
-            >
+            <Button size="sm" variant="outline" onClick={cancelEditing}>
               Cancel
             </Button>
           </>
@@ -220,13 +224,17 @@ export default function FoldersDialog({
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateFolder();
+                  if (e.key === "Enter") handleCreateFolder();
                 }}
                 disabled={!isActorReady || createFolderMutation.isPending}
               />
               <Button
                 onClick={handleCreateFolder}
-                disabled={!isActorReady || !newFolderName.trim() || createFolderMutation.isPending}
+                disabled={
+                  !isActorReady ||
+                  !newFolderName.trim() ||
+                  createFolderMutation.isPending
+                }
                 size="icon"
               >
                 <Plus className="h-4 w-4" />
@@ -258,28 +266,37 @@ export default function FoldersDialog({
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmFolderId !== null} onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}>
+      <AlertDialog
+        open={deleteConfirmFolderId !== null}
+        onOpenChange={(open) => !open && setDeleteConfirmFolderId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this folder and all files inside it. This action cannot be undone.
+              This will permanently delete this folder and all files inside it.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteFolderMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteFolderMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteConfirmFolderId !== null && handleDeleteFolder(deleteConfirmFolderId)}
+              onClick={() =>
+                deleteConfirmFolderId !== null &&
+                handleDeleteFolder(deleteConfirmFolderId)
+              }
               disabled={deleteFolderMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
               {deleteFolderMutation.isPending ? (
                 <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-white border-r-transparent" />
                   Deleting...
                 </>
               ) : (
-                'OK'
+                "OK"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

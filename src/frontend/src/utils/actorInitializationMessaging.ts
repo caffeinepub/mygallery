@@ -2,11 +2,15 @@
  * Utility for standardizing actor initialization error detection and user-facing messaging.
  */
 
-export const ACTOR_NOT_READY_MESSAGE = 'Please wait while the app initializes...';
-export const ACTOR_ERROR_MESSAGE = 'Unable to connect. Please try again.';
-export const ACTOR_INIT_FAILED_MESSAGE = 'Connection failed. Please retry or sign in again.';
-export const CANISTER_STOPPED_MESSAGE = 'The backend service is temporarily unavailable. Reconnecting automatically...';
-export const INVALID_ADMIN_TOKEN_MESSAGE = 'Invalid or expired admin token. Please sign out, remove the token from the URL, and try again.';
+export const ACTOR_NOT_READY_MESSAGE =
+  "Please wait while the app initializes...";
+export const ACTOR_ERROR_MESSAGE = "Unable to connect. Please try again.";
+export const ACTOR_INIT_FAILED_MESSAGE =
+  "Connection failed. Please retry or sign in again.";
+export const CANISTER_STOPPED_MESSAGE =
+  "The backend service is temporarily unavailable. Reconnecting automatically...";
+export const INVALID_ADMIN_TOKEN_MESSAGE =
+  "Invalid or expired admin token. Please sign out, remove the token from the URL, and try again.";
 
 export interface ErrorClassification {
   isStoppedCanister: boolean;
@@ -20,15 +24,15 @@ export interface ErrorClassification {
  */
 export function isActorNotReadyError(error: unknown): boolean {
   if (!error) return false;
-  
+
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   return (
-    errorMessage.includes('Actor not initialized') ||
-    errorMessage.includes('actor not initialized') ||
-    errorMessage.includes('Actor is not ready') ||
-    errorMessage.includes('actor is not ready') ||
-    errorMessage.includes('Cannot initialize actor')
+    errorMessage.includes("Actor not initialized") ||
+    errorMessage.includes("actor not initialized") ||
+    errorMessage.includes("Actor is not ready") ||
+    errorMessage.includes("actor is not ready") ||
+    errorMessage.includes("Cannot initialize actor")
   );
 }
 
@@ -37,12 +41,12 @@ export function isActorNotReadyError(error: unknown): boolean {
  */
 export function isActorInitializationError(error: unknown): boolean {
   if (!error) return false;
-  
+
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   return (
-    errorMessage.includes('initialization failed') ||
-    errorMessage.includes('Failed to initialize')
+    errorMessage.includes("initialization failed") ||
+    errorMessage.includes("Failed to initialize")
   );
 }
 
@@ -52,21 +56,21 @@ export function isActorInitializationError(error: unknown): boolean {
  */
 export function isInvalidAdminTokenError(error: unknown): boolean {
   if (!error) return false;
-  
+
   // First check if it's a stopped canister - that takes precedence
   if (isCanisterStoppedError(error)) {
     return false;
   }
-  
+
   const errorMessage = error instanceof Error ? error.message : String(error);
   const lowerErrorMessage = errorMessage.toLowerCase();
-  
+
   return (
-    lowerErrorMessage.includes('unauthorized') ||
-    lowerErrorMessage.includes('access control') ||
-    lowerErrorMessage.includes('invalid secret') ||
-    lowerErrorMessage.includes('invalid token') ||
-    lowerErrorMessage.includes('authentication failed')
+    lowerErrorMessage.includes("unauthorized") ||
+    lowerErrorMessage.includes("access control") ||
+    lowerErrorMessage.includes("invalid secret") ||
+    lowerErrorMessage.includes("invalid token") ||
+    lowerErrorMessage.includes("authentication failed")
   );
 }
 
@@ -76,33 +80,38 @@ export function isInvalidAdminTokenError(error: unknown): boolean {
  */
 export function isCanisterStoppedError(error: unknown): boolean {
   if (!error) return false;
-  
+
   const errorString = error instanceof Error ? error.message : String(error);
   const lowerErrorString = errorString.toLowerCase();
-  
+
   // Check for IC0508 error code (canister stopped)
-  if (errorString.includes('IC0508') || errorString.includes('ic0508')) {
+  if (errorString.includes("IC0508") || errorString.includes("ic0508")) {
     return true;
   }
-  
+
   // Check for "is stopped" or "canister stopped" message
-  if (lowerErrorString.includes('is stopped') || lowerErrorString.includes('canister stopped')) {
+  if (
+    lowerErrorString.includes("is stopped") ||
+    lowerErrorString.includes("canister stopped")
+  ) {
     return true;
   }
-  
+
   // Check for reject code 5 (which indicates canister stopped/stopping)
-  if (errorString.includes('"reject_code":5') || 
-      errorString.includes('"reject_code": 5') ||
-      errorString.includes('reject_code: 5') ||
-      errorString.includes('Reject code: 5')) {
+  if (
+    errorString.includes('"reject_code":5') ||
+    errorString.includes('"reject_code": 5') ||
+    errorString.includes("reject_code: 5") ||
+    errorString.includes("Reject code: 5")
+  ) {
     return true;
   }
-  
+
   // Check for destination invalid (often means canister is stopped)
-  if (lowerErrorString.includes('destination invalid')) {
+  if (lowerErrorString.includes("destination invalid")) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -111,24 +120,26 @@ export function isCanisterStoppedError(error: unknown): boolean {
  * Preserves reject_code, reject_message, and other structured error fields.
  */
 export function serializeErrorDetails(error: unknown): string {
-  if (!error) return 'No error details available';
-  
+  if (!error) return "No error details available";
+
   if (error instanceof Error) {
     // Try to extract structured error information
     const errorObj = error as any;
-    
+
     // Build a structured details object
     const details: Record<string, any> = {
       message: error.message,
     };
-    
+
     // Preserve common IC error fields
-    if (errorObj.reject_code !== undefined) details.reject_code = errorObj.reject_code;
-    if (errorObj.reject_message) details.reject_message = errorObj.reject_message;
+    if (errorObj.reject_code !== undefined)
+      details.reject_code = errorObj.reject_code;
+    if (errorObj.reject_message)
+      details.reject_message = errorObj.reject_message;
     if (errorObj.error_code) details.error_code = errorObj.error_code;
     if (errorObj.canister_id) details.canister_id = errorObj.canister_id;
     if (error.stack) details.stack = error.stack;
-    
+
     // If we have structured fields, return formatted JSON
     if (Object.keys(details).length > 1) {
       try {
@@ -137,18 +148,18 @@ export function serializeErrorDetails(error: unknown): string {
         return error.message;
       }
     }
-    
+
     return error.message;
   }
-  
-  if (typeof error === 'object') {
+
+  if (typeof error === "object") {
     try {
       return JSON.stringify(error, null, 2);
     } catch {
       return String(error);
     }
   }
-  
+
   return String(error);
 }
 
@@ -158,7 +169,7 @@ export function serializeErrorDetails(error: unknown): string {
  */
 export function classifyError(error: unknown): ErrorClassification {
   const isStoppedCanister = isCanisterStoppedError(error);
-  
+
   return {
     isStoppedCanister,
     isActorNotReady: isActorNotReadyError(error),
@@ -171,14 +182,14 @@ export function classifyError(error: unknown): ErrorClassification {
 /**
  * Maps an actor initialization error to a user-friendly summary, technical details, and classification.
  */
-export function mapActorInitError(error: unknown): { 
-  summary: string; 
+export function mapActorInitError(error: unknown): {
+  summary: string;
   technicalDetails: string;
   classification: ErrorClassification;
 } {
   const technicalDetails = serializeErrorDetails(error);
   const classification = classifyError(error);
-  
+
   // Check for stopped canister first (most specific and highest priority)
   if (classification.isStoppedCanister) {
     return {
@@ -187,7 +198,7 @@ export function mapActorInitError(error: unknown): {
       classification,
     };
   }
-  
+
   // Check for invalid admin token
   if (classification.isInvalidAdminToken) {
     return {
@@ -196,7 +207,7 @@ export function mapActorInitError(error: unknown): {
       classification,
     };
   }
-  
+
   // Check for actor not ready
   if (classification.isActorNotReady) {
     return {
@@ -205,7 +216,7 @@ export function mapActorInitError(error: unknown): {
       classification,
     };
   }
-  
+
   // Check for initialization errors
   if (classification.isInitializationError) {
     return {
@@ -214,7 +225,7 @@ export function mapActorInitError(error: unknown): {
       classification,
     };
   }
-  
+
   // Generic error
   return {
     summary: ACTOR_ERROR_MESSAGE,
@@ -231,23 +242,23 @@ export function getActorErrorMessage(error: unknown): string {
   if (isCanisterStoppedError(error)) {
     return CANISTER_STOPPED_MESSAGE;
   }
-  
+
   if (isInvalidAdminTokenError(error)) {
     return INVALID_ADMIN_TOKEN_MESSAGE;
   }
-  
+
   if (isActorNotReadyError(error)) {
     return ACTOR_NOT_READY_MESSAGE;
   }
-  
+
   if (isActorInitializationError(error)) {
     return ACTOR_INIT_FAILED_MESSAGE;
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   return ACTOR_ERROR_MESSAGE;
 }
 

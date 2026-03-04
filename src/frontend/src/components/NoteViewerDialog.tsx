@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import type { Note } from "@/backend";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { FolderInput, Target, Download, Share2, Trash2 } from 'lucide-react';
-import { useDeleteNotes } from '@/hooks/useNotesQueries';
-import { toast } from 'sonner';
-import { downloadNoteAsText, shareNote } from '@/utils/externalOpen';
-import type { Note } from '@/backend';
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useDeleteNotes } from "@/hooks/useNotesQueries";
+import { downloadNoteAsText, shareNote } from "@/utils/externalOpen";
+import { Download, FolderInput, Share2, Target, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface NoteViewerDialogProps {
   note: Note;
@@ -33,7 +33,7 @@ export default function NoteViewerDialog({
 
   const handleDownload = () => {
     downloadNoteAsText(note.title, note.body);
-    toast.success('Note downloaded');
+    toast.success("Note downloaded");
   };
 
   const handleShare = async () => {
@@ -41,11 +41,11 @@ export default function NoteViewerDialog({
     try {
       const shared = await shareNote(note.title, note.body);
       if (!shared) {
-        toast.error('Sharing not supported on this device');
+        toast.error("Sharing not supported on this device");
       }
     } catch (error) {
-      console.error('Share error:', error);
-      toast.error('Failed to share note');
+      console.error("Share error:", error);
+      toast.error("Failed to share note");
     } finally {
       setIsSharing(false);
     }
@@ -54,11 +54,12 @@ export default function NoteViewerDialog({
   const handleDelete = async () => {
     try {
       await deleteNotes.mutateAsync([BigInt(note.id)]);
-      toast.success('Note deleted');
+      toast.success("Note deleted");
       onOpenChange(false);
     } catch (error) {
-      console.error('Delete error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete note';
+      console.error("Delete error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete note";
       toast.error(errorMessage);
     }
   };
@@ -72,7 +73,9 @@ export default function NoteViewerDialog({
 
         <ScrollArea className="flex-1 pr-4">
           <div className="whitespace-pre-wrap text-sm text-foreground">
-            {note.body || <span className="text-muted-foreground italic">No content</span>}
+            {note.body || (
+              <span className="text-muted-foreground italic">No content</span>
+            )}
           </div>
         </ScrollArea>
 

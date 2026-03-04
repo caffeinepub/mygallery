@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export default function AnimatedGalleryIcon() {
   return (
@@ -8,6 +8,8 @@ export default function AnimatedGalleryIcon() {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="h-full w-full"
+        role="img"
+        aria-label="MYL"
       >
         {/* Outer target ring */}
         <circle
@@ -17,7 +19,7 @@ export default function AnimatedGalleryIcon() {
           className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
           strokeWidth="2"
         />
-        
+
         {/* Middle target ring */}
         <circle
           cx="32"
@@ -26,7 +28,7 @@ export default function AnimatedGalleryIcon() {
           className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
           strokeWidth="2.5"
         />
-        
+
         {/* Inner target ring */}
         <circle
           cx="32"
@@ -35,7 +37,7 @@ export default function AnimatedGalleryIcon() {
           className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
           strokeWidth="3"
         />
-        
+
         {/* Center bullseye with pulse animation */}
         <circle
           cx="32"
@@ -43,7 +45,7 @@ export default function AnimatedGalleryIcon() {
           r="6"
           className="fill-missions-accent transition-all duration-300 group-hover:animate-pulse group-hover:fill-missions-accent-hover"
         />
-        
+
         {/* Crosshair vertical line */}
         <line
           x1="32"
@@ -54,7 +56,7 @@ export default function AnimatedGalleryIcon() {
           strokeWidth="2"
           strokeLinecap="round"
         />
-        
+
         {/* Crosshair horizontal line */}
         <line
           x1="4"
@@ -65,7 +67,7 @@ export default function AnimatedGalleryIcon() {
           strokeWidth="2"
           strokeLinecap="round"
         />
-        
+
         {/* Corner markers - top left */}
         <path
           d="M 8 8 L 8 14 M 8 8 L 14 8"
@@ -73,7 +75,7 @@ export default function AnimatedGalleryIcon() {
           strokeWidth="2"
           strokeLinecap="round"
         />
-        
+
         {/* Corner markers - top right */}
         <path
           d="M 56 8 L 56 14 M 56 8 L 50 8"
@@ -81,7 +83,7 @@ export default function AnimatedGalleryIcon() {
           strokeWidth="2"
           strokeLinecap="round"
         />
-        
+
         {/* Corner markers - bottom left */}
         <path
           d="M 8 56 L 8 50 M 8 56 L 14 56"
@@ -89,7 +91,7 @@ export default function AnimatedGalleryIcon() {
           strokeWidth="2"
           strokeLinecap="round"
         />
-        
+
         {/* Corner markers - bottom right */}
         <path
           d="M 56 56 L 56 50 M 56 56 L 50 56"
@@ -98,7 +100,7 @@ export default function AnimatedGalleryIcon() {
           strokeLinecap="round"
         />
       </svg>
-      
+
       {/* Subtle glow effect on hover */}
       <div className="absolute inset-0 rounded-full bg-missions-accent/0 group-hover:bg-missions-accent/10 transition-all duration-300 blur-sm" />
     </div>

@@ -1,11 +1,11 @@
-import type { Mission, Task } from '@/backend';
+import type { Mission, Task } from "@/backend";
 
 /**
  * Calculate mission progress percentage
  */
 export function calculateMissionProgress(tasks: Task[]): number {
   if (tasks.length === 0) return 0;
-  const completed = tasks.filter(t => t.completed).length;
+  const completed = tasks.filter((t) => t.completed).length;
   return (completed / tasks.length) * 100;
 }
 

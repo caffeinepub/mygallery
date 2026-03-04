@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -44,14 +44,15 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
 
   useEffect(() => {
     // Check if speech recognition is supported
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     setIsSupported(!!SpeechRecognitionAPI);
 
     if (SpeechRecognitionAPI) {
       const recognition = new SpeechRecognitionAPI();
       recognition.continuous = true;
       recognition.interimResults = true;
-      
+
       // Only set language if explicitly provided, otherwise use browser/OS default
       if (lang) {
         recognition.lang = lang;
@@ -81,28 +82,29 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        
-        let errorMessage = 'Speech recognition error';
-        
+        console.error("Speech recognition error:", event.error);
+
+        let errorMessage = "Speech recognition error";
+
         switch (event.error) {
-          case 'not-allowed':
-          case 'permission-denied':
-            errorMessage = 'Microphone permission denied. Please allow microphone access.';
+          case "not-allowed":
+          case "permission-denied":
+            errorMessage =
+              "Microphone permission denied. Please allow microphone access.";
             break;
-          case 'no-speech':
-            errorMessage = 'No speech detected. Please try again.';
+          case "no-speech":
+            errorMessage = "No speech detected. Please try again.";
             break;
-          case 'network':
-            errorMessage = 'Network error. Please check your connection.';
+          case "network":
+            errorMessage = "Network error. Please check your connection.";
             break;
-          case 'aborted':
+          case "aborted":
             // User stopped, not an error
             return;
           default:
             errorMessage = `Speech recognition error: ${event.error}`;
         }
-        
+
         if (onError) {
           onError(errorMessage);
         }
@@ -122,7 +124,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {
+        } catch (_e) {
           // Ignore errors on cleanup
         }
       }
@@ -132,7 +134,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
       if (onError) {
-        onError('Speech recognition is not supported in this browser');
+        onError("Speech recognition is not supported in this browser");
       }
       return;
     }
@@ -143,9 +145,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
       recognitionRef.current.start();
       setIsListening(true);
     } catch (error) {
-      console.error('Error starting speech recognition:', error);
+      console.error("Error starting speech recognition:", error);
       if (onError) {
-        onError('Failed to start speech recognition');
+        onError("Failed to start speech recognition");
       }
     }
   }, [onError]);
@@ -155,7 +157,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}) {
       try {
         recognitionRef.current.stop();
       } catch (error) {
-        console.error('Error stopping speech recognition:', error);
+        console.error("Error stopping speech recognition:", error);
       }
       setIsListening(false);
     }

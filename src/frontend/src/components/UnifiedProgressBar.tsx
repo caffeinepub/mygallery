@@ -1,26 +1,30 @@
-import { useUpload } from '@/contexts/UploadContext';
+import { useUpload } from "@/contexts/UploadContext";
 
 export default function UnifiedProgressBar() {
-  const { isUploading, totalProgress, uploads } = useUpload();
+  const { totalProgress, uploads } = useUpload();
 
   // Only show when there are active (non-completed) uploads
-  const activeUploads = uploads.filter(u => !u.completed);
-  
+  const activeUploads = uploads.filter((u) => !u.completed);
+
   if (activeUploads.length === 0) return null;
 
-  const fileCount = activeUploads.filter(u => u.type === 'file').length;
-  const linkCount = activeUploads.filter(u => u.type === 'link').length;
-  const noteCount = activeUploads.filter(u => u.type === 'note').length;
+  const fileCount = activeUploads.filter((u) => u.type === "file").length;
+  const linkCount = activeUploads.filter((u) => u.type === "link").length;
+  const noteCount = activeUploads.filter((u) => u.type === "note").length;
 
-  let itemLabel = '';
+  let itemLabel = "";
   if (fileCount > 0) {
-    itemLabel = `${fileCount} file${fileCount > 1 ? 's' : ''}`;
+    itemLabel = `${fileCount} file${fileCount > 1 ? "s" : ""}`;
   }
   if (linkCount > 0) {
-    itemLabel = itemLabel ? `${itemLabel}, ${linkCount} link${linkCount > 1 ? 's' : ''}` : `${linkCount} link${linkCount > 1 ? 's' : ''}`;
+    itemLabel = itemLabel
+      ? `${itemLabel}, ${linkCount} link${linkCount > 1 ? "s" : ""}`
+      : `${linkCount} link${linkCount > 1 ? "s" : ""}`;
   }
   if (noteCount > 0) {
-    itemLabel = itemLabel ? `${itemLabel}, ${noteCount} note${noteCount > 1 ? 's' : ''}` : `${noteCount} note${noteCount > 1 ? 's' : ''}`;
+    itemLabel = itemLabel
+      ? `${itemLabel}, ${noteCount} note${noteCount > 1 ? "s" : ""}`
+      : `${noteCount} note${noteCount > 1 ? "s" : ""}`;
   }
 
   return (

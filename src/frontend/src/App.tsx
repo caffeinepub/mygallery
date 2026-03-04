@@ -1,13 +1,13 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
-import HomePage from '@/pages/HomePage';
-import { ActorProvider } from '@/contexts/ActorContext';
-import { UploadProvider } from '@/contexts/UploadContext';
-import IntroScreen from '@/components/IntroScreen';
-import { useIntroOnAppResume } from '@/hooks/useIntroOnAppResume';
-import { useState } from 'react';
-import { useInternetIdentity } from '@/hooks/useInternetIdentity';
-import UploadQueueRunner from '@/components/UploadQueueRunner';
+import IntroScreen from "@/components/IntroScreen";
+import UploadQueueRunner from "@/components/UploadQueueRunner";
+import { ActorProvider } from "@/contexts/ActorContext";
+import { UploadProvider } from "@/contexts/UploadContext";
+import { useInternetIdentity } from "@/hooks/useInternetIdentity";
+import { useIntroOnAppResume } from "@/hooks/useIntroOnAppResume";
+import HomePage from "@/pages/HomePage";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
+import { useState } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {

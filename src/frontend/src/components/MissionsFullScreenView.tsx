@@ -1,8 +1,4 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Mission } from "@/backend";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,39 +8,51 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useListMissions, useDeleteMission } from '@/hooks/useMissionsQueries';
-import { useBackendActor } from '@/contexts/ActorContext';
-import type { Mission } from '@/backend';
-import { toast } from 'sonner';
-import SwipeActionsRow from './SwipeActionsRow';
-import MissionEditorDialog from './MissionEditorDialog';
-import MissionDetailFullScreenView from './MissionDetailFullScreenView';
-import { splitMissionsByCompletion } from '@/utils/missionCompletion';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useDeleteMission, useListMissions } from "@/hooks/useMissionsQueries";
+import { splitMissionsByCompletion } from "@/utils/missionCompletion";
+import { ArrowLeft, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import MissionDetailFullScreenView from "./MissionDetailFullScreenView";
+import MissionEditorDialog from "./MissionEditorDialog";
+import SwipeActionsRow from "./SwipeActionsRow";
 
 interface MissionsFullScreenViewProps {
   onClose: () => void;
 }
 
-export default function MissionsFullScreenView({ onClose }: MissionsFullScreenViewProps) {
+export default function MissionsFullScreenView({
+  onClose,
+}: MissionsFullScreenViewProps) {
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedMissionId, setSelectedMissionId] = useState<bigint | null>(null);
+  const [selectedMissionId, setSelectedMissionId] = useState<bigint | null>(
+    null,
+  );
   const [openSwipeRowId, setOpenSwipeRowId] = useState<string | null>(null);
-  const [deleteConfirmMissionId, setDeleteConfirmMissionId] = useState<bigint | null>(null);
-  const [activeTab, setActiveTab] = useState<'incomplete' | 'completed'>('incomplete');
+  const [deleteConfirmMissionId, setDeleteConfirmMissionId] = useState<
+    bigint | null
+  >(null);
+  const [activeTab, setActiveTab] = useState<"incomplete" | "completed">(
+    "incomplete",
+  );
 
   const { status } = useBackendActor();
   const { data: missions = [], isLoading } = useListMissions();
   const deleteMissionMutation = useDeleteMission();
 
-  const isActorReady = status === 'ready';
+  const isActorReady = status === "ready";
 
   const { incomplete, completed } = splitMissionsByCompletion(missions);
 
   // Reset to incomplete tab when returning from mission detail
   useEffect(() => {
     if (!selectedMissionId) {
-      setActiveTab('incomplete');
+      setActiveTab("incomplete");
     }
   }, [selectedMissionId]);
 
@@ -55,7 +63,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
 
   const handleDeleteMission = async (missionId: bigint) => {
     if (!isActorReady) {
-      toast.error('Please wait for the application to initialize');
+      toast.error("Please wait for the application to initialize");
       return;
     }
 
@@ -63,10 +71,11 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
       await deleteMissionMutation.mutateAsync(missionId);
       setDeleteConfirmMissionId(null);
       setOpenSwipeRowId(null);
-      toast.success('Mission deleted successfully');
+      toast.success("Mission deleted successfully");
     } catch (error) {
-      console.error('Failed to delete mission:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete mission';
+      console.error("Failed to delete mission:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete mission";
       toast.error(errorMessage);
     }
   };
@@ -130,7 +139,7 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
     <>
       <div className="fixed inset-0 z-50 bg-background flex flex-col animate-page-scale-in">
         {/* Header */}
-        <div 
+        <div
           className="flex items-center gap-4 p-4 border-b border-border"
           data-transition-target="missions"
         >
@@ -154,7 +163,11 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
         </div>
 
         {/* Missions list with tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'incomplete' | 'completed')} className="flex-1 flex flex-col">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "incomplete" | "completed")}
+          className="flex-1 flex flex-col"
+        >
           <TabsList className="w-full rounded-none border-b">
             <TabsTrigger value="incomplete" className="flex-1">
               Incomplete ({incomplete.length})
@@ -221,13 +234,17 @@ export default function MissionsFullScreenView({ onClose }: MissionsFullScreenVi
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Mission</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this mission? This action cannot be undone.
+              Are you sure you want to delete this mission? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteConfirmMissionId !== null && handleDeleteMission(deleteConfirmMissionId)}
+              onClick={() =>
+                deleteConfirmMissionId !== null &&
+                handleDeleteMission(deleteConfirmMissionId)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               OK

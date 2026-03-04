@@ -1,9 +1,20 @@
-import { useState } from 'react';
-import { AlertCircle, RefreshCw, LogOut, ChevronDown, ChevronUp, ServerOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import type { ErrorClassification } from '@/utils/actorInitializationMessaging';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import type { ErrorClassification } from "@/utils/actorInitializationMessaging";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  LogOut,
+  RefreshCw,
+  ServerOff,
+} from "lucide-react";
+import { useState } from "react";
 
 interface ActorInitErrorStateProps {
   summary: string;
@@ -13,15 +24,15 @@ interface ActorInitErrorStateProps {
   onLogout: () => void;
 }
 
-export default function ActorInitErrorState({ 
-  summary, 
-  technicalDetails, 
+export default function ActorInitErrorState({
+  summary,
+  technicalDetails,
   classification,
-  onRetry, 
-  onLogout 
+  onRetry,
+  onLogout,
 }: ActorInitErrorStateProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  
+
   // Use centralized classification for UI decisions
   const isStoppedCanister = classification.isStoppedCanister;
   const isInvalidAdminToken = classification.isInvalidAdminToken;
@@ -31,32 +42,36 @@ export default function ActorInitErrorState({
       <main className="flex flex-1 items-center justify-center bg-gradient-to-b from-background to-muted/20 p-4">
         <Card className="max-w-md w-full">
           <CardContent className="flex flex-col items-center justify-center py-12 px-6 space-y-6">
-            <div className={`rounded-full p-4 ${isStoppedCanister ? 'bg-orange-500/10' : 'bg-destructive/10'}`}>
+            <div
+              className={`rounded-full p-4 ${isStoppedCanister ? "bg-orange-500/10" : "bg-destructive/10"}`}
+            >
               {isStoppedCanister ? (
                 <ServerOff className="h-12 w-12 text-orange-500" />
               ) : (
                 <AlertCircle className="h-12 w-12 text-destructive" />
               )}
             </div>
-            
+
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">
-                {isStoppedCanister ? 'Service Unavailable' : isInvalidAdminToken ? 'Invalid Admin Token' : 'Connection Failed'}
+                {isStoppedCanister
+                  ? "Service Unavailable"
+                  : isInvalidAdminToken
+                    ? "Invalid Admin Token"
+                    : "Connection Failed"}
               </h2>
-              <p className="text-muted-foreground">
-                {summary}
-              </p>
+              <p className="text-muted-foreground">{summary}</p>
             </div>
 
-            <Collapsible 
-              open={isDetailsOpen} 
+            <Collapsible
+              open={isDetailsOpen}
               onOpenChange={setIsDetailsOpen}
               className="w-full"
             >
               <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="w-full justify-between"
                 >
                   <span className="text-sm font-medium">Technical Details</span>
@@ -77,16 +92,12 @@ export default function ActorInitErrorState({
             </Collapsible>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full">
-              <Button 
-                onClick={onRetry} 
-                className="flex-1"
-                size="lg"
-              >
+              <Button onClick={onRetry} className="flex-1" size="lg">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Retry Connection
               </Button>
-              <Button 
-                onClick={onLogout} 
+              <Button
+                onClick={onLogout}
                 variant="outline"
                 className="flex-1"
                 size="lg"
@@ -97,11 +108,11 @@ export default function ActorInitErrorState({
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              {isStoppedCanister 
-                ? 'The service will reconnect automatically when available. Contact your administrator if the issue persists.'
+              {isStoppedCanister
+                ? "The service will reconnect automatically when available. Contact your administrator if the issue persists."
                 : isInvalidAdminToken
-                ? 'Remove the admin token from the URL and sign in again with a valid token if needed.'
-                : 'If the problem persists, try signing out and signing in again.'}
+                  ? "Remove the admin token from the URL and sign in again with a valid token if needed."
+                  : "If the problem persists, try signing out and signing in again."}
             </p>
           </CardContent>
         </Card>

@@ -1,4 +1,7 @@
-import type { FileBytesRequest, FileBytesResponse } from '@/workers/fileBytes.worker';
+import type {
+  FileBytesRequest,
+  FileBytesResponse,
+} from "@/workers/fileBytes.worker";
 
 type PendingRequest = {
   resolve: (bytes: Uint8Array) => void;
@@ -17,12 +20,12 @@ class FileBytesWorkerSingleton {
     if (this.worker) return;
 
     this.worker = new Worker(
-      new URL('../workers/fileBytes.worker.ts', import.meta.url),
-      { type: 'module' }
+      new URL("../workers/fileBytes.worker.ts", import.meta.url),
+      { type: "module" },
     );
 
-    this.worker.addEventListener('message', this.handleMessage);
-    this.worker.addEventListener('error', this.handleError);
+    this.worker.addEventListener("message", this.handleMessage);
+    this.worker.addEventListener("error", this.handleError);
   }
 
   private handleMessage = (e: MessageEvent<FileBytesResponse>) => {
@@ -47,18 +50,21 @@ class FileBytesWorkerSingleton {
   };
 
   private handleError = (error: ErrorEvent) => {
-    console.error('Worker error:', error);
+    console.error("Worker error:", error);
     // Reject all pending requests
-    this.pendingRequests.forEach((pending) => {
-      pending.reject(new Error('Worker error'));
-    });
+    for (const pending of this.pendingRequests.values()) {
+      pending.reject(new Error("Worker error"));
+    }
     this.pendingRequests.clear();
     this.activeRequests = 0;
     this.queue = [];
   };
 
   private processQueue() {
-    while (this.activeRequests < this.concurrencyLimit && this.queue.length > 0) {
+    while (
+      this.activeRequests < this.concurrencyLimit &&
+      this.queue.length > 0
+    ) {
       const next = this.queue.shift();
       if (!next) break;
 
@@ -68,7 +74,7 @@ class FileBytesWorkerSingleton {
 
   private executeRequest(itemId: string, request: PendingRequest) {
     if (!this.worker) {
-      request.reject(new Error('Worker not initialized'));
+      request.reject(new Error("Worker not initialized"));
       return;
     }
 
@@ -99,8 +105,8 @@ class FileBytesWorkerSingleton {
 
   terminate() {
     if (this.worker) {
-      this.worker.removeEventListener('message', this.handleMessage);
-      this.worker.removeEventListener('error', this.handleError);
+      this.worker.removeEventListener("message", this.handleMessage);
+      this.worker.removeEventListener("error", this.handleError);
       this.worker.terminate();
       this.worker = null;
     }

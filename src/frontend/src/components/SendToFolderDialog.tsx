@@ -1,15 +1,22 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Folder, Home } from 'lucide-react';
-import { useGetFolders, useMoveFilesToFolder, useBatchRemoveFromFolder } from '@/hooks/useQueries';
-import { useMoveNotesToFolder, useBatchRemoveNotesFromFolder } from '@/hooks/useNotesQueries';
-import { perfDiag } from '@/utils/performanceDiagnostics';
+} from "@/components/ui/dialog";
+import {
+  useBatchRemoveNotesFromFolder,
+  useMoveNotesToFolder,
+} from "@/hooks/useNotesQueries";
+import {
+  useBatchRemoveFromFolder,
+  useGetFolders,
+  useMoveFilesToFolder,
+} from "@/hooks/useQueries";
+import { perfDiag } from "@/utils/performanceDiagnostics";
+import { Folder, Home } from "lucide-react";
 
 interface SendToFolderDialogProps {
   open: boolean;
@@ -36,9 +43,9 @@ export default function SendToFolderDialog({
 
   const handleMoveToFolder = async (folderId: bigint) => {
     const operationId = `move-to-folder-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Move to folder (UI)', { 
+    perfDiag.startTiming(operationId, "Move to folder (UI)", {
       fileCount: fileIds.length,
-      noteCount: noteIds.length 
+      noteCount: noteIds.length,
     });
 
     try {
@@ -53,22 +60,22 @@ export default function SendToFolderDialog({
       onMoveComplete?.();
     } catch (error) {
       perfDiag.endTiming(operationId, { success: false });
-      console.error('Move to folder error:', error);
+      console.error("Move to folder error:", error);
     }
   };
 
   const handleReturnToMain = async () => {
     const operationId = `return-to-main-${Date.now()}`;
-    perfDiag.startTiming(operationId, 'Return to main collection (UI)', { 
+    perfDiag.startTiming(operationId, "Return to main collection (UI)", {
       fileCount: fileIds.length,
-      noteCount: noteIds.length 
+      noteCount: noteIds.length,
     });
 
     try {
       if (fileIds.length > 0) {
-        await batchRemoveFromFolder.mutateAsync({ 
-          fileIds, 
-          sourceFolderId: currentFolderId 
+        await batchRemoveFromFolder.mutateAsync({
+          fileIds,
+          sourceFolderId: currentFolderId,
         });
       }
       if (noteIds.length > 0) {
@@ -79,12 +86,15 @@ export default function SendToFolderDialog({
       onMoveComplete?.();
     } catch (error) {
       perfDiag.endTiming(operationId, { success: false });
-      console.error('Return to main error:', error);
+      console.error("Return to main error:", error);
     }
   };
 
-  const isProcessing = moveFilesToFolder.isPending || batchRemoveFromFolder.isPending || 
-                       moveNotesToFolder.isPending || batchRemoveNotesFromFolder.isPending;
+  const isProcessing =
+    moveFilesToFolder.isPending ||
+    batchRemoveFromFolder.isPending ||
+    moveNotesToFolder.isPending ||
+    batchRemoveNotesFromFolder.isPending;
 
   return (
     <Dialog open={open} onOpenChange={isProcessing ? undefined : onOpenChange}>
@@ -97,9 +107,9 @@ export default function SendToFolderDialog({
           {currentFolderId !== undefined && (
             <Card
               className={`transition-all ${
-                isProcessing 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'cursor-pointer hover:shadow-md hover:border-primary'
+                isProcessing
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer hover:shadow-md hover:border-primary"
               }`}
               onClick={isProcessing ? undefined : handleReturnToMain}
             >
@@ -110,7 +120,9 @@ export default function SendToFolderDialog({
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">Main Collection</p>
-                    <p className="text-xs text-muted-foreground">Return to main collection</p>
+                    <p className="text-xs text-muted-foreground">
+                      Return to main collection
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -118,7 +130,9 @@ export default function SendToFolderDialog({
           )}
 
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading folders...</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Loading folders...
+            </div>
           ) : !folders || folders.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -135,11 +149,15 @@ export default function SendToFolderDialog({
                 <Card
                   key={folder.id.toString()}
                   className={`transition-all ${
-                    isProcessing 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'cursor-pointer hover:shadow-md hover:border-primary'
+                    isProcessing
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer hover:shadow-md hover:border-primary"
                   }`}
-                  onClick={isProcessing ? undefined : () => handleMoveToFolder(folder.id)}
+                  onClick={
+                    isProcessing
+                      ? undefined
+                      : () => handleMoveToFolder(folder.id)
+                  }
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -157,9 +175,9 @@ export default function SendToFolderDialog({
         </div>
 
         <div className="pt-4 border-t">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
             className="w-full"
             disabled={isProcessing}
           >

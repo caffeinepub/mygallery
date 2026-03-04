@@ -72,7 +72,7 @@ export function createCancellableLimiter(limit: number) {
   return {
     execute<T>(fn: () => Promise<T>): Promise<T> {
       if (cancelled) {
-        return Promise.reject(new Error('Limiter cancelled'));
+        return Promise.reject(new Error("Limiter cancelled"));
       }
 
       return new Promise<T>((resolve, reject) => {
@@ -82,7 +82,9 @@ export function createCancellableLimiter(limit: number) {
     },
     cancel() {
       cancelled = true;
-      queue.forEach(task => task.reject(new Error('Cancelled')));
+      for (const task of queue) {
+        task.reject(new Error("Cancelled"));
+      }
       queue.length = 0;
     },
     getStats() {

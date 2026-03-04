@@ -1,16 +1,16 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Target } from 'lucide-react';
-import { useListMissions } from '@/hooks/useMissionsQueries';
-import { useMoveFilesToMission } from '@/hooks/useQueries';
-import { useMoveNotesToMission } from '@/hooks/useNotesQueries';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import { useListMissions } from "@/hooks/useMissionsQueries";
+import { useMoveNotesToMission } from "@/hooks/useNotesQueries";
+import { useMoveFilesToMission } from "@/hooks/useQueries";
+import { Target } from "lucide-react";
+import { toast } from "sonner";
 
 interface MoveToMissionDialogProps {
   open: boolean;
@@ -39,30 +39,39 @@ export default function MoveToMissionDialog({
       if (noteIds.length > 0) {
         await moveNotesToMission.mutateAsync({ noteIds, missionId });
       }
-      
+
       // Show success message
       const totalCount = fileIds.length + noteIds.length;
-      toast.success(`Moved ${totalCount} ${totalCount === 1 ? 'item' : 'items'} to mission`);
-      
+      toast.success(
+        `Moved ${totalCount} ${totalCount === 1 ? "item" : "items"} to mission`,
+      );
+
       onOpenChange(false);
       onMoveComplete?.();
     } catch (error) {
-      console.error('Move to mission error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to move items to mission';
+      console.error("Move to mission error:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to move items to mission";
       toast.error(errorMessage);
     }
   };
 
-  const isProcessing = moveFilesToMission.isPending || moveNotesToMission.isPending;
+  const isProcessing =
+    moveFilesToMission.isPending || moveNotesToMission.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      // Prevent closing while moving
-      if (!newOpen && isProcessing) {
-        return;
-      }
-      onOpenChange(newOpen);
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        // Prevent closing while moving
+        if (!newOpen && isProcessing) {
+          return;
+        }
+        onOpenChange(newOpen);
+      }}
+    >
       <DialogContent className="max-w-md max-h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Move to mission</DialogTitle>
@@ -70,7 +79,9 @@ export default function MoveToMissionDialog({
 
         <div className="flex-1 overflow-auto space-y-2">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading missions...</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Loading missions...
+            </div>
           ) : !missions || missions.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -78,7 +89,9 @@ export default function MoveToMissionDialog({
                   <Target className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">No missions</p>
-                <p className="text-xs text-muted-foreground mt-1">Create a mission first</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Create a mission first
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -86,7 +99,7 @@ export default function MoveToMissionDialog({
               <Card
                 key={mission.id.toString()}
                 className={`cursor-pointer transition-all hover:shadow-md hover:border-missions-accent ${
-                  isProcessing ? 'opacity-50 pointer-events-none' : ''
+                  isProcessing ? "opacity-50 pointer-events-none" : ""
                 }`}
                 onClick={() => !isProcessing && handleMoveToMission(mission.id)}
               >
@@ -98,7 +111,8 @@ export default function MoveToMissionDialog({
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{mission.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {mission.tasks.length} {mission.tasks.length === 1 ? 'task' : 'tasks'}
+                        {mission.tasks.length}{" "}
+                        {mission.tasks.length === 1 ? "task" : "tasks"}
                       </p>
                     </div>
                   </div>
@@ -111,16 +125,16 @@ export default function MoveToMissionDialog({
         {isProcessing && (
           <div className="py-3 text-center">
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent"></div>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-missions-accent border-r-transparent" />
               Moving items...
             </div>
           </div>
         )}
 
         <div className="pt-4 border-t">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
             className="w-full"
             disabled={isProcessing}
           >

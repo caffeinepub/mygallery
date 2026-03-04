@@ -21,16 +21,17 @@ class PerformanceDiagnostics {
     if (this.enabled !== null) return;
 
     // Check localStorage
-    const localStorageFlag = localStorage.getItem('perf_diagnostics') === 'true';
-    
+    const localStorageFlag =
+      localStorage.getItem("perf_diagnostics") === "true";
+
     // Check URL param
     const urlParams = new URLSearchParams(window.location.search);
-    const urlFlag = urlParams.get('perf_diagnostics') === 'true';
-    
+    const urlFlag = urlParams.get("perf_diagnostics") === "true";
+
     this.enabled = localStorageFlag || urlFlag;
-    
+
     if (this.enabled) {
-      console.log('[PerfDiag] Performance diagnostics enabled');
+      console.log("[PerfDiag] Performance diagnostics enabled");
     }
   }
 
@@ -39,7 +40,11 @@ class PerformanceDiagnostics {
     return this.enabled === true;
   }
 
-  startTiming(operationId: string, operation: string, metadata?: Record<string, any>) {
+  startTiming(
+    operationId: string,
+    operation: string,
+    metadata?: Record<string, any>,
+  ) {
     if (!this.isEnabled()) return;
 
     this.timings.set(operationId, {
@@ -57,25 +62,29 @@ class PerformanceDiagnostics {
 
     entry.endTime = performance.now();
     entry.duration = entry.endTime - entry.startTime;
-    
+
     if (additionalMetadata) {
       entry.metadata = { ...entry.metadata, ...additionalMetadata };
     }
 
     console.log(
       `[PerfDiag] ${entry.operation} completed in ${entry.duration.toFixed(2)}ms`,
-      entry.metadata || ''
+      entry.metadata || "",
     );
 
     this.timings.delete(operationId);
   }
 
-  logOperation(operation: string, duration: number, metadata?: Record<string, any>) {
+  logOperation(
+    operation: string,
+    duration: number,
+    metadata?: Record<string, any>,
+  ) {
     if (!this.isEnabled()) return;
 
     console.log(
       `[PerfDiag] ${operation} took ${duration.toFixed(2)}ms`,
-      metadata || ''
+      metadata || "",
     );
   }
 }
@@ -89,7 +98,7 @@ export const perfDiag = new PerformanceDiagnostics();
 export async function timeOperation<T>(
   operation: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<T> {
   if (!perfDiag.isEnabled()) {
     return fn();

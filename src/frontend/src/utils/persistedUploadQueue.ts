@@ -1,5 +1,5 @@
-const DB_NAME = 'upload-queue';
-const STORE_NAME = 'uploads';
+const DB_NAME = "upload-queue";
+const STORE_NAME = "uploads";
 const DB_VERSION = 2;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB limit
 
@@ -26,7 +26,7 @@ class PersistedUploadQueue {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('Failed to open upload queue DB:', request.error);
+        console.error("Failed to open upload queue DB:", request.error);
         reject(request.error);
       };
 
@@ -37,9 +37,9 @@ class PersistedUploadQueue {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'itemId' });
+          db.createObjectStore(STORE_NAME, { keyPath: "itemId" });
         }
       };
     });
@@ -53,19 +53,21 @@ class PersistedUploadQueue {
       if (!this.db) return;
 
       if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File ${file.name} exceeds size limit, skipping persistence`);
+        console.warn(
+          `File ${file.name} exceeds size limit, skipping persistence`,
+        );
         return;
       }
 
       const bytes = new Uint8Array(await file.arrayBuffer());
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
 
       const item: UploadQueueItem = {
         itemId,
         name: file.name,
-        mimeType: file.type || 'application/octet-stream',
+        mimeType: file.type || "application/octet-stream",
         size: file.size,
         bytes,
         progress,
@@ -75,7 +77,7 @@ class PersistedUploadQueue {
 
       store.put(item);
     } catch (error) {
-      console.error('Failed to enqueue upload:', error);
+      console.error("Failed to enqueue upload:", error);
     }
   }
 
@@ -85,7 +87,7 @@ class PersistedUploadQueue {
     mimeType: string,
     size: number,
     bytes: Uint8Array,
-    progress: number
+    progress: number,
   ): Promise<void> {
     try {
       await this.init();
@@ -96,7 +98,7 @@ class PersistedUploadQueue {
         return;
       }
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
 
       const item: UploadQueueItem = {
@@ -112,7 +114,7 @@ class PersistedUploadQueue {
 
       store.put(item);
     } catch (error) {
-      console.error('Failed to enqueue bytes:', error);
+      console.error("Failed to enqueue bytes:", error);
     }
   }
 
@@ -121,7 +123,7 @@ class PersistedUploadQueue {
       await this.init();
       if (!this.db) return;
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
 
       const getRequest = store.get(itemId);
@@ -134,7 +136,7 @@ class PersistedUploadQueue {
         }
       };
     } catch (error) {
-      console.error('Failed to update progress:', error);
+      console.error("Failed to update progress:", error);
     }
   }
 
@@ -143,7 +145,7 @@ class PersistedUploadQueue {
       await this.init();
       if (!this.db) return;
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
 
       const getRequest = store.get(itemId);
@@ -157,7 +159,7 @@ class PersistedUploadQueue {
         }
       };
     } catch (error) {
-      console.error('Failed to mark completed:', error);
+      console.error("Failed to mark completed:", error);
     }
   }
 
@@ -166,38 +168,40 @@ class PersistedUploadQueue {
       await this.init();
       if (!this.db) return;
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
       store.delete(itemId);
     } catch (error) {
-      console.error('Failed to dequeue upload:', error);
+      console.error("Failed to dequeue upload:", error);
     }
   }
 
-  async getAll(): Promise<Array<{
-    itemId: string;
-    name: string;
-    mimeType: string;
-    size: number;
-    bytes: Uint8Array;
-    progress: number;
-  }>> {
+  async getAll(): Promise<
+    Array<{
+      itemId: string;
+      name: string;
+      mimeType: string;
+      size: number;
+      bytes: Uint8Array;
+      progress: number;
+    }>
+  > {
     try {
       await this.init();
       if (!this.db) return [];
 
-      return new Promise((resolve, reject) => {
-        const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      return new Promise((resolve, _reject) => {
+        const transaction = this.db!.transaction([STORE_NAME], "readonly");
         const store = transaction.objectStore(STORE_NAME);
         const request = store.getAll();
 
         request.onsuccess = () => {
           const allItems = request.result as UploadQueueItem[];
-          
+
           // Only return items that are not completed
           const pendingItems = allItems
-            .filter(item => !item.completed)
-            .map(item => ({
+            .filter((item) => !item.completed)
+            .map((item) => ({
               itemId: item.itemId,
               name: item.name,
               mimeType: item.mimeType,
@@ -210,12 +214,12 @@ class PersistedUploadQueue {
         };
 
         request.onerror = () => {
-          console.error('Failed to get all uploads:', request.error);
+          console.error("Failed to get all uploads:", request.error);
           resolve([]);
         };
       });
     } catch (error) {
-      console.error('Failed to get all uploads:', error);
+      console.error("Failed to get all uploads:", error);
       return [];
     }
   }
@@ -225,11 +229,11 @@ class PersistedUploadQueue {
       await this.init();
       if (!this.db) return;
 
-      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
       store.clear();
     } catch (error) {
-      console.error('Failed to clear upload queue:', error);
+      console.error("Failed to clear upload queue:", error);
     }
   }
 }

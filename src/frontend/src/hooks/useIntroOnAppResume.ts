@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useInternetIdentity } from './useInternetIdentity';
+import { useEffect } from "react";
+import { useInternetIdentity } from "./useInternetIdentity";
 
 /**
  * Hook that detects when the app returns to the foreground (tab visibility or window focus)
@@ -15,7 +15,11 @@ export function useIntroOnAppResume(onResume: () => void) {
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && identity && !isInitializing) {
+      if (
+        document.visibilityState === "visible" &&
+        identity &&
+        !isInitializing
+      ) {
         onResume();
       }
     };
@@ -26,12 +30,12 @@ export function useIntroOnAppResume(onResume: () => void) {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [identity, isInitializing, onResume]);
 }

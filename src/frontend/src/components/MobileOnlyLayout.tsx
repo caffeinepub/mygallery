@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface MobileOnlyLayoutProps {
   children: ReactNode;
@@ -7,9 +7,7 @@ interface MobileOnlyLayoutProps {
 export default function MobileOnlyLayout({ children }: MobileOnlyLayoutProps) {
   return (
     <div className="mobile-only-container">
-      <div className="mobile-only-content">
-        {children}
-      </div>
+      <div className="mobile-only-content">{children}</div>
     </div>
   );
 }
