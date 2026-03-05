@@ -17,6 +17,7 @@ import { useHomePrefetch } from "@/hooks/useHomePrefetch";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useListMissions } from "@/hooks/useMissionsQueries";
 import { useGetFilesNotInFolder, useGetFolders } from "@/hooks/useQueries";
+import type React from "react";
 import {
   Suspense,
   lazy,
@@ -26,6 +27,13 @@ import {
   useRef,
   useState,
 } from "react";
+
+// ── Page-level swipe constants ────────────────────────────────────────────────
+const PAGE_SWIPE_THRESHOLD = 40; // px
+const PAGE_SWIPE_VELOCITY = 0.3; // px/ms
+const PAGE_STEP_DEG = 45;
+const PAGE_SNAP_DURATION_MS = 280;
+const PAGE_ITEM_COUNT = 4;
 
 const FoldersFullScreenView = lazy(
   () => import("@/components/FoldersFullScreenView"),
@@ -43,6 +51,35 @@ const DOCK_INDEX_FOLDERS = 1;
 const DOCK_INDEX_MISSION = 2;
 const DOCK_INDEX_COLLECTIONS = 3;
 
+// ── Orbit dock helpers (mirrors OrbitDock.tsx logic) ──────────────────────────
+
+function pageComputeActiveIndex(totalRotation: number): number {
+  let bestIdx = 0;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < PAGE_ITEM_COUNT; i++) {
+    const base = 180 + i * 90;
+    const effective = (((base + totalRotation) % 360) + 360) % 360;
+    let dist = Math.abs(effective - 180);
+    if (dist > 180) dist = 360 - dist;
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function pageTargetRotationForIndex(
+  itemIndex: number,
+  currentTotal: number,
+): number {
+  const base = 180 + itemIndex * 90;
+  const rawTarget = 180 - base;
+  const diff = currentTotal - rawTarget;
+  const k = Math.round(diff / 360);
+  return rawTarget + k * 360;
+}
+
 export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
@@ -57,6 +94,14 @@ export default function HomePage() {
   );
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [dockActiveIndex, setDockActiveIndex] = useState(DOCK_INDEX_UPLOAD);
+
+  // ── Page-level swipe state for orbit dock ────────────────────────────────────
+  const pageTotalRotationRef = useRef(0);
+  const pagePointerStartX = useRef<number | null>(null);
+  const pagePointerStartY = useRef<number | null>(null);
+  const pagePointerStartTime = useRef<number>(0);
+  const pageIsDragging = useRef(false);
+  const pageIsAnimating = useRef(false);
   const [transitionState, setTransitionState] = useState<{
     isActive: boolean;
     type: "opening" | "closing" | null;
@@ -225,7 +270,7 @@ export default function HomePage() {
   }, []);
 
   const handleUploadClick = useCallback(() => {
-    setShowUploadMenu((prev) => !prev);
+    setShowUploadMenu(true);
   }, []);
 
   // Called when the user selects an action in the upload panel (Upload Files / Paste Link / Add Note).
@@ -244,9 +289,81 @@ export default function HomePage() {
     setIsCollectionsOpen(false);
   }, []);
 
+  // ── Page-level swipe handlers for orbit dock ─────────────────────────────────
+
+  const handlePagePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (showUploadMenu || isBulkSelectionActive) return;
+      pagePointerStartX.current = e.clientX;
+      pagePointerStartY.current = e.clientY;
+      pagePointerStartTime.current = Date.now();
+      pageIsDragging.current = true;
+    },
+    [showUploadMenu, isBulkSelectionActive],
+  );
+
+  const handlePagePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!pageIsDragging.current || pagePointerStartX.current === null) return;
+      pageIsDragging.current = false;
+
+      const dx = e.clientX - pagePointerStartX.current;
+      const dy = e.clientY - (pagePointerStartY.current ?? e.clientY);
+      const dt = Math.max(1, Date.now() - pagePointerStartTime.current);
+      const velocity = Math.abs(dx) / dt;
+
+      const isHorizontalSwipe = Math.abs(dx) > Math.abs(dy) * 0.8;
+      const isSwipe =
+        isHorizontalSwipe &&
+        (Math.abs(dx) > PAGE_SWIPE_THRESHOLD || velocity > PAGE_SWIPE_VELOCITY);
+
+      if (isSwipe && !pageIsAnimating.current) {
+        let newTotal: number;
+        if (dx > 0) {
+          // Swipe RIGHT → counter-clockwise → ring rotates +45°
+          newTotal = pageTotalRotationRef.current + PAGE_STEP_DEG;
+        } else {
+          // Swipe LEFT → clockwise → ring rotates -45°
+          newTotal = pageTotalRotationRef.current - PAGE_STEP_DEG;
+        }
+
+        pageTotalRotationRef.current = newTotal;
+        const newActiveIdx = pageComputeActiveIndex(newTotal);
+        setDockActiveIndex(newActiveIdx);
+
+        pageIsAnimating.current = true;
+        setTimeout(() => {
+          pageIsAnimating.current = false;
+        }, PAGE_SNAP_DURATION_MS);
+      }
+
+      pagePointerStartX.current = null;
+      pagePointerStartY.current = null;
+    },
+    [],
+  );
+
+  // Keep page rotation in sync when dock index changes from other sources (tap)
+  const prevDockIndexRef = useRef(dockActiveIndex);
+  useEffect(() => {
+    if (prevDockIndexRef.current === dockActiveIndex) return;
+    prevDockIndexRef.current = dockActiveIndex;
+    const target = pageTargetRotationForIndex(
+      dockActiveIndex,
+      pageTotalRotationRef.current,
+    );
+    pageTotalRotationRef.current = target;
+  }, [dockActiveIndex]);
+
   // Handle OrbitDock index changes (swipe or rotation) — visual only, no open action
   const handleDockIndexChange = useCallback((index: number) => {
     setDockActiveIndex(index);
+    prevDockIndexRef.current = index;
+    const target = pageTargetRotationForIndex(
+      index,
+      pageTotalRotationRef.current,
+    );
+    pageTotalRotationRef.current = target;
   }, []);
 
   // Handle OrbitDock item activation (tap on centered icon) — fires the open action
@@ -322,23 +439,24 @@ export default function HomePage() {
                 onSelectFolder={handleFolderSelect}
               />
             ) : (
-              <div className="flex min-h-screen flex-col">
+              <div
+                className="flex min-h-screen flex-col"
+                onPointerDown={handlePagePointerDown}
+                onPointerUp={handlePagePointerUp}
+                onPointerCancel={() => {
+                  pageIsDragging.current = false;
+                  pagePointerStartX.current = null;
+                }}
+              >
                 <Header />
                 <main className="flex-1 container mx-auto px-4 py-8 pb-36">
                   {selectedFolder === null ? (
-                    <>
-                      <FileUploadSection
-                        showMenu={showUploadMenu}
-                        onMenuChange={setShowUploadMenu}
-                        onActionSelected={handleUploadActionSelected}
-                      />
-                      <GallerySection
-                        selectedFolder={null}
-                        onBackToMain={handleBackToMain}
-                        onBulkSelectionChange={handleBulkSelectionChange}
-                        hideCollection={true}
-                      />
-                    </>
+                    <GallerySection
+                      selectedFolder={null}
+                      onBackToMain={handleBackToMain}
+                      onBulkSelectionChange={handleBulkSelectionChange}
+                      hideCollection={true}
+                    />
                   ) : (
                     <GallerySection
                       selectedFolder={selectedFolder}
@@ -352,6 +470,11 @@ export default function HomePage() {
                 <FloatingFileStack
                   onOpenStack={() => setIsStackOpen(true)}
                   newlyUploadedFiles={newlyUploadedFiles}
+                />
+                <FileUploadSection
+                  showMenu={showUploadMenu}
+                  onMenuChange={setShowUploadMenu}
+                  onActionSelected={handleUploadActionSelected}
                 />
                 <OrbitDock
                   activeIndex={dockActiveIndex}
@@ -416,6 +539,8 @@ export default function HomePage() {
     handleDockIndexChange,
     handleDockItemActivate,
     handleUploadActionSelected,
+    handlePagePointerDown,
+    handlePagePointerUp,
   ]);
 
   return mainContent;

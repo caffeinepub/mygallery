@@ -21,7 +21,7 @@ import { toast } from "sonner";
 interface FileUploadSectionProps {
   showMenu?: boolean;
   onMenuChange?: (show: boolean) => void;
-  /** Called when an upload action is selected (before the upload starts) */
+  /** Called when an upload action completes (files selected / link saved / note saved) */
   onActionSelected?: () => void;
 }
 
@@ -37,23 +37,30 @@ export default function FileUploadSection({
   const [linkUrl, setLinkUrl] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
+
+  // panelVisible drives the CSS animation (slide-in / slide-out)
+  // panelMounted keeps the DOM alive during slide-out
+  const [panelMounted, setPanelMounted] = useState(false);
   const [panelVisible, setPanelVisible] = useState(false);
 
-  // Animate panel in when showMenu becomes true
+  // Open: mount first, then trigger the slide-in on next frame
   useEffect(() => {
     if (showMenu) {
-      // Small rAF delay to trigger CSS transition
+      setPanelMounted(true);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setPanelVisible(true));
       });
     } else {
+      // Slide out, then unmount after animation
       setPanelVisible(false);
+      const timer = setTimeout(() => setPanelMounted(false), 320);
+      return () => clearTimeout(timer);
     }
   }, [showMenu]);
 
+  // Close the panel: slide out, then tell parent after animation
   const closePanel = useCallback(() => {
     setPanelVisible(false);
-    // Wait for slide-out animation before notifying parent
     setTimeout(() => {
       if (onMenuChange) onMenuChange(false);
     }, 300);
@@ -74,6 +81,9 @@ export default function FileUploadSection({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
+
+      // Navigate to Collections first, then upload in background
+      if (onActionSelected) onActionSelected();
 
       const batchId = startUpload(files);
 
@@ -117,21 +127,19 @@ export default function FileUploadSection({
         fileInputRef.current.value = "";
       }
     },
-    [startUpload, updateProgress, completeUpload, uploadFile],
+    [startUpload, updateProgress, completeUpload, uploadFile, onActionSelected],
   );
 
   const handleUploadFilesClick = useCallback(() => {
     closePanel();
-    if (onActionSelected) onActionSelected();
     // Trigger file picker after panel closes
     setTimeout(() => {
       fileInputRef.current?.click();
     }, 320);
-  }, [closePanel, onActionSelected]);
+  }, [closePanel]);
 
   const handlePasteLinkClick = useCallback(() => {
     closePanel();
-    // Do NOT call onActionSelected here — it will be called after the link is saved
     setTimeout(() => {
       setLinkDialogOpen(true);
     }, 320);
@@ -139,7 +147,6 @@ export default function FileUploadSection({
 
   const handleAddNoteClick = useCallback(() => {
     closePanel();
-    // Do NOT call onActionSelected here — it will be called after the note is saved
     setTimeout(() => {
       setNoteDialogOpen(true);
     }, 320);
@@ -168,7 +175,7 @@ export default function FileUploadSection({
       setLinkName("");
       setLinkUrl("");
       setLinkDialogOpen(false);
-      // Auto-transition to Collections after link saved
+      // Navigate to Collections after link saved
       if (onActionSelected) onActionSelected();
     } catch (error) {
       console.error("Link creation error:", error);
@@ -207,7 +214,7 @@ export default function FileUploadSection({
       setNoteTitle("");
       setNoteBody("");
       setNoteDialogOpen(false);
-      // Auto-transition to Collections after note saved
+      // Navigate to Collections after note saved
       if (onActionSelected) onActionSelected();
     } catch (error) {
       console.error("Note creation error:", error);
@@ -235,9 +242,9 @@ export default function FileUploadSection({
       />
 
       {/* ── Bottom Action Panel ─────────────────────────────────────────────── */}
-      {showMenu && (
+      {panelMounted && (
         <>
-          {/* Blur backdrop — covers everything above the panel, orbit dock stays visible below */}
+          {/* Blur backdrop — tap to close */}
           <div
             className="fixed inset-0 z-40"
             style={{
@@ -255,7 +262,7 @@ export default function FileUploadSection({
             role="presentation"
           />
 
-          {/* Panel — slides up from bottom, covers ~40% screen height */}
+          {/* Panel — slides up from bottom */}
           <div
             data-ocid="upload.panel"
             className="fixed left-0 right-0 bottom-0 z-50"

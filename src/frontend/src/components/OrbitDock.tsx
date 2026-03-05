@@ -362,7 +362,7 @@ export default function OrbitDock({
         left: "50vw",
         width: 0,
         height: 0,
-        touchAction: "pan-y",
+        touchAction: "none",
         pointerEvents: disabled || behindOverlay ? "none" : "auto",
         opacity: behindOverlay ? 0.4 : 1,
         zIndex: 20,
