@@ -7,6 +7,7 @@ interface OrbitDockProps {
   activeIndex: number;
   onIndexChange: (index: number) => void;
   onItemActivate: (index: number) => void;
+  onRotationChange?: (totalRotation: number) => void;
   disabled?: boolean;
   behindOverlay?: boolean;
 }
@@ -181,6 +182,7 @@ export default function OrbitDock({
   activeIndex,
   onIndexChange,
   onItemActivate,
+  onRotationChange,
   disabled = false,
   behindOverlay = false,
 }: OrbitDockProps) {
@@ -189,10 +191,6 @@ export default function OrbitDock({
   const prefersReducedMotion = useReducedMotion();
 
   // ── Rotation state ──────────────────────────────────────────────────────────
-  //
-  // totalRotation: cumulative ring rotation in degrees (unbounded).
-  // Swipe right → totalRotation -= 45 (ring turns clockwise)
-  // Swipe left  → totalRotation += 45 (ring turns counter-clockwise)
 
   const [totalRotation, setTotalRotation] = useState(0);
   const totalRotationRef = useRef(0);
@@ -216,7 +214,7 @@ export default function OrbitDock({
     }
   }, [activeIndex]);
 
-  // ── Swipe gesture state ──────────────────────────────────────────────────────
+  // ── Shared pointer state (used by both full-screen overlay and icon taps) ────
 
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
@@ -224,7 +222,45 @@ export default function OrbitDock({
   const isDragging = useRef(false);
   const hasSwiped = useRef(false);
 
-  const handlePointerDown = useCallback(
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  const doSnapRotation = useCallback(
+    (dx: number) => {
+      if (isAnimating.current) return;
+      hasSwiped.current = true;
+
+      let newTotal: number;
+      if (dx > 0) {
+        // Swipe RIGHT → counter-clockwise → ring rotates +45°
+        newTotal = totalRotationRef.current + STEP_DEG;
+      } else {
+        // Swipe LEFT → clockwise → ring rotates -45°
+        newTotal = totalRotationRef.current - STEP_DEG;
+      }
+
+      totalRotationRef.current = newTotal;
+      setTotalRotation(newTotal);
+      onRotationChange?.(newTotal);
+
+      const newActiveIdx = computeActiveIndex(newTotal);
+      if (newActiveIdx !== prevActiveIndexRef.current) {
+        prevActiveIndexRef.current = newActiveIdx;
+        onIndexChange(newActiveIdx);
+      }
+
+      isAnimating.current = true;
+      setTimeout(() => {
+        isAnimating.current = false;
+      }, SNAP_DURATION_MS);
+    },
+    [onIndexChange, onRotationChange],
+  );
+
+  // ── Full-screen swipe overlay handlers ──────────────────────────────────────
+  // These run on a transparent fixed div covering the whole screen so that
+  // swipes anywhere on the page are captured.
+
+  const handleOverlayPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (disabled || behindOverlay) return;
       pointerStartX.current = e.clientX;
@@ -232,6 +268,57 @@ export default function OrbitDock({
       pointerStartTime.current = Date.now();
       isDragging.current = true;
       hasSwiped.current = false;
+    },
+    [disabled, behindOverlay],
+  );
+
+  const handleOverlayPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current || pointerStartX.current === null) return;
+    const dx = e.clientX - pointerStartX.current;
+    const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleOverlayPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging.current || pointerStartX.current === null) return;
+      isDragging.current = false;
+
+      const dx = e.clientX - pointerStartX.current;
+      const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+      const dt = Math.max(1, Date.now() - pointerStartTime.current);
+      const velocity = Math.abs(dx) / dt;
+
+      const isHorizontalSwipe = Math.abs(dx) > Math.abs(dy) * 0.8;
+      const isSwipe =
+        isHorizontalSwipe &&
+        (Math.abs(dx) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY);
+
+      if (isSwipe) {
+        doSnapRotation(dx);
+      }
+
+      pointerStartX.current = null;
+      pointerStartY.current = null;
+    },
+    [doSnapRotation],
+  );
+
+  // Legacy dock-container handlers (kept for backward compat, now no-ops for swipe
+  // since the overlay handles everything — only icon taps bubble through)
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (disabled || behindOverlay) return;
+      // Only track if NOT already tracked by overlay (overlay stops propagation on swipe)
+      if (pointerStartX.current === null) {
+        pointerStartX.current = e.clientX;
+        pointerStartY.current = e.clientY;
+        pointerStartTime.current = Date.now();
+        isDragging.current = true;
+        hasSwiped.current = false;
+      }
     },
     [disabled, behindOverlay],
   );
@@ -260,65 +347,36 @@ export default function OrbitDock({
         isHorizontalSwipe &&
         (Math.abs(dx) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY);
 
-      if (isSwipe && !isAnimating.current) {
-        hasSwiped.current = true;
-
-        let newTotal: number;
-        if (dx > 0) {
-          // Swipe RIGHT → counter-clockwise (push circle right) → ring rotates +45°
-          newTotal = totalRotationRef.current + STEP_DEG;
-        } else {
-          // Swipe LEFT → clockwise (push circle left) → ring rotates -45°
-          newTotal = totalRotationRef.current - STEP_DEG;
-        }
-
-        totalRotationRef.current = newTotal;
-        setTotalRotation(newTotal);
-
-        // Compute which icon is now at 6 o'clock and notify parent
-        const newActiveIdx = computeActiveIndex(newTotal);
-        if (newActiveIdx !== activeIndex) {
-          onIndexChange(newActiveIdx);
-          prevActiveIndexRef.current = newActiveIdx;
-        }
-
-        // Block re-entry during snap animation
-        isAnimating.current = true;
-        setTimeout(() => {
-          isAnimating.current = false;
-        }, SNAP_DURATION_MS);
+      if (isSwipe) {
+        doSnapRotation(dx);
       }
 
       pointerStartX.current = null;
       pointerStartY.current = null;
     },
-    [activeIndex, onIndexChange],
+    [doSnapRotation],
   );
 
   // ── Item tap handler ────────────────────────────────────────────────────────
 
   const handleItemTap = useCallback(
     (itemIndex: number, e: React.PointerEvent) => {
+      e.stopPropagation();
       if (disabled || behindOverlay) return;
       if (hasSwiped.current) return;
-
-      // Ignore if this was actually a swipe (pointer moved significantly)
-      const dx =
-        pointerStartX.current !== null ? e.clientX - pointerStartX.current : 0;
-      if (Math.abs(dx) >= SWIPE_THRESHOLD) return;
 
       if (itemIndex === activeIndex) {
         // Icon is at 6 o'clock → activate its function
         onItemActivate(itemIndex);
       } else {
         // Icon is NOT at 6 o'clock → rotate it there (no activation, requires second tap)
-        // Compute shortest-path target rotation
         const target = targetRotationForIndex(
           itemIndex,
           totalRotationRef.current,
         );
         totalRotationRef.current = target;
         setTotalRotation(target);
+        onRotationChange?.(target);
         onIndexChange(itemIndex);
         prevActiveIndexRef.current = itemIndex;
 
@@ -328,7 +386,14 @@ export default function OrbitDock({
         }, SNAP_DURATION_MS);
       }
     },
-    [activeIndex, disabled, behindOverlay, onItemActivate, onIndexChange],
+    [
+      activeIndex,
+      disabled,
+      behindOverlay,
+      onItemActivate,
+      onIndexChange,
+      onRotationChange,
+    ],
   );
 
   // ── Color helpers ───────────────────────────────────────────────────────────
@@ -354,132 +419,155 @@ export default function OrbitDock({
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div
-      className="fixed select-none"
-      style={{
-        // Zero-size anchor pinned to exact screen center
-        top: "50vh",
-        left: "50vw",
-        width: 0,
-        height: 0,
-        touchAction: "none",
-        pointerEvents: disabled || behindOverlay ? "none" : "auto",
-        opacity: behindOverlay ? 0.4 : 1,
-        zIndex: 20,
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-    >
-      {/* Rotating ring — pure rotateZ around screen center (its own origin) */}
+    <>
+      {/* Full-screen transparent overlay — captures swipes from anywhere on the page */}
+      {!disabled && !behindOverlay && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 15,
+            touchAction: "pan-y",
+            pointerEvents: "auto",
+            background: "transparent",
+          }}
+          onPointerDown={handleOverlayPointerDown}
+          onPointerMove={handleOverlayPointerMove}
+          onPointerUp={handleOverlayPointerUp}
+          onPointerCancel={() => {
+            isDragging.current = false;
+            pointerStartX.current = null;
+            hasSwiped.current = false;
+          }}
+        />
+      )}
+      {/* Zero-size anchor pinned to exact screen center */}
       <div
+        className="fixed select-none"
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
+          top: "50vh",
+          left: "50vw",
           width: 0,
           height: 0,
-          transform: `rotate(${totalRotation}deg)`,
-          transformOrigin: "0 0",
-          transition: prefersReducedMotion
-            ? "none"
-            : `transform ${SNAP_DURATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
-          willChange: "transform",
+          touchAction: "none",
+          pointerEvents: disabled || behindOverlay ? "none" : "auto",
+          opacity: behindOverlay ? 0.4 : 1,
+          zIndex: 20,
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
-        {ITEMS.map((item, idx) => {
-          const isActive = idx === activeIndex;
-          const iconSize = isActive ? ACTIVE_SIZE : INACTIVE_SIZE;
-          const scale = isActive ? 1 : 0.72;
-          const opacity = isActive ? 1 : 0.6;
-          const color = getItemColor(item.id, isActive);
+        {/* Rotating ring — pure rotateZ around screen center (its own origin) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0,
+            transform: `rotate(${totalRotation}deg)`,
+            transformOrigin: "0 0",
+            transition: prefersReducedMotion
+              ? "none"
+              : `transform ${SNAP_DURATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+            willChange: "transform",
+          }}
+        >
+          {ITEMS.map((item, idx) => {
+            const isActive = idx === activeIndex;
+            const iconSize = isActive ? ACTIVE_SIZE : INACTIVE_SIZE;
+            const scale = isActive ? 1 : 0.72;
+            const opacity = isActive ? 1 : 0.6;
+            const color = getItemColor(item.id, isActive);
 
-          // Fixed base angle for this item on the ring.
-          // rotate(θ) translateY(−R) → position (R·sin θ, −R·cos θ).
-          // For 6 o'clock (y = +R): θ = 180°.
-          // item[0]=180°, item[1]=270°, item[2]=0°, item[3]=90°
-          const baseAngle = 180 + idx * 90;
+            // Fixed base angle for this item on the ring.
+            // rotate(θ) translateY(−R) → position (R·sin θ, −R·cos θ).
+            // For 6 o'clock (y = +R): θ = 180°.
+            // item[0]=180°, item[1]=270°, item[2]=0°, item[3]=90°
+            const baseAngle = 180 + idx * 90;
 
-          // Counter-rotate the icon wrapper so it stays upright in screen space.
-          // The wrapper has been rotated by (totalRotation + baseAngle); negate that.
-          const counterRotation = -(baseAngle + totalRotation);
+            // Counter-rotate the icon wrapper so it stays upright in screen space.
+            // The wrapper has been rotated by (totalRotation + baseAngle); negate that.
+            const counterRotation = -(baseAngle + totalRotation);
 
-          return (
-            <div
-              key={item.id}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                // Place icon on the orbit circumference at its base angle
-                transform: `rotate(${baseAngle}deg) translateY(-${ORBIT_RADIUS}px)`,
-                transformOrigin: "0 0",
-                width: 0,
-                height: 0,
-              }}
-            >
-              {/* Icon wrapper: counter-rotates to stay upright, applies scale/opacity */}
+            return (
               <div
+                key={item.id}
                 style={{
                   position: "absolute",
-                  left: -iconSize / 2,
-                  top: -iconSize / 2,
-                  width: iconSize,
-                  height: iconSize,
-                  // counter-rotation tracks totalRotation in real-time;
-                  // do NOT add a CSS transition here — it would fight the ring transition
-                  transform: `rotate(${counterRotation}deg) scale(${scale})`,
-                  transformOrigin: "center center",
-                  opacity,
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: isActive ? 10 : 5,
-                  transition: prefersReducedMotion
-                    ? "none"
-                    : "opacity 225ms ease-in-out",
-                }}
-                onPointerUp={(e) => {
-                  e.stopPropagation();
-                  handleItemTap(idx, e);
+                  top: 0,
+                  left: 0,
+                  // Place icon on the orbit circumference at its base angle
+                  transform: `rotate(${baseAngle}deg) translateY(-${ORBIT_RADIUS}px)`,
+                  transformOrigin: "0 0",
+                  width: 0,
+                  height: 0,
                 }}
               >
-                {item.id === "upload" && (
-                  <UploadIcon color={color} size={iconSize} />
-                )}
-                {item.id === "folders" && (
-                  <FoldersIcon color={color} size={iconSize} />
-                )}
-                {item.id === "mission" && (
-                  <MissionIcon color={color} size={iconSize} />
-                )}
-                {item.id === "collections" && (
-                  <CollectionsIcon color={color} size={iconSize} />
-                )}
-                {isActive && (
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 500,
-                      color,
-                      lineHeight: 1,
-                      marginTop: 8,
-                      whiteSpace: "nowrap",
-                      display: "block",
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                )}
+                {/* Icon wrapper: counter-rotates to stay upright, applies scale/opacity */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: -iconSize / 2,
+                    top: -iconSize / 2,
+                    width: iconSize,
+                    height: iconSize,
+                    // counter-rotation tracks totalRotation in real-time;
+                    // do NOT add a CSS transition here — it would fight the ring transition
+                    transform: `rotate(${counterRotation}deg) scale(${scale})`,
+                    transformOrigin: "center center",
+                    opacity,
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: isActive ? 10 : 5,
+                    transition: prefersReducedMotion
+                      ? "none"
+                      : "opacity 225ms ease-in-out",
+                  }}
+                  onPointerUp={(e) => {
+                    e.stopPropagation();
+                    handleItemTap(idx, e);
+                  }}
+                >
+                  {item.id === "upload" && (
+                    <UploadIcon color={color} size={iconSize} />
+                  )}
+                  {item.id === "folders" && (
+                    <FoldersIcon color={color} size={iconSize} />
+                  )}
+                  {item.id === "mission" && (
+                    <MissionIcon color={color} size={iconSize} />
+                  )}
+                  {item.id === "collections" && (
+                    <CollectionsIcon color={color} size={iconSize} />
+                  )}
+                  {isActive && (
+                    <span
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 500,
+                        color,
+                        lineHeight: 1,
+                        marginTop: 8,
+                        whiteSpace: "nowrap",
+                        display: "block",
+                        textAlign: "center",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
