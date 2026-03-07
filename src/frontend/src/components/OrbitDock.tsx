@@ -5,6 +5,7 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 
 interface OrbitDockProps {
   activeIndex: number;
+  initialRotation?: number;
   onIndexChange: (index: number) => void;
   onItemActivate: (index: number) => void;
   onRotationChange?: (totalRotation: number) => void;
@@ -114,7 +115,7 @@ const INACTIVE_SIZE = 42;
 const SWIPE_THRESHOLD = 40; // px
 const SWIPE_VELOCITY = 0.3; // px/ms
 const SNAP_DURATION_MS = 280; // CSS transition duration
-const STEP_DEG = 45; // degrees per swipe
+const STEP_DEG = 90; // degrees per swipe
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
 //
@@ -124,7 +125,7 @@ const STEP_DEG = 45; // degrees per swipe
 //   item[2] (Mission)     → baseAngle 0°
 //   item[3] (Collections) → baseAngle 90°
 //
-// The ring accumulates rotation: totalRotation += ±45° per swipe.
+// The ring accumulates rotation: totalRotation += ±90° per swipe.
 // Active icon = the icon whose effective angle is closest to 270° (6 o'clock)
 // after the ring rotation is applied.
 //
@@ -133,8 +134,8 @@ const STEP_DEG = 45; // degrees per swipe
 // screen position (R·sin θ, -R·cos θ); 6 o'clock means y = +R → θ = 180° in
 // the rotated frame, which maps to 270° in the non-rotated convention used here).
 //
-// Swipe RIGHT → ring rotates counter-clockwise (push gesture) → totalRotation += 45 (ring turns +45°)
-// Swipe LEFT  → ring rotates clockwise (push gesture) → totalRotation -= 45 (ring turns -45°)
+// Swipe RIGHT → ring rotates clockwise → totalRotation -= 90 (ring turns -90°)
+// Swipe LEFT  → ring rotates counter-clockwise → totalRotation += 90 (ring turns +90°)
 //
 // After each snap, compute which item lands closest to the 6-o'clock slot and
 // update activeIndex accordingly.
@@ -180,6 +181,7 @@ function targetRotationForIndex(
 
 export default function OrbitDock({
   activeIndex,
+  initialRotation,
   onIndexChange,
   onItemActivate,
   onRotationChange,
@@ -192,8 +194,10 @@ export default function OrbitDock({
 
   // ── Rotation state ──────────────────────────────────────────────────────────
 
-  const [totalRotation, setTotalRotation] = useState(0);
-  const totalRotationRef = useRef(0);
+  const [totalRotation, setTotalRotation] = useState(
+    () => initialRotation ?? 0,
+  );
+  const totalRotationRef = useRef(initialRotation ?? 0);
   const isAnimating = useRef(false);
 
   // When activeIndex changes externally (e.g. tap-to-rotate from HomePage),
@@ -231,11 +235,11 @@ export default function OrbitDock({
 
       let newTotal: number;
       if (dx > 0) {
-        // Swipe RIGHT → counter-clockwise → ring rotates +45°
-        newTotal = totalRotationRef.current + STEP_DEG;
-      } else {
-        // Swipe LEFT → clockwise → ring rotates -45°
+        // Swipe RIGHT → clockwise → ring rotates -90°
         newTotal = totalRotationRef.current - STEP_DEG;
+      } else {
+        // Swipe LEFT → counter-clockwise → ring rotates +90°
+        newTotal = totalRotationRef.current + STEP_DEG;
       }
 
       totalRotationRef.current = newTotal;

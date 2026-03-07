@@ -57,6 +57,7 @@ export default function HomePage() {
   );
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [dockActiveIndex, setDockActiveIndex] = useState(DOCK_INDEX_UPLOAD);
+  const [dockRotation, setDockRotation] = useState(0);
 
   const [transitionState, setTransitionState] = useState<{
     isActive: boolean;
@@ -254,9 +255,9 @@ export default function HomePage() {
     prevDockIndexRef.current = index;
   }, []);
 
-  // Keep rotation state in sync (no-op, OrbitDock manages internally)
-  const handleDockRotationChange = useCallback((_rotation: number) => {
-    // rotation is managed entirely within OrbitDock
+  // Keep rotation state in sync — persist so OrbitDock restores position on re-mount
+  const handleDockRotationChange = useCallback((rotation: number) => {
+    setDockRotation(rotation);
   }, []);
 
   // Handle OrbitDock item activation (tap on centered icon) — fires the open action
@@ -363,6 +364,7 @@ export default function HomePage() {
                 />
                 <OrbitDock
                   activeIndex={dockActiveIndex}
+                  initialRotation={dockRotation}
                   onIndexChange={handleDockIndexChange}
                   onItemActivate={handleDockItemActivate}
                   onRotationChange={handleDockRotationChange}
@@ -415,6 +417,7 @@ export default function HomePage() {
     newlyUploadedFiles,
     showUploadMenu,
     dockActiveIndex,
+    dockRotation,
     handleBackToMain,
     handleBulkSelectionChange,
     handleCloseFolders,
