@@ -324,7 +324,10 @@ export default function HomePage() {
             {isStackOpen ? (
               <StackFilesFullScreenView onClose={() => setIsStackOpen(false)} />
             ) : isCollectionsOpen ? (
-              <CollectionsFullScreenView onClose={handleCloseCollections} />
+              <CollectionsFullScreenView
+                onClose={handleCloseCollections}
+                onUploadRequest={() => setShowUploadMenu(true)}
+              />
             ) : isMissionsOpen ? (
               <MissionsFullScreenView onClose={handleCloseMissions} />
             ) : isFoldersOpen ? (
@@ -357,11 +360,6 @@ export default function HomePage() {
                   onOpenStack={() => setIsStackOpen(true)}
                   newlyUploadedFiles={newlyUploadedFiles}
                 />
-                <FileUploadSection
-                  showMenu={showUploadMenu}
-                  onMenuChange={setShowUploadMenu}
-                  onActionSelected={handleUploadActionSelected}
-                />
                 <OrbitDock
                   activeIndex={dockActiveIndex}
                   initialRotation={dockRotation}
@@ -374,6 +372,13 @@ export default function HomePage() {
                 <Footer />
               </div>
             )}
+            {/* FileUploadSection is always mounted so it can handle uploads
+                triggered from CollectionsFullScreenView as well */}
+            <FileUploadSection
+              showMenu={showUploadMenu}
+              onMenuChange={setShowUploadMenu}
+              onActionSelected={handleUploadActionSelected}
+            />
           </Suspense>
           <HomeSharedElementTransitionLayer
             isActive={transitionState.isActive}

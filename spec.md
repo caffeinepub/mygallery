@@ -1,14 +1,40 @@
-# Specification
+# MYL - Upload Flow & Collections Fix
 
-## Summary
-**Goal:** Add a 4th Collections item to the OrbitDock and implement a full-screen CollectionsFullScreenView that aggregates all uploaded files, notes, and links in a thumbnail grid with existing selection/action logic.
+## Current State
 
-**Planned changes:**
-- Extend OrbitDock to include 4 items (Upload, Folders, Mission, Collections) distributed symmetrically at 90° intervals, preserving all existing swipe, animation, and orbital behavior
-- Add an inline SVG Collections icon (2×2 grid of squares, rounded corners, stroke 2.2–2.5px, amber #D97706 light / #FBBF24 dark, 60% opacity when inactive)
-- Create `CollectionsFullScreenView` component that displays all uploaded files, notes, and links from existing UploadContext and React Query queries
-- Render items in a 4-column 80×80px thumbnail grid with 8–12px gap, 16px side padding, 8–10px rounded corners, and lazy loading; images show previews, notes show card thumbnails, links show favicon or fallback icon
-- Wire existing file selection, multi-select, select all, move to Mission (MoveToMissionDialog), move to Folder (SendToFolderDialog), delete, and share logic into CollectionsFullScreenView without creating new hooks or mutations
-- Wire CollectionsFullScreenView into HomePage using a `showCollections` state flag and `onCollectionsTap` prop on OrbitDock, following the same pattern as FoldersFullScreenView and MissionsFullScreenView
+- Ο χρήστης ανοίγει το Upload menu (bottom action panel) και επιλέγει Upload Files / Paste Link / Add Note.
+- Μετά την επιλογή, ο χρήστης μεταφέρεται στο Collections view.
+- Η progress bar (UnifiedProgressBar) εμφανίζεται στο top (z-40) αλλά βρίσκεται στο HomePage — δεν εμφανίζεται μέσα στο CollectionsFullScreenView.
+- Το CollectionsFullScreenView έχει ήδη batch actions (Mission, Folder, Share, Delete) που ενεργοποιούνται μέσω long-press → selection mode.
+- Το "Upload" icon στο OrbitDock ανοίγει το bottom action panel. Αφού ο χρήστης ανεβάσει, δεν υπάρχει τρόπος να ανοίξει ξανά το upload menu από το collections view.
 
-**User-visible outcome:** Users can swipe the orbit dock to reach a new Collections item and tap it to open a full-screen aggregated thumbnail view of all their uploads, with the same selection and file-action capabilities available elsewhere in the app.
+## Requested Changes (Diff)
+
+### Add
+- Progress bar ορατή μέσα στο CollectionsFullScreenView κατά τη διάρκεια upload (αντί για global fixed bar που κρύβεται πίσω από το full-screen).
+- Όταν ο χρήστης βρίσκεται στο Collections view και θέλει να ανεβάσει νέο αρχείο, μπορεί να το κάνει μέσω του upload icon (επιστροφή στο dock ή button μέσα στο Collections).
+- Οι batch actions (Mission, Folder, Share, Delete) να λειτουργούν και μεμονωμένα (tap σε item → single-item action menu) και ομαδικά (long-press → selection mode → batch actions).
+
+### Modify
+- CollectionsFullScreenView: Προσθήκη inline progress bar στο top του view που εμφανίζεται κατά τη διάρκεια uploads.
+- CollectionsFullScreenView: Tap σε μεμονωμένο item (εκτός selection mode) να ανοίγει ένα action sheet με επιλογές: Send to Mission, Send to Folder, Share, Delete.
+- HomePage: Να περνά το `onUploadRequest` callback στο CollectionsFullScreenView, ώστε ο χρήστης να μπορεί να ανοίξει το upload menu από το Collections.
+- CollectionsFullScreenView: Προσθήκη "Upload" button στο header για άμεση πρόσβαση στο upload menu.
+
+### Remove
+- Τίποτα δεν αφαιρείται.
+
+## Implementation Plan
+
+1. **CollectionsFullScreenView**: 
+   - Προσθήκη `onUploadRequest?: () => void` prop.
+   - Inline progress bar: χρήση `useUpload()` hook, εμφάνιση bar στο top του view κατά τη διάρκεια active uploads.
+   - Upload button στο header (δίπλα στο "Collections" title).
+   - Tap σε item (εκτός selection mode): ανοίγει action sheet με Mission / Folder / Share / Delete για το συγκεκριμένο item.
+   - Long-press: είσοδος σε selection mode όπως υπάρχει ήδη.
+
+2. **HomePage**: 
+   - Πέρασμα του `handleUploadActionSelected` ή νέο `handleOpenUploadMenu` ως `onUploadRequest` στο CollectionsFullScreenView.
+   - Το FileUploadSection να παραμένει mounted (ή να ξαναφορτώνεται) ακόμα και όταν το Collections είναι ανοιχτό.
+
+3. Δεν αλλάζει τίποτα άλλο (orbit dock, missions, folders, design).
