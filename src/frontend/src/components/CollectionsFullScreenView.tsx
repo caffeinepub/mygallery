@@ -84,9 +84,10 @@ function FileThumbnail({
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!didLongPress.current && !touchMoved.current) {
+      e.preventDefault(); // prevent synthetic click from double-firing onTap
       onTap();
     }
   };
@@ -292,9 +293,10 @@ function NoteThumbnail({
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!didLongPress.current && !touchMoved.current) {
+      e.preventDefault(); // prevent synthetic click from double-firing onTap
       onTap();
     }
   };

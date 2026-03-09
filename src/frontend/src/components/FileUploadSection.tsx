@@ -266,6 +266,7 @@ export default function FileUploadSection({
             className="fixed inset-0 z-40"
             style={{
               backdropFilter: panelVisible ? "blur(6px)" : "blur(0px)",
+              pointerEvents: panelVisible ? "auto" : "none",
               backgroundColor: panelVisible
                 ? "rgba(0,0,0,0.35)"
                 : "rgba(0,0,0,0)",
