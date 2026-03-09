@@ -110,11 +110,12 @@ const ITEMS = [
 
 const ITEM_COUNT = ITEMS.length; // 4
 const ORBIT_RADIUS = 160;
-const ACTIVE_SIZE = 56;
-const INACTIVE_SIZE = 42;
-const SWIPE_THRESHOLD = 40; // px
-const SWIPE_VELOCITY = 0.3; // px/ms
-const SNAP_DURATION_MS = 280; // CSS transition duration
+// Active icon is noticeably larger than inactive icons
+const ACTIVE_SIZE = 58; // larger to stand out clearly
+const INACTIVE_SIZE = 36; // smaller so contrast is clear
+const SWIPE_THRESHOLD = 30; // px — lower threshold for more responsive swipe
+const SWIPE_VELOCITY = 0.2; // px/ms — lower velocity threshold for immediate response
+const SNAP_DURATION_MS = 260; // CSS transition duration
 const STEP_DEG = 90; // degrees per swipe
 
 // ── Geometry ──────────────────────────────────────────────────────────────────
@@ -129,22 +130,10 @@ const STEP_DEG = 90; // degrees per swipe
 // Active icon = the icon whose effective angle is closest to 270° (6 o'clock)
 // after the ring rotation is applied.
 //
-// Effective angle of item i = (baseAngle + totalRotation) mod 360
-// 6 o'clock = 270° in screen space (since rotate(θ) translateY(-R) puts item at
-// screen position (R·sin θ, -R·cos θ); 6 o'clock means y = +R → θ = 180° in
-// the rotated frame, which maps to 270° in the non-rotated convention used here).
-//
 // Swipe RIGHT → ring rotates clockwise → totalRotation -= 90 (ring turns -90°)
 // Swipe LEFT  → ring rotates counter-clockwise → totalRotation += 90 (ring turns +90°)
-//
-// After each snap, compute which item lands closest to the 6-o'clock slot and
-// update activeIndex accordingly.
 
 function computeActiveIndex(totalRotation: number): number {
-  // Each item's base angle on the ring: 180 + idx*90
-  // After rotation, screen angle = baseAngle + totalRotation
-  // We want screen angle ≡ 180° (mod 360) — 6 o'clock in our coordinate system.
-  // (rotate(θ) translateY(-R): 6 o'clock = θ mod 360 = 180)
   let bestIdx = 0;
   let bestDist = Number.POSITIVE_INFINITY;
   for (let i = 0; i < ITEM_COUNT; i++) {
@@ -167,12 +156,8 @@ function targetRotationForIndex(
   itemIndex: number,
   currentTotal: number,
 ): number {
-  // item's base angle
   const base = 180 + itemIndex * 90;
-  // We need: (base + newTotal) mod 360 = 180
-  // → newTotal = 180 - base + k*360 for some integer k
   const rawTarget = 180 - base;
-  // Find the closest k so that rawTarget + k*360 is nearest to currentTotal
   const diff = currentTotal - rawTarget;
   const k = Math.round(diff / 360);
   const target = rawTarget + k * 360;
@@ -198,7 +183,8 @@ export default function OrbitDock({
     () => initialRotation ?? 0,
   );
   const totalRotationRef = useRef(initialRotation ?? 0);
-  const isAnimating = useRef(false);
+  // No animation lock — swipe is always immediately responsive
+  const lastSwipeTime = useRef(0);
 
   // When activeIndex changes externally (e.g. tap-to-rotate from HomePage),
   // snap the ring to the shortest-path position that puts itemIndex at 6 o'clock.
@@ -218,7 +204,7 @@ export default function OrbitDock({
     }
   }, [activeIndex]);
 
-  // ── Shared pointer state (used by both full-screen overlay and icon taps) ────
+  // ── Shared pointer state ─────────────────────────────────────────────────────
 
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
@@ -230,15 +216,19 @@ export default function OrbitDock({
 
   const doSnapRotation = useCallback(
     (dx: number) => {
-      if (isAnimating.current) return;
+      // Debounce: allow swipe even mid-animation — only block ultra-rapid double-taps
+      const now = Date.now();
+      if (now - lastSwipeTime.current < 80) return; // 80ms minimum between swipes
+      lastSwipeTime.current = now;
+
       hasSwiped.current = true;
 
       let newTotal: number;
       if (dx > 0) {
-        // Swipe RIGHT → clockwise → ring rotates -90°
+        // Swipe RIGHT → ring rotates clockwise (left direction visually) → -90°
         newTotal = totalRotationRef.current - STEP_DEG;
       } else {
-        // Swipe LEFT → counter-clockwise → ring rotates +90°
+        // Swipe LEFT → ring rotates counter-clockwise → +90°
         newTotal = totalRotationRef.current + STEP_DEG;
       }
 
@@ -251,18 +241,11 @@ export default function OrbitDock({
         prevActiveIndexRef.current = newActiveIdx;
         onIndexChange(newActiveIdx);
       }
-
-      isAnimating.current = true;
-      setTimeout(() => {
-        isAnimating.current = false;
-      }, SNAP_DURATION_MS);
     },
     [onIndexChange, onRotationChange],
   );
 
   // ── Full-screen swipe overlay handlers ──────────────────────────────────────
-  // These run on a transparent fixed div covering the whole screen so that
-  // swipes anywhere on the page are captured.
 
   const handleOverlayPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -310,12 +293,10 @@ export default function OrbitDock({
     [doSnapRotation],
   );
 
-  // Legacy dock-container handlers (kept for backward compat, now no-ops for swipe
-  // since the overlay handles everything — only icon taps bubble through)
+  // Legacy dock-container handlers
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (disabled || behindOverlay) return;
-      // Only track if NOT already tracked by overlay (overlay stops propagation on swipe)
       if (pointerStartX.current === null) {
         pointerStartX.current = e.clientX;
         pointerStartY.current = e.clientY;
@@ -383,11 +364,6 @@ export default function OrbitDock({
         onRotationChange?.(target);
         onIndexChange(itemIndex);
         prevActiveIndexRef.current = itemIndex;
-
-        isAnimating.current = true;
-        setTimeout(() => {
-          isAnimating.current = false;
-        }, SNAP_DURATION_MS);
       }
     },
     [
@@ -403,21 +379,18 @@ export default function OrbitDock({
   // ── Color helpers ───────────────────────────────────────────────────────────
 
   function getItemColor(itemId: string, isActive: boolean): string {
-    if (!isActive) {
-      return isDark ? "oklch(0.75 0 0)" : "oklch(0.55 0 0)";
+    const colors: Record<string, { light: string; dark: string }> = {
+      upload: { light: "#2563EB", dark: "#60A5FA" },
+      folders: { light: "#0D9488", dark: "#2DD4BF" },
+      mission: { light: "#7C3AED", dark: "#A78BFA" },
+      collections: { light: "#D97706", dark: "#FBBF24" },
+    };
+    const c = colors[itemId] ?? colors.upload;
+    if (isActive) {
+      return isDark ? c.dark : c.light;
     }
-    switch (itemId) {
-      case "upload":
-        return isDark ? "#60A5FA" : "#2563EB";
-      case "folders":
-        return isDark ? "#2DD4BF" : "#0D9488";
-      case "mission":
-        return isDark ? "#A78BFA" : "#7C3AED";
-      case "collections":
-        return isDark ? "#FBBF24" : "#D97706";
-      default:
-        return isDark ? "#60A5FA" : "#2563EB";
-    }
+    // Inactive: use theme-appropriate muted color
+    return isDark ? "oklch(0.68 0 0)" : "oklch(0.52 0 0)";
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -463,7 +436,7 @@ export default function OrbitDock({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {/* Rotating ring — pure rotateZ around screen center (its own origin) */}
+        {/* Rotating ring — pure rotateZ around screen center */}
         <div
           style={{
             position: "absolute",
@@ -481,20 +454,22 @@ export default function OrbitDock({
         >
           {ITEMS.map((item, idx) => {
             const isActive = idx === activeIndex;
+            // Active icon uses full ACTIVE_SIZE; inactive icons are INACTIVE_SIZE
             const iconSize = isActive ? ACTIVE_SIZE : INACTIVE_SIZE;
-            const scale = isActive ? 1 : 0.72;
-            const opacity = isActive ? 1 : 0.6;
+            // No scale transform needed — size difference alone creates the contrast
+            const opacity = isActive ? 1 : 0.55;
             const color = getItemColor(item.id, isActive);
+            // Active icon color for label (inactive gets same muted color as icon)
+            const labelColor = getItemColor(item.id, isActive);
 
-            // Fixed base angle for this item on the ring.
-            // rotate(θ) translateY(−R) → position (R·sin θ, −R·cos θ).
-            // For 6 o'clock (y = +R): θ = 180°.
-            // item[0]=180°, item[1]=270°, item[2]=0°, item[3]=90°
             const baseAngle = 180 + idx * 90;
-
             // Counter-rotate the icon wrapper so it stays upright in screen space.
-            // The wrapper has been rotated by (totalRotation + baseAngle); negate that.
             const counterRotation = -(baseAngle + totalRotation);
+
+            // Wrapper size must accommodate icon + label underneath
+            // Active: iconSize(58) + gap(8) + label(~18) = ~84px total height
+            // Inactive: iconSize(36) + gap(6) + label(~14) = ~56px total height
+            const wrapperSize = isActive ? 90 : 68;
 
             return (
               <div
@@ -503,69 +478,89 @@ export default function OrbitDock({
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  // Place icon on the orbit circumference at its base angle
                   transform: `rotate(${baseAngle}deg) translateY(-${ORBIT_RADIUS}px)`,
                   transformOrigin: "0 0",
                   width: 0,
                   height: 0,
                 }}
               >
-                {/* Icon wrapper: counter-rotates to stay upright, applies scale/opacity */}
+                {/* Icon wrapper: counter-rotates to stay upright */}
                 <div
                   style={{
                     position: "absolute",
-                    left: -iconSize / 2,
+                    // Center the wrapper on the orbit point
+                    left: -wrapperSize / 2,
                     top: -iconSize / 2,
-                    width: iconSize,
-                    height: iconSize,
-                    // counter-rotation tracks totalRotation in real-time;
-                    // do NOT add a CSS transition here — it would fight the ring transition
-                    transform: `rotate(${counterRotation}deg) scale(${scale})`,
-                    transformOrigin: "center center",
+                    width: wrapperSize,
+                    // Height extends downward to hold icon + label
+                    height: wrapperSize,
+                    transform: `rotate(${counterRotation}deg)`,
+                    transformOrigin: `${wrapperSize / 2}px ${iconSize / 2}px`,
                     opacity,
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent: "flex-start",
                     zIndex: isActive ? 10 : 5,
+                    // Smooth size transition so active/inactive change animates smoothly
                     transition: prefersReducedMotion
                       ? "none"
-                      : "opacity 225ms ease-in-out",
+                      : "opacity 200ms ease-in-out",
                   }}
                   onPointerUp={(e) => {
                     e.stopPropagation();
                     handleItemTap(idx, e);
                   }}
                 >
-                  {item.id === "upload" && (
-                    <UploadIcon color={color} size={iconSize} />
-                  )}
-                  {item.id === "folders" && (
-                    <FoldersIcon color={color} size={iconSize} />
-                  )}
-                  {item.id === "mission" && (
-                    <MissionIcon color={color} size={iconSize} />
-                  )}
-                  {item.id === "collections" && (
-                    <CollectionsIcon color={color} size={iconSize} />
-                  )}
-                  {isActive && (
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 500,
-                        color,
-                        lineHeight: 1,
-                        marginTop: 8,
-                        whiteSpace: "nowrap",
-                        display: "block",
-                        textAlign: "center",
-                      }}
-                    >
-                      {item.label}
-                    </span>
-                  )}
+                  {/* Icon SVG */}
+                  <div
+                    style={{
+                      width: iconSize,
+                      height: iconSize,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      // Smooth icon size transition
+                      transition: prefersReducedMotion
+                        ? "none"
+                        : `width ${SNAP_DURATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94), height ${SNAP_DURATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+                    }}
+                  >
+                    {item.id === "upload" && (
+                      <UploadIcon color={color} size={iconSize} />
+                    )}
+                    {item.id === "folders" && (
+                      <FoldersIcon color={color} size={iconSize} />
+                    )}
+                    {item.id === "mission" && (
+                      <MissionIcon color={color} size={iconSize} />
+                    )}
+                    {item.id === "collections" && (
+                      <CollectionsIcon color={color} size={iconSize} />
+                    )}
+                  </div>
+
+                  {/* Label — always visible under every icon */}
+                  <span
+                    style={{
+                      fontSize: isActive ? 14 : 11,
+                      fontWeight: isActive ? 600 : 500,
+                      color: labelColor,
+                      lineHeight: 1,
+                      marginTop: isActive ? 7 : 5,
+                      whiteSpace: "nowrap",
+                      display: "block",
+                      textAlign: "center",
+                      letterSpacing: isActive ? "0.01em" : "0",
+                      transition: prefersReducedMotion
+                        ? "none"
+                        : `font-size ${SNAP_DURATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+                    }}
+                  >
+                    {item.label}
+                  </span>
                 </div>
               </div>
             );
