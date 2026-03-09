@@ -14,6 +14,7 @@ import { useUpload } from "@/contexts/UploadContext";
 import { useCreateNote } from "@/hooks/useNotesQueries";
 import { useCreateLink, useUploadFile } from "@/hooks/useQueries";
 import { fileBytesWorker } from "@/utils/fileBytesWorkerSingleton";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link as LinkIcon, StickyNote, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -66,6 +67,7 @@ export default function FileUploadSection({
     }, 300);
   }, [onMenuChange]);
 
+  const queryClient = useQueryClient();
   const uploadFile = useUploadFile();
   const createLink = useCreateLink();
   const createNote = useCreateNote();
@@ -117,6 +119,8 @@ export default function FileUploadSection({
           });
 
           completeUpload(itemId, result.id);
+          queryClient.invalidateQueries({ queryKey: ["collections-files"] });
+          queryClient.invalidateQueries({ queryKey: ["files"] });
         } catch (error) {
           console.error("Upload error:", error);
           toast.error(`Failed to upload ${file.name}`);
@@ -127,7 +131,14 @@ export default function FileUploadSection({
         fileInputRef.current.value = "";
       }
     },
-    [startUpload, updateProgress, completeUpload, uploadFile, onActionSelected],
+    [
+      startUpload,
+      updateProgress,
+      completeUpload,
+      uploadFile,
+      onActionSelected,
+      queryClient,
+    ],
   );
 
   const handleUploadFilesClick = useCallback(() => {
@@ -171,6 +182,8 @@ export default function FileUploadSection({
       });
       updateProgress(batchId, itemId, 100);
       completeUpload(itemId);
+      queryClient.invalidateQueries({ queryKey: ["collections-files"] });
+      queryClient.invalidateQueries({ queryKey: ["files"] });
 
       setLinkName("");
       setLinkUrl("");
@@ -189,6 +202,7 @@ export default function FileUploadSection({
     completeUpload,
     createLink,
     onActionSelected,
+    queryClient,
   ]);
 
   const handleNoteSubmit = useCallback(async () => {
@@ -210,6 +224,8 @@ export default function FileUploadSection({
       });
       updateProgress(batchId, itemId, 100);
       completeUpload(itemId);
+      queryClient.invalidateQueries({ queryKey: ["collections-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
 
       setNoteTitle("");
       setNoteBody("");
@@ -228,6 +244,7 @@ export default function FileUploadSection({
     completeUpload,
     createNote,
     onActionSelected,
+    queryClient,
   ]);
 
   return (

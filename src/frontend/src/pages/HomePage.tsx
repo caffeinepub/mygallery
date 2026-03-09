@@ -1,22 +1,18 @@
-import type { FileMetadata, Folder } from "@/backend";
+import type { Folder } from "@/backend";
 import ActorInitErrorState from "@/components/ActorInitErrorState";
 import DecorativeBottomLine from "@/components/DecorativeBottomLine";
 import FileUploadSection from "@/components/FileUploadSection";
-import FloatingFileStack from "@/components/FloatingFileStack";
 import Footer from "@/components/Footer";
-import GallerySection from "@/components/GallerySection";
 import Header from "@/components/Header";
 import HomeSharedElementTransitionLayer from "@/components/HomeSharedElementTransitionLayer";
 import MobileOnlyLayout from "@/components/MobileOnlyLayout";
 import OrbitDock from "@/components/OrbitDock";
-import StackFilesFullScreenView from "@/components/StackFilesFullScreenView";
 import WelcomeIntroScreen from "@/components/WelcomeIntroScreen";
 import { useBackendActor } from "@/contexts/ActorContext";
-import { useUpload } from "@/contexts/UploadContext";
 import { useHomePrefetch } from "@/hooks/useHomePrefetch";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useListMissions } from "@/hooks/useMissionsQueries";
-import { useGetFilesNotInFolder, useGetFolders } from "@/hooks/useQueries";
+import { useGetFolders } from "@/hooks/useQueries";
 import {
   Suspense,
   lazy,
@@ -47,14 +43,7 @@ export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
   const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
-  const [isStackOpen, setIsStackOpen] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
-  const [folderOpenedFromFoldersView, setFolderOpenedFromFoldersView] =
-    useState(false);
-  const [isBulkSelectionActive, setIsBulkSelectionActive] = useState(false);
-  const [newlyUploadedFiles, setNewlyUploadedFiles] = useState<FileMetadata[]>(
-    [],
-  );
+
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [dockActiveIndex, setDockActiveIndex] = useState(DOCK_INDEX_UPLOAD);
   const [dockRotation, setDockRotation] = useState(0);
@@ -72,44 +61,14 @@ export default function HomePage() {
 
   const { identity, isInitializing } = useInternetIdentity();
   const { status, error, retry, signOut, actor } = useBackendActor();
-  const { getCompletedUploads, clearCompletedUploads } = useUpload();
-  const { data: files } = useGetFilesNotInFolder();
 
   useHomePrefetch();
   useGetFolders();
-  useGetFilesNotInFolder();
   useListMissions();
 
   const isAuthenticated = !!identity;
   const isActorReady = status === "ready";
   const isFinalFailure = status === "error" && error;
-
-  // Track completed uploads and match with backend files
-  useEffect(() => {
-    const completedUploads = getCompletedUploads();
-    if (completedUploads.length > 0 && files) {
-      const matchedFiles: FileMetadata[] = [];
-
-      for (const upload of completedUploads) {
-        if (upload.backendId) {
-          const file = files.find((f) => f.id === upload.backendId);
-          if (file) {
-            matchedFiles.push(file);
-          }
-        }
-      }
-
-      if (matchedFiles.length > 0) {
-        setNewlyUploadedFiles(matchedFiles);
-        clearCompletedUploads();
-
-        // Clear after animation completes
-        setTimeout(() => {
-          setNewlyUploadedFiles([]);
-        }, 3500);
-      }
-    }
-  }, [files, getCompletedUploads, clearCompletedUploads]);
 
   useEffect(() => {
     if (import.meta.env.DEV && isActorReady && actor) {
@@ -158,23 +117,8 @@ export default function HomePage() {
     }
   }, [isActorReady, actor]);
 
-  const handleFolderSelect = useCallback((folder: Folder) => {
-    setSelectedFolder(folder);
-    setFolderOpenedFromFoldersView(true);
-  }, []);
-
-  const handleBackToMain = useCallback(() => {
-    if (folderOpenedFromFoldersView) {
-      setSelectedFolder(null);
-      setFolderOpenedFromFoldersView(false);
-      setIsFoldersOpen(true);
-    } else {
-      setSelectedFolder(null);
-    }
-  }, [folderOpenedFromFoldersView]);
-
-  const handleBulkSelectionChange = useCallback((isActive: boolean) => {
-    setIsBulkSelectionActive(isActive);
+  const handleFolderSelect = useCallback((_folder: Folder) => {
+    // folder selected from FoldersFullScreenView
   }, []);
 
   const handleCloseFolders = useCallback(() => {
@@ -321,9 +265,7 @@ export default function HomePage() {
               </div>
             }
           >
-            {isStackOpen ? (
-              <StackFilesFullScreenView onClose={() => setIsStackOpen(false)} />
-            ) : isCollectionsOpen ? (
+            {isCollectionsOpen ? (
               <CollectionsFullScreenView
                 onClose={handleCloseCollections}
                 onUploadRequest={() => setShowUploadMenu(true)}
@@ -338,28 +280,8 @@ export default function HomePage() {
             ) : (
               <div className="flex min-h-screen flex-col">
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-8 pb-36">
-                  {selectedFolder === null ? (
-                    <GallerySection
-                      selectedFolder={null}
-                      onBackToMain={handleBackToMain}
-                      onBulkSelectionChange={handleBulkSelectionChange}
-                      hideCollection={true}
-                    />
-                  ) : (
-                    <GallerySection
-                      selectedFolder={selectedFolder}
-                      onBackToMain={handleBackToMain}
-                      onBulkSelectionChange={handleBulkSelectionChange}
-                      hideCollection={false}
-                    />
-                  )}
-                </main>
+                <main className="flex-1 container mx-auto px-4 py-8 pb-36" />
                 <DecorativeBottomLine />
-                <FloatingFileStack
-                  onOpenStack={() => setIsStackOpen(true)}
-                  newlyUploadedFiles={newlyUploadedFiles}
-                />
                 <OrbitDock
                   activeIndex={dockActiveIndex}
                   initialRotation={dockRotation}
@@ -367,7 +289,7 @@ export default function HomePage() {
                   onItemActivate={handleDockItemActivate}
                   onRotationChange={handleDockRotationChange}
                   disabled={!isActorReady}
-                  behindOverlay={isBulkSelectionActive}
+                  behindOverlay={false}
                 />
                 <Footer />
               </div>
@@ -412,19 +334,13 @@ export default function HomePage() {
     error,
     retry,
     signOut,
-    selectedFolder,
     isFoldersOpen,
     isMissionsOpen,
     isCollectionsOpen,
-    isStackOpen,
-    isBulkSelectionActive,
     transitionState,
-    newlyUploadedFiles,
     showUploadMenu,
     dockActiveIndex,
     dockRotation,
-    handleBackToMain,
-    handleBulkSelectionChange,
     handleCloseFolders,
     handleCloseMissions,
     handleCloseCollections,

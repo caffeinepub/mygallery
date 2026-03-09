@@ -22,6 +22,7 @@ import {
 import { ArrowLeft, Folder, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import FolderContentsView from "./FolderContentsView";
 import SwipeActionsRow from "./SwipeActionsRow";
 
 interface FoldersFullScreenViewProps {
@@ -31,7 +32,7 @@ interface FoldersFullScreenViewProps {
 
 export default function FoldersFullScreenView({
   onClose,
-  onSelectFolder,
+  onSelectFolder: _onSelectFolder,
 }: FoldersFullScreenViewProps) {
   const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<bigint | null>(null);
@@ -40,6 +41,7 @@ export default function FoldersFullScreenView({
   const [deleteConfirmFolderId, setDeleteConfirmFolderId] = useState<
     bigint | null
   >(null);
+  const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
 
   const { status } = useBackendActor();
   const { data: folders = [], isLoading } = useGetFolders();
@@ -128,8 +130,7 @@ export default function FoldersFullScreenView({
   };
 
   const handleFolderSelect = (folder: FolderType) => {
-    onSelectFolder(folder);
-    onClose();
+    setOpenFolder(folder);
   };
 
   const renderFolderRow = (folder: FolderType) => {
@@ -197,6 +198,13 @@ export default function FoldersFullScreenView({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-background flex flex-col animate-page-scale-in">
+        {/* Folder contents view — overlays folders list */}
+        {openFolder && (
+          <FolderContentsView
+            folder={openFolder}
+            onBack={() => setOpenFolder(null)}
+          />
+        )}
         {/* Header */}
         <div
           className="flex items-center gap-4 p-4 border-b border-border"
