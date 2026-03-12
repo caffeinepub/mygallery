@@ -1,30 +1,29 @@
-# MYL
+# MYL App - Fixes v320
 
 ## Current State
-
-- Κεντρική οθόνη (HomePage): εμφανίζει `GallerySection` (αρχεία/notes με αρίθμηση) και `FloatingFileStack` (floating badge με count αρχείων).
-- CollectionsFullScreenView: έχει long-press που ανοίγει ξεχωριστό "single-item action sheet" — δεν ενεργοποιεί inline batch selection mode.
-- Όταν items μεταφερθούν σε folder/mission μέσω CollectionsFullScreenView, τα query keys `collections-files` / `collections-notes` invalidate-άρονται, αλλά υπάρχει κίνδυνος τα items να φαίνονται και στο Collection αν δεν γίνει σωστό optimistic update.
+- MissionsFullScreenView uses a Plus Button (size=icon default variant) for Create Mission — may be invisible in light mode
+- Swipe between incomplete/completed tabs is missing in MissionsFullScreenView
+- AnimatedGalleryIcon uses stroke-missions-accent CSS class which may not render visibly in all theme/browser combinations
+- No sky/cloud background exists in the app
 
 ## Requested Changes (Diff)
 
 ### Add
-- Στο `CollectionsFullScreenView`: long-press σε item → ενεργοποιεί inline selection mode, το item επιλέγεται αμέσως, ο χρήστης μπορεί να επιλέξει πρόσθετα items → toolbar με Mission / Folder / Share / Delete.
-- Optimistic removal: μόλις επιλεγμένα items σταλούν σε folder/mission ή διαγραφούν, αφαιρούνται αμέσως (optimistic) από το collection grid πριν επιστρέψει το backend.
+- SkyBackground component: fixed positioned behind all content, animated drifting clouds, visible in both light mode (blue sky + white clouds) and dark mode (navy sky + dim clouds), pointer-events none
+- Cloud drift CSS keyframe animations in index.css
 
 ### Modify
-- `HomePage`: αφαιρεί `GallerySection` και `FloatingFileStack` από την κεντρική οθόνη (όταν δεν υπάρχει selectedFolder). Δεν εμφανίζεται αρίθμηση αρχείων κάτω δεξιά.
-- `CollectionsFullScreenView`: αντικαθιστά το "single-item action sheet" flow με απλό inline selection mode (long-press → select item → toolbar).
-- `SendToFolderDialog` / `MoveToMissionDialog`: μετά την επιτυχή μεταφορά, τα items αφαιρούνται από το `collections-files` / `collections-notes` cache αμέσως.
+- MissionsFullScreenView: Create Mission Plus button gets explicit purple bg color for light/dark; add swipe gesture (left→completed, right→incomplete) on the missions list area
+- AnimatedGalleryIcon: use useTheme to apply explicit #7C3AED (light) / #A78BFA (dark) colors on all SVG strokes/fills
+- MobileOnlyLayout: mount SkyBackground as first child; make mobile-only-content transparent with z-index:1
+- index.css: mobile-only-container/content background → transparent; add cloud drift keyframes
 
 ### Remove
-- `GallerySection` render όταν `selectedFolder === null` στο `HomePage`.
-- `FloatingFileStack` component από `HomePage`.
-- Single-item action sheet logic από `CollectionsFullScreenView` (απλοποιείται σε ενιαίο batch selection flow).
+- Nothing
 
 ## Implementation Plan
-
-1. **HomePage**: Αφαίρεσε `GallerySection` (hideCollection branch) και `FloatingFileStack`. Αφαίρεσε state/handlers που αφορούν μόνο αυτά (`newlyUploadedFiles`, `isStackOpen`, `isBulkSelectionActive`, `handleBulkSelectionChange`).
-2. **CollectionsFullScreenView**: Αντικατάστησε single-item sheet με inline selection mode. Long-press → `enterSelectionMode()` + select item. Ο χρήστης επιλέγει ελεύθερα. Toolbar εμφανίζεται στο κάτω μέρος.
-3. **Optimistic removal στο Collection**: Μετά από επιτυχές move σε folder/mission ή delete, να αφαιρεί αμέσως τα items από το collection cache (`collections-files`, `collections-notes`) με `setQueryData` πριν το invalidate.
-4. **Καμία αλλαγή** σε design, χρώματα, Orbit Dock, Folders, Missions, Upload panel, Notes editor, ή οποιαδήποτε άλλη λειτουργία.
+1. Create SkyBackground.tsx with sky gradient + 4 animated SVG clouds (deterministic positions)
+2. Update AnimatedGalleryIcon.tsx with useTheme-based explicit colors
+3. Update MissionsFullScreenView.tsx: explicit button colors + swipe handlers on tab content
+4. Update MobileOnlyLayout.tsx to include SkyBackground
+5. Update index.css: transparent containers + cloud keyframe animations

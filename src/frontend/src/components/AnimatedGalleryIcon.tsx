@@ -1,6 +1,12 @@
-import React from "react";
+import { useTheme } from "next-themes";
 
 export default function AnimatedGalleryIcon() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  // Explicit colors that are clearly visible in both modes
+  const color = isDark ? "#A78BFA" : "#7C3AED";
+  const fillColor = isDark ? "#A78BFA" : "#7C3AED";
+
   return (
     <div className="relative h-10 w-10 group cursor-pointer">
       <svg
@@ -16,8 +22,10 @@ export default function AnimatedGalleryIcon() {
           cx="32"
           cy="32"
           r="28"
-          className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          fill="none"
+          stroke={color}
           strokeWidth="2"
+          className="transition-all duration-300"
         />
 
         {/* Middle target ring */}
@@ -25,8 +33,10 @@ export default function AnimatedGalleryIcon() {
           cx="32"
           cy="32"
           r="20"
-          className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          fill="none"
+          stroke={color}
           strokeWidth="2.5"
+          className="transition-all duration-300"
         />
 
         {/* Inner target ring */}
@@ -34,16 +44,19 @@ export default function AnimatedGalleryIcon() {
           cx="32"
           cy="32"
           r="12"
-          className="fill-none stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          fill="none"
+          stroke={color}
           strokeWidth="3"
+          className="transition-all duration-300"
         />
 
-        {/* Center bullseye with pulse animation */}
+        {/* Center bullseye */}
         <circle
           cx="32"
           cy="32"
           r="6"
-          className="fill-missions-accent transition-all duration-300 group-hover:animate-pulse group-hover:fill-missions-accent-hover"
+          fill={fillColor}
+          className="transition-all duration-300 group-hover:animate-pulse"
         />
 
         {/* Crosshair vertical line */}
@@ -52,9 +65,10 @@ export default function AnimatedGalleryIcon() {
           y1="4"
           x2="32"
           y2="60"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
 
         {/* Crosshair horizontal line */}
@@ -63,46 +77,54 @@ export default function AnimatedGalleryIcon() {
           y1="32"
           x2="60"
           y2="32"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
 
         {/* Corner markers - top left */}
         <path
           d="M 8 8 L 8 14 M 8 8 L 14 8"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
 
         {/* Corner markers - top right */}
         <path
           d="M 56 8 L 56 14 M 56 8 L 50 8"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
 
         {/* Corner markers - bottom left */}
         <path
           d="M 8 56 L 8 50 M 8 56 L 14 56"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
 
         {/* Corner markers - bottom right */}
         <path
           d="M 56 56 L 56 50 M 56 56 L 50 56"
-          className="stroke-missions-accent transition-all duration-300 group-hover:stroke-missions-accent-hover"
+          stroke={color}
           strokeWidth="2"
           strokeLinecap="round"
+          className="transition-all duration-300"
         />
       </svg>
 
-      {/* Subtle glow effect on hover */}
-      <div className="absolute inset-0 rounded-full bg-missions-accent/0 group-hover:bg-missions-accent/10 transition-all duration-300 blur-sm" />
+      {/* Subtle glow on hover */}
+      <div
+        className="absolute inset-0 rounded-full bg-transparent group-hover:bg-current/10 transition-all duration-300 blur-sm"
+        style={{ color }}
+      />
     </div>
   );
 }

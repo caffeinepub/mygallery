@@ -112,7 +112,7 @@
   width: 100%;
   display: flex;
   justify-content: center;
-  background: oklch(var(--background));
+  background: transparent;
 }
 
 .mobile-only-content {
@@ -120,7 +120,7 @@
   max-width: 430px;
   min-height: 100vh;
   position: relative;
-  background: oklch(var(--background));
+  background: transparent;
   box-shadow: 0 0 0 1px oklch(var(--border) / 0.1);
 }
 
@@ -414,4 +414,50 @@ video {
 
 .animate-orbit-mission-activate {
   animation: orbitMissionActivate 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Sky background cloud drift animations ── */
+@keyframes cloudDrift1 {
+  0% {
+    transform: translateX(-320px);
+  }
+  100% {
+    transform: translateX(900px);
+  }
+}
+@keyframes cloudDrift2 {
+  0% {
+    transform: translateX(900px);
+  }
+  100% {
+    transform: translateX(-280px);
+  }
+}
+@keyframes cloudDrift3 {
+  0% {
+    transform: translateX(-200px);
+  }
+  100% {
+    transform: translateX(850px);
+  }
+}
+@keyframes cloudDrift4 {
+  0% {
+    transform: translateX(950px);
+  }
+  100% {
+    transform: translateX(-300px);
+  }
+}
+.sky-cloud-1 {
+  animation: cloudDrift1 85s linear infinite;
+}
+.sky-cloud-2 {
+  animation: cloudDrift2 115s linear infinite;
+}
+.sky-cloud-3 {
+  animation: cloudDrift3 70s linear infinite;
+}
+.sky-cloud-4 {
+  animation: cloudDrift4 140s linear infinite;
 }

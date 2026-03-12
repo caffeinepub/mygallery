@@ -104,30 +104,39 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeUpload = useCallback((itemId: string, backendId?: string) => {
-    setUploads((prev) =>
-      prev.map((upload) =>
+    setUploads((prev) => {
+      const updated = prev.map((upload) =>
         upload.itemId === itemId
           ? { ...upload, progress: 100, completed: true, backendId }
           : upload,
-      ),
-    );
+      );
 
-    // Store completed upload for stack animation
-    setUploads((prev) => {
-      const completed = prev.find((u) => u.itemId === itemId);
-      if (completed && completed.type === "file") {
+      // Store completed file upload for animation
+      const completedItem = updated.find((u) => u.itemId === itemId);
+      if (completedItem && completedItem.type === "file") {
         setCompletedUploads((prevCompleted) => [
           ...prevCompleted,
-          { ...completed, backendId },
+          { ...completedItem, backendId },
         ]);
       }
-      return prev;
-    });
 
-    // Remove from active uploads after delay
-    setTimeout(() => {
-      setUploads((prev) => prev.filter((upload) => upload.itemId !== itemId));
-    }, 2000);
+      // Check if ALL items in the same batch are now completed
+      // Only remove the whole batch at once to keep totalProgress monotonically increasing
+      if (completedItem) {
+        const batchId = completedItem.batchId;
+        const batchItems = updated.filter((u) => u.batchId === batchId);
+        const allBatchDone = batchItems.every((u) => u.completed);
+        if (allBatchDone) {
+          setTimeout(() => {
+            setUploads((current) =>
+              current.filter((u) => u.batchId !== batchId),
+            );
+          }, 2000);
+        }
+      }
+
+      return updated;
+    });
   }, []);
 
   const restoreItem = useCallback(

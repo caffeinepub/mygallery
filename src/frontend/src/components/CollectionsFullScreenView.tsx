@@ -67,27 +67,39 @@ function FileThumbnail({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
   const touchMoved = useRef(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     didLongPress.current = false;
     touchMoved.current = false;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
         didLongPress.current = true;
+        try {
+          navigator.vibrate?.(50);
+        } catch {}
         onLongPress();
       }
     }, 500);
   };
 
-  const handleTouchMove = () => {
-    touchMoved.current = true;
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (dx > 8 || dy > 8) {
+      touchMoved.current = true;
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!didLongPress.current && !touchMoved.current) {
-      e.preventDefault(); // prevent synthetic click from double-firing onTap
+      e.preventDefault();
       onTap();
     }
   };
@@ -108,19 +120,26 @@ function FileThumbnail({
     return (
       <div
         className="relative flex flex-col items-center justify-center overflow-hidden cursor-pointer"
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 9,
-          background: isDark ? "oklch(0.22 0.02 260)" : "oklch(0.93 0.01 260)",
-          border: borderStyle,
-          boxSizing: "border-box",
-          flexShrink: 0,
-        }}
+        style={
+          {
+            width: 80,
+            height: 80,
+            borderRadius: 9,
+            background: isDark
+              ? "oklch(0.22 0.02 260)"
+              : "oklch(0.93 0.01 260)",
+            border: borderStyle,
+            boxSizing: "border-box",
+            flexShrink: 0,
+            WebkitTouchCallout: "none",
+            userSelect: "none",
+          } as React.CSSProperties
+        }
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        onContextMenu={(e) => e.preventDefault()}
         onClick={selectionMode ? onTap : undefined}
         onKeyDown={
           selectionMode
@@ -143,7 +162,9 @@ function FileThumbnail({
             src={faviconUrl}
             alt={file.name}
             loading="lazy"
+            draggable={false}
             className="w-8 h-8 object-contain"
+            onContextMenu={(e) => e.preventDefault()}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -170,18 +191,23 @@ function FileThumbnail({
     return (
       <div
         className="relative overflow-hidden cursor-pointer"
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 9,
-          border: borderStyle,
-          boxSizing: "border-box",
-          flexShrink: 0,
-        }}
+        style={
+          {
+            width: 80,
+            height: 80,
+            borderRadius: 9,
+            border: borderStyle,
+            boxSizing: "border-box",
+            flexShrink: 0,
+            WebkitTouchCallout: "none",
+            userSelect: "none",
+          } as React.CSSProperties
+        }
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        onContextMenu={(e) => e.preventDefault()}
         onClick={selectionMode ? onTap : undefined}
         onKeyDown={
           selectionMode
@@ -203,7 +229,10 @@ function FileThumbnail({
           src={url}
           alt={file.name}
           loading="lazy"
+          draggable={false}
           className="w-full h-full object-cover"
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ pointerEvents: "none" }}
         />
       </div>
     );
@@ -213,19 +242,24 @@ function FileThumbnail({
   return (
     <div
       className="relative flex flex-col items-center justify-center overflow-hidden cursor-pointer"
-      style={{
-        width: 80,
-        height: 80,
-        borderRadius: 9,
-        background: isDark ? "oklch(0.22 0.02 260)" : "oklch(0.93 0.01 260)",
-        border: borderStyle,
-        boxSizing: "border-box",
-        flexShrink: 0,
-      }}
+      style={
+        {
+          width: 80,
+          height: 80,
+          borderRadius: 9,
+          background: isDark ? "oklch(0.22 0.02 260)" : "oklch(0.93 0.01 260)",
+          border: borderStyle,
+          boxSizing: "border-box",
+          flexShrink: 0,
+          WebkitTouchCallout: "none",
+          userSelect: "none",
+        } as React.CSSProperties
+      }
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
+      onContextMenu={(e) => e.preventDefault()}
       onClick={selectionMode ? onTap : undefined}
       onKeyDown={
         selectionMode
@@ -276,27 +310,39 @@ function NoteThumbnail({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
   const touchMoved = useRef(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     didLongPress.current = false;
     touchMoved.current = false;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
         didLongPress.current = true;
+        try {
+          navigator.vibrate?.(50);
+        } catch {}
         onLongPress();
       }
     }, 500);
   };
 
-  const handleTouchMove = () => {
-    touchMoved.current = true;
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (dx > 8 || dy > 8) {
+      touchMoved.current = true;
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!didLongPress.current && !touchMoved.current) {
-      e.preventDefault(); // prevent synthetic click from double-firing onTap
+      e.preventDefault();
       onTap();
     }
   };
@@ -308,19 +354,24 @@ function NoteThumbnail({
   return (
     <div
       className="relative flex flex-col items-center justify-center overflow-hidden cursor-pointer"
-      style={{
-        width: 80,
-        height: 80,
-        borderRadius: 9,
-        background: isDark ? "oklch(0.24 0.03 150)" : "oklch(0.94 0.02 150)",
-        border: selected ? "2px solid #3B82F6" : "1.5px solid transparent",
-        boxSizing: "border-box",
-        flexShrink: 0,
-      }}
+      style={
+        {
+          width: 80,
+          height: 80,
+          borderRadius: 9,
+          background: isDark ? "oklch(0.24 0.03 150)" : "oklch(0.94 0.02 150)",
+          border: selected ? "2px solid #3B82F6" : "1.5px solid transparent",
+          boxSizing: "border-box",
+          flexShrink: 0,
+          WebkitTouchCallout: "none",
+          userSelect: "none",
+        } as React.CSSProperties
+      }
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
+      onContextMenu={(e) => e.preventDefault()}
       onClick={selectionMode ? onTap : undefined}
       onKeyDown={
         selectionMode
@@ -441,6 +492,9 @@ export default function CollectionsFullScreenView({
     null,
   );
   const [fullScreenNote, setFullScreenNote] = useState<Note | null>(null);
+  const [fullScreenLink, setFullScreenLink] = useState<FileMetadata | null>(
+    null,
+  );
 
   // Dialog state
   const [showMoveToMission, setShowMoveToMission] = useState(false);
@@ -495,9 +549,18 @@ export default function CollectionsFullScreenView({
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    setSelectedFileIds(new Set(files.map((f) => f.id)));
-    setSelectedNoteIds(new Set(notes.map((n) => n.id)));
-  }, [files, notes]);
+    const allFilesSelected = files.every((f) => selectedFileIds.has(f.id));
+    const allNotesSelected = notes.every((n) => selectedNoteIds.has(n.id));
+    const allSelected =
+      allFilesSelected && allNotesSelected && files.length + notes.length > 0;
+    if (allSelected) {
+      setSelectedFileIds(new Set());
+      setSelectedNoteIds(new Set());
+    } else {
+      setSelectedFileIds(new Set(files.map((f) => f.id)));
+      setSelectedNoteIds(new Set(notes.map((n) => n.id)));
+    }
+  }, [files, notes, selectedFileIds, selectedNoteIds]);
 
   // Tap: if in selection mode → toggle selection; otherwise → open full screen
   const handleItemTap = useCallback(
@@ -506,15 +569,10 @@ export default function CollectionsFullScreenView({
         if (item.kind === "file") toggleFileSelection(item.data.id);
         else toggleNoteSelection(item.data.id);
       } else {
-        // Open full screen directly
         if (item.kind === "file") {
           if (item.data.link) {
-            // Open link in browser
-            try {
-              window.open(item.data.link, "_blank", "noopener,noreferrer");
-            } catch {
-              // fallback
-            }
+            // Open link in full-screen viewer (not in browser directly)
+            setFullScreenLink(item.data);
           } else {
             setFullScreenFile(item.data);
           }
@@ -639,6 +697,14 @@ export default function CollectionsFullScreenView({
       ? `${uploadLabel}, ${noteCount} note${noteCount > 1 ? "s" : ""}`
       : `${noteCount} note${noteCount > 1 ? "s" : ""}`;
 
+  // Compute whether all items are currently selected (for toggle label)
+  const allFilesSelected =
+    files.length > 0 && files.every((f) => selectedFileIds.has(f.id));
+  const allNotesSelected =
+    notes.length > 0 && notes.every((n) => selectedNoteIds.has(n.id));
+  const allItemsSelected =
+    files.length + notes.length > 0 && allFilesSelected && allNotesSelected;
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col animate-page-scale-in"
@@ -694,8 +760,8 @@ export default function CollectionsFullScreenView({
         )}
       </div>
 
-      {/* Inline upload progress bar */}
-      {activeUploads.length > 0 && (
+      {/* Inline upload progress bar — shows totalProgress across all files in the batch */}
+      {uploads.length > 0 && (
         <div
           className="shrink-0 px-4 py-2"
           style={{
@@ -708,7 +774,9 @@ export default function CollectionsFullScreenView({
         >
           <div className="flex items-center justify-between mb-1">
             <span style={{ fontSize: 12, color: subTextColor }}>
-              Uploading {uploadLabel}
+              {activeUploads.length > 0
+                ? `Uploading ${uploadLabel}`
+                : "Upload complete"}
             </span>
             <span
               style={{
@@ -864,7 +932,7 @@ export default function CollectionsFullScreenView({
               data-ocid="collections.select_all_button"
             >
               <CheckSquare size={16} />
-              Select All
+              {allItemsSelected ? "Deselect All" : "Select All"}
             </button>
             <span style={{ fontSize: 13, color: subTextColor }}>
               {totalSelected} selected
@@ -995,7 +1063,6 @@ export default function CollectionsFullScreenView({
           fileIds={selectedFileIdsArray}
           noteIds={selectedNoteIdsArray}
           onMoveComplete={() => {
-            // Optimistically remove moved items from collection cache
             const movedFileIds = selectedFileIdsArray;
             const movedNoteIds = selectedNoteIdsArray.map((id) =>
               id.toString(),
@@ -1041,7 +1108,6 @@ export default function CollectionsFullScreenView({
           fileIds={selectedFileIdsArray}
           noteIds={selectedNoteIdsArray}
           onMoveComplete={() => {
-            // Optimistically remove moved items from collection cache
             const movedFileIds = selectedFileIdsArray;
             const movedNoteIds = selectedNoteIdsArray.map((id) =>
               id.toString(),
@@ -1099,7 +1165,6 @@ export default function CollectionsFullScreenView({
           className="fixed inset-0 z-[80] flex flex-col"
           style={{ background: bg }}
         >
-          {/* Header */}
           <div
             className="flex items-center px-4 py-3 shrink-0"
             style={{
@@ -1126,7 +1191,6 @@ export default function CollectionsFullScreenView({
             </h1>
             <div style={{ width: 38 }} />
           </div>
-          {/* Scrollable content */}
           <div
             className="flex-1 overflow-y-auto px-5 py-4"
             style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
@@ -1142,6 +1206,79 @@ export default function CollectionsFullScreenView({
             >
               {fullScreenNote.body || ""}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Full-screen link viewer */}
+      {fullScreenLink && (
+        <div
+          className="fixed inset-0 z-[80] flex flex-col"
+          style={{ background: bg }}
+        >
+          <div
+            className="flex items-center px-4 py-3 shrink-0"
+            style={{
+              background: headerBg,
+              borderBottom: `1px solid ${borderColor}`,
+              paddingTop: "max(12px, env(safe-area-inset-top))",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setFullScreenLink(null)}
+              className="flex items-center justify-center rounded-full p-2 -ml-2 active:opacity-60"
+              style={{ color: textColor }}
+              aria-label="Close"
+              data-ocid="collections.link_viewer.close_button"
+            >
+              <ArrowLeft size={22} />
+            </button>
+            <h1
+              className="flex-1 text-center font-semibold truncate px-2"
+              style={{ fontSize: 17, color: textColor }}
+            >
+              {fullScreenLink.name}
+            </h1>
+            <div style={{ width: 38 }} />
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6">
+            {getDomain(fullScreenLink.link!) && (
+              <img
+                src={`https://www.google.com/s2/favicons?domain=${getDomain(fullScreenLink.link!)}&sz=128`}
+                alt=""
+                className="w-16 h-16 object-contain rounded-xl"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+            <p
+              className="text-center text-sm break-all"
+              style={{ color: subTextColor, maxWidth: 300 }}
+            >
+              {fullScreenLink.link}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  window.open(
+                    fullScreenLink.link!,
+                    "_blank",
+                    "noopener,noreferrer",
+                  );
+                } catch {
+                  // fallback
+                }
+              }}
+              className="flex items-center gap-2 px-8 py-3 rounded-2xl font-semibold active:opacity-70"
+              style={{ background: "#2563EB", color: "#fff", fontSize: 16 }}
+              data-ocid="collections.link_viewer.open_button"
+            >
+              <LinkIcon size={18} />
+              Open Link
+            </button>
           </div>
         </div>
       )}

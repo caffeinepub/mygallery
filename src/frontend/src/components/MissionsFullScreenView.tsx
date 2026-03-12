@@ -16,7 +16,7 @@ import { useBackendActor } from "@/contexts/ActorContext";
 import { useDeleteMission, useListMissions } from "@/hooks/useMissionsQueries";
 import { splitMissionsByCompletion } from "@/utils/missionCompletion";
 import { ArrowLeft, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import MissionDetailFullScreenView from "./MissionDetailFullScreenView";
 import MissionEditorDialog from "./MissionEditorDialog";
@@ -41,6 +41,10 @@ export default function MissionsFullScreenView({
     "incomplete",
   );
 
+  // Swipe gesture state for tab switching
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
+
   const { status } = useBackendActor();
   const { data: missions = [], isLoading } = useListMissions();
   const deleteMissionMutation = useDeleteMission();
@@ -52,9 +56,34 @@ export default function MissionsFullScreenView({
   // Reset to incomplete tab when returning from mission detail
   useEffect(() => {
     if (!selectedMissionId) {
-      setActiveTab("incomplete");
+      // Keep current tab — do not force-reset so restored missions stay visible
     }
   }, [selectedMissionId]);
+
+  // ── Swipe handlers for tab switching ─────────────────────────────────────
+  const handleSwipeTouchStart = (e: React.TouchEvent) => {
+    swipeStartX.current = e.touches[0].clientX;
+    swipeStartY.current = e.touches[0].clientY;
+  };
+
+  const handleSwipeTouchEnd = (e: React.TouchEvent) => {
+    if (swipeStartX.current === null || swipeStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+    const dy = e.changedTouches[0].clientY - swipeStartY.current;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+
+    // Only horizontal swipes with sufficient distance
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+
+    if (dx < 0) {
+      // Swipe left → go to Completed
+      setActiveTab("completed");
+    } else {
+      // Swipe right → go to Incomplete
+      setActiveTab("incomplete");
+    }
+  };
 
   const handleOpenDeleteConfirm = (missionId: bigint) => {
     setOpenSwipeRowId(null);
@@ -71,7 +100,6 @@ export default function MissionsFullScreenView({
       await deleteMissionMutation.mutateAsync(missionId);
       setDeleteConfirmMissionId(null);
       setOpenSwipeRowId(null);
-      toast.success("Mission deleted successfully");
     } catch (error) {
       console.error("Failed to delete mission:", error);
       const errorMessage =
@@ -113,7 +141,7 @@ export default function MissionsFullScreenView({
     return (
       <SwipeActionsRow
         key={missionId}
-        onEdit={() => {}} // No-op: missions don't have inline edit in list view
+        onEdit={() => {}}
         onDelete={() => handleOpenDeleteConfirm(mission.id)}
         isOpen={openSwipeRowId === missionId}
         onOpenChange={(open) => {
@@ -152,17 +180,19 @@ export default function MissionsFullScreenView({
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold flex-1">Missions</h1>
+          {/* Create Mission button — explicit colors for both light and dark mode */}
           <Button
             size="icon"
             onClick={() => setIsCreating(true)}
             disabled={!isActorReady}
-            className="shrink-0"
+            data-ocid="missions.create.primary_button"
+            className="shrink-0 bg-[#7C3AED] hover:bg-[#6D28D9] text-white dark:bg-[#A78BFA] dark:hover:bg-[#C4B5FD] dark:text-[#1a1040]"
           >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Missions list with tabs */}
+        {/* Missions list with tabs + swipe gesture */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as "incomplete" | "completed")}
@@ -170,50 +200,59 @@ export default function MissionsFullScreenView({
         >
           <TabsList className="w-full rounded-none border-b">
             <TabsTrigger value="incomplete" className="flex-1">
-              Incomplete ({incomplete.length})
+              Active ({incomplete.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="flex-1">
               Completed ({completed.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="incomplete" className="flex-1 mt-0">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-2">
-                {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading missions...
-                  </div>
-                ) : incomplete.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="font-medium mb-2">Missions incompleted</p>
-                    <p className="text-sm">Create a mission to get started!</p>
-                  </div>
-                ) : (
-                  incomplete.map(renderMissionRow)
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
+          {/* Swipe-enabled wrapper */}
+          <div
+            className="flex-1 overflow-hidden"
+            onTouchStart={handleSwipeTouchStart}
+            onTouchEnd={handleSwipeTouchEnd}
+          >
+            <TabsContent value="incomplete" className="h-full mt-0">
+              <ScrollArea className="h-full">
+                <div className="p-4 space-y-2">
+                  {isLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Loading missions...
+                    </div>
+                  ) : incomplete.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="font-medium mb-2">No active missions</p>
+                      <p className="text-sm">Tap + to create a new mission!</p>
+                    </div>
+                  ) : (
+                    incomplete.map(renderMissionRow)
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
 
-          <TabsContent value="completed" className="flex-1 mt-0">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-2">
-                {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading missions...
-                  </div>
-                ) : completed.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="font-medium mb-2">Completed missions</p>
-                    <p className="text-sm">No completed missions yet.</p>
-                  </div>
-                ) : (
-                  completed.map(renderMissionRow)
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
+            <TabsContent value="completed" className="h-full mt-0">
+              <ScrollArea className="h-full">
+                <div className="p-4 space-y-2">
+                  {isLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Loading missions...
+                    </div>
+                  ) : completed.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="font-medium mb-2">No completed missions</p>
+                      <p className="text-sm">
+                        Complete a mission to see it here.
+                      </p>
+                    </div>
+                  ) : (
+                    completed.map(renderMissionRow)
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
 
