@@ -1,12 +1,11 @@
 import type { Folder } from "@/backend";
 import ActorInitErrorState from "@/components/ActorInitErrorState";
-import DecorativeBottomLine from "@/components/DecorativeBottomLine";
+import BottomNavBar from "@/components/BottomNavBar";
 import FileUploadSection from "@/components/FileUploadSection";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import HomeSharedElementTransitionLayer from "@/components/HomeSharedElementTransitionLayer";
 import MobileOnlyLayout from "@/components/MobileOnlyLayout";
-import OrbitDock from "@/components/OrbitDock";
 import WelcomeIntroScreen from "@/components/WelcomeIntroScreen";
 import { useBackendActor } from "@/contexts/ActorContext";
 import { useHomePrefetch } from "@/hooks/useHomePrefetch";
@@ -33,11 +32,11 @@ const CollectionsFullScreenView = lazy(
   () => import("@/components/CollectionsFullScreenView"),
 );
 
-// OrbitDock index mapping: 0 = Upload, 1 = Folders, 2 = Mission, 3 = Collections
-const DOCK_INDEX_UPLOAD = 0;
-const DOCK_INDEX_FOLDERS = 1;
-const DOCK_INDEX_MISSION = 2;
-const DOCK_INDEX_COLLECTIONS = 3;
+// BottomNavBar index mapping: 0=Upload, 1=Collection, 2=Folders, 3=Missions
+const NAV_INDEX_UPLOAD = 0;
+const NAV_INDEX_COLLECTION = 1;
+const NAV_INDEX_FOLDERS = 2;
+const NAV_INDEX_MISSIONS = 3;
 
 export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
@@ -45,8 +44,7 @@ export default function HomePage() {
   const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
 
   const [showUploadMenu, setShowUploadMenu] = useState(false);
-  const [dockActiveIndex, setDockActiveIndex] = useState(DOCK_INDEX_UPLOAD);
-  const [dockRotation, setDockRotation] = useState(0);
+  const [activeNavIndex, setActiveNavIndex] = useState(NAV_INDEX_UPLOAD);
 
   const [transitionState, setTransitionState] = useState<{
     isActive: boolean;
@@ -104,14 +102,14 @@ export default function HomePage() {
                     );
                   }
                 })
-                .catch((error) => {
-                  console.error("[Dev] Smoke test error:", error);
+                .catch((err) => {
+                  console.error("[Dev] Smoke test error:", err);
                   toast.error("Smoke test error! Check console for details.");
                 });
             },
           )
-          .catch((error) => {
-            console.error("[Dev] Failed to load smoke test utilities:", error);
+          .catch((err) => {
+            console.error("[Dev] Failed to load smoke test utilities:", err);
           });
       }
     }
@@ -174,15 +172,9 @@ export default function HomePage() {
     setShowUploadMenu(true);
   }, []);
 
-  // Called when the user selects an action in the upload panel (Upload Files / Paste Link / Add Note).
-  // Closes the panel, transitions to Collections, and sets Collections as the active dock item.
   const handleUploadActionSelected = useCallback(() => {
     setShowUploadMenu(false);
-    setDockActiveIndex(DOCK_INDEX_COLLECTIONS);
-    setIsCollectionsOpen(true);
-  }, []);
-
-  const handleOpenCollections = useCallback(() => {
+    setActiveNavIndex(NAV_INDEX_COLLECTION);
     setIsCollectionsOpen(true);
   }, []);
 
@@ -190,39 +182,32 @@ export default function HomePage() {
     setIsCollectionsOpen(false);
   }, []);
 
-  // Track previous dock index (used by handleDockIndexChange)
-  const prevDockIndexRef = useRef(dockActiveIndex);
-
-  // Handle OrbitDock index changes (swipe or rotation) — visual only, no open action
-  const handleDockIndexChange = useCallback((index: number) => {
-    setDockActiveIndex(index);
-    prevDockIndexRef.current = index;
-  }, []);
-
-  // Keep rotation state in sync — persist so OrbitDock restores position on re-mount
-  const handleDockRotationChange = useCallback((rotation: number) => {
-    setDockRotation(rotation);
-  }, []);
-
-  // Handle OrbitDock item activation (tap on centered icon) — fires the open action
-  const handleDockItemActivate = useCallback(
+  const handleNavItemPress = useCallback(
     (index: number) => {
-      if (index === DOCK_INDEX_UPLOAD) {
+      if (index === NAV_INDEX_UPLOAD) {
+        setActiveNavIndex(NAV_INDEX_UPLOAD);
+        setIsFoldersOpen(false);
+        setIsMissionsOpen(false);
+        setIsCollectionsOpen(false);
         handleUploadClick();
-      } else if (index === DOCK_INDEX_FOLDERS) {
+      } else if (index === NAV_INDEX_COLLECTION) {
+        setActiveNavIndex(NAV_INDEX_COLLECTION);
+        setIsFoldersOpen(false);
+        setIsMissionsOpen(false);
+        setIsCollectionsOpen(true);
+      } else if (index === NAV_INDEX_FOLDERS) {
+        setActiveNavIndex(NAV_INDEX_FOLDERS);
+        setIsCollectionsOpen(false);
+        setIsMissionsOpen(false);
         handleOpenFolders();
-      } else if (index === DOCK_INDEX_MISSION) {
+      } else if (index === NAV_INDEX_MISSIONS) {
+        setActiveNavIndex(NAV_INDEX_MISSIONS);
+        setIsCollectionsOpen(false);
+        setIsFoldersOpen(false);
         handleOpenMissions();
-      } else if (index === DOCK_INDEX_COLLECTIONS) {
-        handleOpenCollections();
       }
     },
-    [
-      handleUploadClick,
-      handleOpenFolders,
-      handleOpenMissions,
-      handleOpenCollections,
-    ],
+    [handleUploadClick, handleOpenFolders, handleOpenMissions],
   );
 
   const mainContent = useMemo(() => {
@@ -280,22 +265,11 @@ export default function HomePage() {
             ) : (
               <div className="flex min-h-screen flex-col">
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-8 pb-36" />
-                <DecorativeBottomLine />
-                <OrbitDock
-                  activeIndex={dockActiveIndex}
-                  initialRotation={dockRotation}
-                  onIndexChange={handleDockIndexChange}
-                  onItemActivate={handleDockItemActivate}
-                  onRotationChange={handleDockRotationChange}
-                  disabled={!isActorReady}
-                  behindOverlay={false}
-                />
+                <main className="flex-1 container mx-auto px-4 py-8 pb-24" />
                 <Footer />
               </div>
             )}
-            {/* FileUploadSection is always mounted so it can handle uploads
-                triggered from CollectionsFullScreenView as well */}
+            {/* FileUploadSection always mounted to handle uploads from any view */}
             <FileUploadSection
               showMenu={showUploadMenu}
               onMenuChange={setShowUploadMenu}
@@ -307,6 +281,12 @@ export default function HomePage() {
             transitionType={transitionState.type}
             source={transitionState.source}
             onTransitionComplete={handleTransitionComplete}
+          />
+          {/* BottomNavBar is always visible when authenticated */}
+          <BottomNavBar
+            activeIndex={activeNavIndex}
+            onItemPress={handleNavItemPress}
+            disabled={!isActorReady}
           />
         </MobileOnlyLayout>
       );
@@ -339,16 +319,13 @@ export default function HomePage() {
     isCollectionsOpen,
     transitionState,
     showUploadMenu,
-    dockActiveIndex,
-    dockRotation,
+    activeNavIndex,
     handleCloseFolders,
     handleCloseMissions,
     handleCloseCollections,
     handleFolderSelect,
     handleTransitionComplete,
-    handleDockIndexChange,
-    handleDockItemActivate,
-    handleDockRotationChange,
+    handleNavItemPress,
     handleUploadActionSelected,
   ]);
 

@@ -16,6 +16,7 @@ import { useCreateLink, useUploadFile } from "@/hooks/useQueries";
 import { fileBytesWorker } from "@/utils/fileBytesWorkerSingleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link as LinkIcon, StickyNote, Upload, X } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -38,6 +39,16 @@ export default function FileUploadSection({
   const [linkUrl, setLinkUrl] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
+
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  // Theme-aware button styles
+  const btnBg = isDark ? "oklch(0.18 0 0)" : "oklch(0.97 0 0)";
+  const btnBorder = isDark
+    ? "1px solid oklch(0.32 0 0)"
+    : "1px solid oklch(0.88 0 0)";
+  const btnColor = isDark ? "oklch(0.92 0 0)" : "oklch(0.15 0 0)";
 
   // panelVisible drives the CSS animation (slide-in / slide-out)
   // panelMounted keeps the DOM alive during slide-out
@@ -89,10 +100,9 @@ export default function FileUploadSection({
 
       const batchId = startUpload(files);
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      // Upload all files in parallel for maximum speed
+      const uploadPromises = files.map(async (file, i) => {
         const itemId = `${batchId}-${i}`;
-
         try {
           updateProgress(batchId, itemId, 10);
 
@@ -125,7 +135,9 @@ export default function FileUploadSection({
           console.error("Upload error:", error);
           toast.error(`Failed to upload ${file.name}`);
         }
-      }
+      });
+
+      await Promise.all(uploadPromises);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -173,7 +185,7 @@ export default function FileUploadSection({
     const itemId = `${batchId}-0`;
 
     try {
-      updateProgress(batchId, itemId, 50);
+      updateProgress(batchId, itemId, 20);
       await createLink.mutateAsync({
         name: linkName,
         url: linkUrl,
@@ -215,7 +227,7 @@ export default function FileUploadSection({
     const itemId = `${batchId}-0`;
 
     try {
-      updateProgress(batchId, itemId, 50);
+      updateProgress(batchId, itemId, 20);
       await createNote.mutateAsync({
         title: noteTitle,
         body: noteBody,
@@ -280,17 +292,20 @@ export default function FileUploadSection({
             role="presentation"
           />
 
-          {/* Panel — slides up from bottom */}
+          {/* Panel — slides up from bottom, offset above bottom nav bar (~80px) */}
           <div
             data-ocid="upload.panel"
-            className="fixed left-0 right-0 bottom-0 z-50"
+            className="fixed left-0 right-0 z-50"
             style={{
-              height: "40vh",
+              bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+              height: "42vh",
               background: "var(--background, #fff)",
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
+              borderBottomLeftRadius: 20,
+              borderBottomRightRadius: 20,
               boxShadow: "0 -4px 32px rgba(0,0,0,0.18)",
-              transform: panelVisible ? "translateY(0)" : "translateY(100%)",
+              transform: panelVisible ? "translateY(0)" : "translateY(120%)",
               transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
               display: "flex",
               flexDirection: "column",
@@ -350,12 +365,12 @@ export default function FileUploadSection({
                   gap: 16,
                   padding: "16px 20px",
                   borderRadius: 14,
-                  border: "1px solid oklch(0.90 0 0)",
-                  background: "oklch(0.97 0 0)",
+                  border: btnBorder,
+                  background: btnBg,
                   cursor: "pointer",
                   fontSize: 16,
                   fontWeight: 500,
-                  color: "inherit",
+                  color: btnColor,
                   width: "100%",
                   textAlign: "left",
                   opacity: panelVisible ? 1 : 0,
@@ -381,12 +396,12 @@ export default function FileUploadSection({
                   gap: 16,
                   padding: "16px 20px",
                   borderRadius: 14,
-                  border: "1px solid oklch(0.90 0 0)",
-                  background: "oklch(0.97 0 0)",
+                  border: btnBorder,
+                  background: btnBg,
                   cursor: "pointer",
                   fontSize: 16,
                   fontWeight: 500,
-                  color: "inherit",
+                  color: btnColor,
                   width: "100%",
                   textAlign: "left",
                   opacity: panelVisible ? 1 : 0,
@@ -412,12 +427,12 @@ export default function FileUploadSection({
                   gap: 16,
                   padding: "16px 20px",
                   borderRadius: 14,
-                  border: "1px solid oklch(0.90 0 0)",
-                  background: "oklch(0.97 0 0)",
+                  border: btnBorder,
+                  background: btnBg,
                   cursor: "pointer",
                   fontSize: 16,
                   fontWeight: 500,
-                  color: "inherit",
+                  color: btnColor,
                   width: "100%",
                   textAlign: "left",
                   opacity: panelVisible ? 1 : 0,

@@ -93,7 +93,6 @@ export default function MissionEditorDialog({
     if (!newTaskText.trim()) return;
 
     // Generate collision-resistant taskId using timestamp + random component
-    // This matches the strategy used in useAddTaskToMission for optimistic tasks
     const collisionResistantId = BigInt(
       `${Date.now()}${Math.random().toString().slice(2, 8)}`,
     );
@@ -154,7 +153,7 @@ export default function MissionEditorDialog({
             <Button
               onClick={handleAddTask}
               disabled={!isActorReady || !newTaskText.trim()}
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white shrink-0"
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white dark:bg-[#A78BFA] dark:hover:bg-[#C4B5FD] dark:text-[#1a1040] shrink-0"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -222,7 +221,7 @@ export default function MissionEditorDialog({
                 !missionTitle.trim() ||
                 createMissionMutation.isPending
               }
-              className="bg-missions-accent hover:bg-missions-accent-hover text-white"
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white dark:bg-[#A78BFA] dark:hover:bg-[#C4B5FD] dark:text-[#1a1040]"
             >
               {createMissionMutation.isPending ? (
                 <>
