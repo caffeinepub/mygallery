@@ -707,7 +707,7 @@ export default function CollectionsFullScreenView({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col animate-page-scale-in"
+      className="fixed inset-0 z-[60] flex flex-col animate-page-scale-in"
       style={{ background: bg }}
     >
       {/* Header */}

@@ -761,7 +761,10 @@ export default function GallerySection({
       </Card>
 
       {selectionMode && selectedItems.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t px-4 py-3 flex items-center justify-between">
+        <div
+          className="fixed left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t px-4 py-3 flex items-center justify-between"
+          style={{ bottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+        >
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleCancelSelection}>
               Cancel
