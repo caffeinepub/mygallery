@@ -1,29 +1,27 @@
-# MYL App - Fixes v320
+# MYL
 
 ## Current State
-- MissionsFullScreenView uses a Plus Button (size=icon default variant) for Create Mission — may be invisible in light mode
-- Swipe between incomplete/completed tabs is missing in MissionsFullScreenView
-- AnimatedGalleryIcon uses stroke-missions-accent CSS class which may not render visibly in all theme/browser combinations
-- No sky/cloud background exists in the app
+- BottomNavBar has 4 items: Upload(0), Collection(1), Folders(2), Missions(3)
+- Collection opens as a separate full-screen view (CollectionsFullScreenView)
+- SkyBackground renders a sky gradient (day: blue/light, night: dark blue) behind all content
+- HomePage main area is empty when no full-screen view is open
 
 ## Requested Changes (Diff)
 
 ### Add
-- SkyBackground component: fixed positioned behind all content, animated drifting clouds, visible in both light mode (blue sky + white clouds) and dark mode (navy sky + dim clouds), pointer-events none
-- Cloud drift CSS keyframe animations in index.css
+- `HomeCollectionsPanel` component: embedded collection grid in the main home page area (above bottom nav), with 4-column thumbnail grid, long-press selection, batch action toolbar (Mission/Folder/Share/Delete) that appears above the bottom nav icons, upload progress bar, empty state. Tap item → full screen. Long-press → multi-select mode.
 
 ### Modify
-- MissionsFullScreenView: Create Mission Plus button gets explicit purple bg color for light/dark; add swipe gesture (left→completed, right→incomplete) on the missions list area
-- AnimatedGalleryIcon: use useTheme to apply explicit #7C3AED (light) / #A78BFA (dark) colors on all SVG strokes/fills
-- MobileOnlyLayout: mount SkyBackground as first child; make mobile-only-content transparent with z-index:1
-- index.css: mobile-only-container/content background → transparent; add cloud drift keyframes
+- **SkyBackground.tsx**: Replace sky gradient with plain white (`#ffffff`) in day mode and plain black (`#000000`) in night mode. Remove stars too.
+- **BottomNavBar.tsx**: Remove `collection` from NAV_ITEMS. Keep only Upload(0), Folders(1), Missions(2). Space evenly across 3 icons.
+- **HomePage.tsx**: Remove `isCollectionsOpen` state and all Collection nav logic. Update nav indices to Upload=0, Folders=1, Missions=2. Embed `HomeCollectionsPanel` in the main content area (flex-1, scrollable, above bottom nav padding).
 
 ### Remove
-- Nothing
+- Collection nav item from BottomNavBar
+- `isCollectionsOpen`, `handleCloseCollections`, Collection-related nav handling in HomePage
 
 ## Implementation Plan
-1. Create SkyBackground.tsx with sky gradient + 4 animated SVG clouds (deterministic positions)
-2. Update AnimatedGalleryIcon.tsx with useTheme-based explicit colors
-3. Update MissionsFullScreenView.tsx: explicit button colors + swipe handlers on tab content
-4. Update MobileOnlyLayout.tsx to include SkyBackground
-5. Update index.css: transparent containers + cloud keyframe animations
+1. Update SkyBackground.tsx: plain white/black background, no gradient, no stars
+2. Update BottomNavBar.tsx: remove collection item, keep Upload/Folders/Missions at indices 0/1/2
+3. Create HomeCollectionsPanel.tsx: embedded collection grid with all existing logic from CollectionsFullScreenView but without the header/back button, with batch action toolbar pinned above bottom nav
+4. Update HomePage.tsx: remove Collection full-screen handling, embed HomeCollectionsPanel in main content area, update nav index mapping

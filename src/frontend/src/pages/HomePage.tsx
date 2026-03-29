@@ -4,6 +4,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import FileUploadSection from "@/components/FileUploadSection";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import HomeCollectionsPanel from "@/components/HomeCollectionsPanel";
 import HomeSharedElementTransitionLayer from "@/components/HomeSharedElementTransitionLayer";
 import MobileOnlyLayout from "@/components/MobileOnlyLayout";
 import WelcomeIntroScreen from "@/components/WelcomeIntroScreen";
@@ -28,20 +29,15 @@ const FoldersFullScreenView = lazy(
 const MissionsFullScreenView = lazy(
   () => import("@/components/MissionsFullScreenView"),
 );
-const CollectionsFullScreenView = lazy(
-  () => import("@/components/CollectionsFullScreenView"),
-);
 
-// BottomNavBar index mapping: 0=Upload, 1=Collection, 2=Folders, 3=Missions
+// BottomNavBar index mapping: 0=Upload, 1=Folders, 2=Missions
 const NAV_INDEX_UPLOAD = 0;
-const NAV_INDEX_COLLECTION = 1;
-const NAV_INDEX_FOLDERS = 2;
-const NAV_INDEX_MISSIONS = 3;
+const NAV_INDEX_FOLDERS = 1;
+const NAV_INDEX_MISSIONS = 2;
 
 export default function HomePage() {
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
-  const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
 
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [activeNavIndex, setActiveNavIndex] = useState(NAV_INDEX_UPLOAD);
@@ -125,7 +121,10 @@ export default function HomePage() {
       type: "closing",
       source: "folders",
     });
-    pendingActionRef.current = () => setIsFoldersOpen(false);
+    pendingActionRef.current = () => {
+      setIsFoldersOpen(false);
+      setActiveNavIndex(NAV_INDEX_UPLOAD);
+    };
   }, []);
 
   const handleCloseMissions = useCallback(() => {
@@ -134,7 +133,10 @@ export default function HomePage() {
       type: "closing",
       source: "missions",
     });
-    pendingActionRef.current = () => setIsMissionsOpen(false);
+    pendingActionRef.current = () => {
+      setIsMissionsOpen(false);
+      setActiveNavIndex(NAV_INDEX_UPLOAD);
+    };
   }, []);
 
   const handleOpenFolders = useCallback(() => {
@@ -174,12 +176,7 @@ export default function HomePage() {
 
   const handleUploadActionSelected = useCallback(() => {
     setShowUploadMenu(false);
-    setActiveNavIndex(NAV_INDEX_COLLECTION);
-    setIsCollectionsOpen(true);
-  }, []);
-
-  const handleCloseCollections = useCallback(() => {
-    setIsCollectionsOpen(false);
+    // Stay on home page — collections panel is embedded in main page
   }, []);
 
   const handleNavItemPress = useCallback(
@@ -188,21 +185,13 @@ export default function HomePage() {
         setActiveNavIndex(NAV_INDEX_UPLOAD);
         setIsFoldersOpen(false);
         setIsMissionsOpen(false);
-        setIsCollectionsOpen(false);
         handleUploadClick();
-      } else if (index === NAV_INDEX_COLLECTION) {
-        setActiveNavIndex(NAV_INDEX_COLLECTION);
-        setIsFoldersOpen(false);
-        setIsMissionsOpen(false);
-        setIsCollectionsOpen(true);
       } else if (index === NAV_INDEX_FOLDERS) {
         setActiveNavIndex(NAV_INDEX_FOLDERS);
-        setIsCollectionsOpen(false);
         setIsMissionsOpen(false);
         handleOpenFolders();
       } else if (index === NAV_INDEX_MISSIONS) {
         setActiveNavIndex(NAV_INDEX_MISSIONS);
-        setIsCollectionsOpen(false);
         setIsFoldersOpen(false);
         handleOpenMissions();
       }
@@ -250,12 +239,7 @@ export default function HomePage() {
               </div>
             }
           >
-            {isCollectionsOpen ? (
-              <CollectionsFullScreenView
-                onClose={handleCloseCollections}
-                onUploadRequest={() => setShowUploadMenu(true)}
-              />
-            ) : isMissionsOpen ? (
+            {isMissionsOpen ? (
               <MissionsFullScreenView onClose={handleCloseMissions} />
             ) : isFoldersOpen ? (
               <FoldersFullScreenView
@@ -263,10 +247,19 @@ export default function HomePage() {
                 onSelectFolder={handleFolderSelect}
               />
             ) : (
-              <div className="flex min-h-screen flex-col">
+              <div
+                className="flex min-h-screen flex-col"
+                style={{ background: "transparent" }}
+              >
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-8 pb-24" />
-                <Footer />
+                <main
+                  className="flex flex-1 flex-col overflow-hidden"
+                  style={{ paddingBottom: 68 }}
+                >
+                  <HomeCollectionsPanel
+                    onUploadRequest={() => setShowUploadMenu(true)}
+                  />
+                </main>
               </div>
             )}
             {/* FileUploadSection always mounted to handle uploads from any view */}
@@ -316,13 +309,11 @@ export default function HomePage() {
     signOut,
     isFoldersOpen,
     isMissionsOpen,
-    isCollectionsOpen,
     transitionState,
     showUploadMenu,
     activeNavIndex,
     handleCloseFolders,
     handleCloseMissions,
-    handleCloseCollections,
     handleFolderSelect,
     handleTransitionComplete,
     handleNavItemPress,

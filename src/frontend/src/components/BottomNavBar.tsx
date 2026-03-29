@@ -6,7 +6,7 @@ interface BottomNavBarProps {
   disabled?: boolean;
 }
 
-// Index mapping: 0=Upload, 1=Collection, 2=Folders, 3=Missions
+// Index mapping: 0=Upload, 1=Folders, 2=Missions
 
 function UploadIcon({ color, size }: { color: string; size: number }) {
   return (
@@ -26,29 +26,6 @@ function UploadIcon({ color, size }: { color: string; size: number }) {
       <polyline points="16 16 12 12 8 16" />
       <line x1="12" y1="12" x2="12" y2="21" />
       <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-    </svg>
-  );
-}
-
-function CollectionsIcon({ color, size }: { color: string; size: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2.3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role="img"
-      aria-label="Collection"
-    >
-      <title>Collection</title>
-      <rect x="3" y="3" width="8" height="8" rx="1.5" ry="1.5" />
-      <rect x="13" y="3" width="8" height="8" rx="1.5" ry="1.5" />
-      <rect x="3" y="13" width="8" height="8" rx="1.5" ry="1.5" />
-      <rect x="13" y="13" width="8" height="8" rx="1.5" ry="1.5" />
     </svg>
   );
 }
@@ -102,12 +79,6 @@ const NAV_ITEMS = [
     label: "Upload",
     lightColor: "#2563EB",
     darkColor: "#60A5FA",
-  },
-  {
-    id: "collection",
-    label: "Collection",
-    lightColor: "#D97706",
-    darkColor: "#FBBF24",
   },
   {
     id: "folders",
@@ -174,7 +145,7 @@ export default function BottomNavBar({
               alignItems: "center",
               justifyContent: "center",
               gap: 4,
-              padding: "4px 12px",
+              padding: "4px 20px",
               background: "none",
               border: "none",
               cursor: disabled ? "default" : "pointer",
@@ -199,9 +170,6 @@ export default function BottomNavBar({
             >
               {item.id === "upload" && (
                 <UploadIcon color={color} size={iconSize} />
-              )}
-              {item.id === "collection" && (
-                <CollectionsIcon color={color} size={iconSize} />
               )}
               {item.id === "folders" && (
                 <FoldersIcon color={color} size={iconSize} />
