@@ -1,4 +1,6 @@
 import type { FileMetadata, Mission, Note, Task } from "@/backend";
+import MoveToMissionDialog from "@/components/MoveToMissionDialog";
+import SendToFolderDialog from "@/components/SendToFolderDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -11,12 +13,13 @@ import {
   useGetMission,
   useToggleTaskCompletion,
 } from "@/hooks/useMissionsQueries";
-import { useGetNotesForMission } from "@/hooks/useNotesQueries";
-import { useGetFilesForMission } from "@/hooks/useQueries";
+import { useDeleteNotes, useGetNotesForMission } from "@/hooks/useNotesQueries";
+import { useDeleteFiles, useGetFilesForMission } from "@/hooks/useQueries";
 import { openExternally } from "@/utils/externalOpen";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  CheckCircle2,
   Edit2,
   ExternalLink,
   File as FileIcon,
@@ -28,7 +31,7 @@ import {
   StickyNote,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import FullScreenViewer from "./FullScreenViewer";
 import LinkOpenFallbackDialog from "./LinkOpenFallbackDialog";
@@ -54,16 +57,35 @@ export default function MissionDetailFullScreenView({
   const [currentLinkUrl, setCurrentLinkUrl] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Batch selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [missionDialogOpen, setMissionDialogOpen] = useState(false);
+
   const { status } = useBackendActor();
   const queryClient = useQueryClient();
   const { data: selectedMission, isLoading: isLoadingMission } =
     useGetMission(missionId);
-  const { data: attachedFiles, isLoading: isLoadingFiles } =
-    useGetFilesForMission(missionId);
-  const { data: attachedNotes, isLoading: isLoadingNotes } =
-    useGetNotesForMission(missionId);
+  const {
+    data: attachedFiles,
+    isLoading: isLoadingFiles,
+    refetch: refetchFiles,
+  } = useGetFilesForMission(missionId);
+  const {
+    data: attachedNotes,
+    isLoading: isLoadingNotes,
+    refetch: refetchNotes,
+  } = useGetNotesForMission(missionId);
   const toggleTaskMutation = useToggleTaskCompletion();
   const addTaskMutation = useAddTaskToMission();
+  const deleteFilesMutation = useDeleteFiles();
+  const deleteNotesMutation = useDeleteNotes();
 
   const isActorReady = status === "ready";
 
@@ -164,11 +186,21 @@ export default function MissionDetailFullScreenView({
   };
 
   const handleFileClick = (index: number) => {
+    if (selectionMode) {
+      const file = attachedFiles?.[index];
+      if (!file) return;
+      setSelectedFileIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(file.id)) next.delete(file.id);
+        else next.add(file.id);
+        return next;
+      });
+      return;
+    }
     const file = attachedFiles?.[index];
     if (!file) return;
 
     if (file.link) {
-      // Handle link click
       const url = file.link;
       openExternally(url)
         .then((opened) => {
@@ -183,15 +215,77 @@ export default function MissionDetailFullScreenView({
           setLinkFallbackOpen(true);
         });
     } else {
-      // Handle file click - open in viewer
       setSelectedFileIndex(index);
       setViewerOpen(true);
     }
   };
 
   const handleNoteClick = (note: Note) => {
+    if (selectionMode) {
+      setSelectedNoteIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(note.id)) next.delete(note.id);
+        else next.add(note.id);
+        return next;
+      });
+      return;
+    }
     setSelectedNote(note);
     setNoteViewerOpen(true);
+  };
+
+  // Long press handlers for attachments
+  const makeLongPressHandlers = (
+    onLongPress: () => void,
+    onClick: () => void,
+  ) => {
+    const touchMoved = { current: false };
+    const touchStarted = { current: false };
+    const longPressTimer: { current: ReturnType<typeof setTimeout> | null } = {
+      current: null,
+    };
+    const didLongPress = { current: false };
+
+    return {
+      onTouchStart: () => {
+        touchMoved.current = false;
+        touchStarted.current = true;
+        didLongPress.current = false;
+        longPressTimer.current = setTimeout(() => {
+          didLongPress.current = true;
+          onLongPress();
+        }, 500);
+      },
+      onTouchMove: () => {
+        touchMoved.current = true;
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      },
+      onTouchEnd: () => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        if (
+          !touchMoved.current &&
+          touchStarted.current &&
+          !didLongPress.current
+        ) {
+          onClick();
+        }
+        touchStarted.current = false;
+      },
+      onTouchCancel: () => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        touchStarted.current = false;
+      },
+      onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    };
   };
 
   const handleRetryOpenLink = async () => {
@@ -230,12 +324,78 @@ export default function MissionDetailFullScreenView({
     return FileIcon;
   };
 
-  const completedTasks = tasks.filter((t) => t.completed).length;
+  const completedTasks = tasks.filter((t: Task) => t.completed).length;
   const totalTasks = tasks.length;
   const progressPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const isLoading = isLoadingMission || isLoadingFiles || isLoadingNotes;
+
+  const totalSelected = selectedFileIds.size + selectedNoteIds.size;
+  const allFiles = attachedFiles ?? [];
+  const allNotes = attachedNotes ?? [];
+  const allAttachments = allFiles.length + allNotes.length;
+  const allSelected = allAttachments > 0 && totalSelected === allAttachments;
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setSelectedFileIds(new Set());
+      setSelectedNoteIds(new Set());
+    } else {
+      setSelectedFileIds(new Set(allFiles.map((f: FileMetadata) => f.id)));
+      setSelectedNoteIds(new Set(allNotes.map((n: Note) => n.id)));
+    }
+  };
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedFileIds(new Set());
+    setSelectedNoteIds(new Set());
+  };
+
+  const handleDeleteSelected = async () => {
+    const fileIds = Array.from(selectedFileIds);
+    const noteIds = Array.from(selectedNoteIds).map((id) => BigInt(id));
+    await Promise.all([
+      fileIds.length > 0
+        ? deleteFilesMutation.mutateAsync(fileIds)
+        : Promise.resolve(),
+      noteIds.length > 0
+        ? deleteNotesMutation.mutateAsync(noteIds)
+        : Promise.resolve(),
+    ]);
+    handleCancelSelection();
+    refetchFiles();
+    refetchNotes();
+  };
+
+  const handleShareSelected = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${totalSelected} item(s) from MYL` });
+      } catch {
+        // cancelled
+      }
+    }
+  };
+
+  const handleMoveComplete = () => {
+    handleCancelSelection();
+    refetchFiles();
+    refetchNotes();
+  };
+
+  const startFileSelection = (file: FileMetadata) => {
+    setSelectionMode(true);
+    setSelectedFileIds(new Set([file.id]));
+    setSelectedNoteIds(new Set());
+  };
+
+  const startNoteSelection = (note: Note) => {
+    setSelectionMode(true);
+    setSelectedNoteIds(new Set([note.id]));
+    setSelectedFileIds(new Set());
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -351,7 +511,7 @@ export default function MissionDetailFullScreenView({
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {tasks.map((task) => (
+                    {tasks.map((task: Task) => (
                       <div
                         key={task.taskId.toString()}
                         className="flex items-start gap-3 group"
@@ -359,7 +519,6 @@ export default function MissionDetailFullScreenView({
                         <Checkbox
                           checked={task.completed}
                           onCheckedChange={(checked) => {
-                            // Use the checked value directly from Checkbox (already the next state)
                             const newCompleted = checked === true;
                             handleToggleTask(task.taskId, newCompleted);
                           }}
@@ -380,9 +539,22 @@ export default function MissionDetailFullScreenView({
 
             {/* Attachments Section */}
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Attachments
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Attachments
+                </h2>
+                {allAttachments > 0 && !selectionMode && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectionMode(true)}
+                    className="text-xs font-medium"
+                    style={{ color: "#7C3AED" }}
+                    data-ocid="mission.selection.select_button"
+                  >
+                    Select
+                  </button>
+                )}
+              </div>
 
               {/* Files */}
               {attachedFiles && attachedFiles.length > 0 && (
@@ -391,7 +563,7 @@ export default function MissionDetailFullScreenView({
                     Files & Links
                   </h3>
                   <div className="grid grid-cols-3 gap-3">
-                    {attachedFiles.map((file, index) => {
+                    {attachedFiles.map((file: FileMetadata, index: number) => {
                       const isLink = !!file.link;
                       const Icon = isLink
                         ? ExternalLink
@@ -400,6 +572,12 @@ export default function MissionDetailFullScreenView({
                         !isLink && file.mimeType.startsWith("image/");
                       const isVideo =
                         !isLink && file.mimeType.startsWith("video/");
+                      const isSelected = selectedFileIds.has(file.id);
+
+                      const lp = makeLongPressHandlers(
+                        () => startFileSelection(file),
+                        () => handleFileClick(index),
+                      );
 
                       return (
                         <button
@@ -412,9 +590,26 @@ export default function MissionDetailFullScreenView({
                               handleFileClick(index);
                             }
                           }}
+                          onTouchStart={lp.onTouchStart}
+                          onTouchMove={lp.onTouchMove}
+                          onTouchEnd={lp.onTouchEnd}
+                          onTouchCancel={lp.onTouchCancel}
+                          onContextMenu={lp.onContextMenu}
                           className="group cursor-pointer relative text-left bg-transparent border-0 p-0 w-full"
+                          style={{
+                            userSelect: "none",
+                            WebkitUserSelect: "none",
+                          }}
                         >
-                          <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]">
+                          <div
+                            className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted transition-all duration-150 hover:shadow-lg hover:scale-[1.02]"
+                            style={{
+                              outline: isSelected
+                                ? "2px solid #7C3AED"
+                                : "none",
+                              outlineOffset: 2,
+                            }}
+                          >
                             {isLink ? (
                               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                                 <Icon className="h-10 w-10 text-blue-600 dark:text-blue-400" />
@@ -425,6 +620,7 @@ export default function MissionDetailFullScreenView({
                                 alt={file.name}
                                 className="h-full w-full object-cover"
                                 loading="lazy"
+                                draggable={false}
                               />
                             ) : isVideo && file.blob ? (
                               <video
@@ -443,6 +639,15 @@ export default function MissionDetailFullScreenView({
                             {isLink && (
                               <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-1 shadow-md">
                                 <ExternalLink className="h-3 w-3" />
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="absolute top-1 right-1">
+                                <CheckCircle2
+                                  size={18}
+                                  color="#7C3AED"
+                                  fill="white"
+                                />
                               </div>
                             )}
                           </div>
@@ -466,33 +671,66 @@ export default function MissionDetailFullScreenView({
                     Notes
                   </h3>
                   <div className="grid grid-cols-3 gap-3">
-                    {attachedNotes.map((note) => (
-                      <button
-                        type="button"
-                        key={note.id}
-                        onClick={() => handleNoteClick(note)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleNoteClick(note);
-                          }
-                        }}
-                        className="group cursor-pointer relative text-left bg-transparent border-0 p-0 w-full"
-                      >
-                        <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-amber-50 dark:bg-amber-950/20 transition-all duration-150 hover:shadow-lg hover:scale-[1.02] border border-amber-200 dark:border-amber-800">
-                          <div className="flex h-full w-full items-center justify-center">
-                            <StickyNote className="h-10 w-10 text-amber-600 dark:text-amber-400" />
-                          </div>
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
-                        </div>
-                        <p
-                          className="mt-1.5 text-xs truncate"
-                          title={note.title}
+                    {attachedNotes.map((note: Note) => {
+                      const isSelected = selectedNoteIds.has(note.id);
+                      const lp = makeLongPressHandlers(
+                        () => startNoteSelection(note),
+                        () => handleNoteClick(note),
+                      );
+                      return (
+                        <button
+                          type="button"
+                          key={note.id.toString()}
+                          onClick={() => handleNoteClick(note)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleNoteClick(note);
+                            }
+                          }}
+                          onTouchStart={lp.onTouchStart}
+                          onTouchMove={lp.onTouchMove}
+                          onTouchEnd={lp.onTouchEnd}
+                          onTouchCancel={lp.onTouchCancel}
+                          onContextMenu={lp.onContextMenu}
+                          className="group cursor-pointer relative text-left bg-transparent border-0 p-0 w-full"
+                          style={{
+                            userSelect: "none",
+                            WebkitUserSelect: "none",
+                          }}
                         >
-                          {note.title}
-                        </p>
-                      </button>
-                    ))}
+                          <div
+                            className="relative w-full aspect-square overflow-hidden rounded-lg bg-amber-50 dark:bg-amber-950/20 transition-all duration-150 hover:shadow-lg hover:scale-[1.02] border border-amber-200 dark:border-amber-800"
+                            style={{
+                              outline: isSelected
+                                ? "2px solid #7C3AED"
+                                : "none",
+                              outlineOffset: 2,
+                            }}
+                          >
+                            <div className="flex h-full w-full items-center justify-center">
+                              <StickyNote className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
+                            {isSelected && (
+                              <div className="absolute top-1 right-1">
+                                <CheckCircle2
+                                  size={18}
+                                  color="#7C3AED"
+                                  fill="white"
+                                />
+                              </div>
+                            )}
+                          </div>
+                          <p
+                            className="mt-1.5 text-xs truncate"
+                            title={note.title}
+                          >
+                            {note.title}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -507,6 +745,105 @@ export default function MissionDetailFullScreenView({
           </div>
         )}
       </main>
+
+      {/* Batch selection toolbar */}
+      {selectionMode && (
+        <div
+          className="fixed left-0 right-0 z-[70] flex flex-col"
+          style={{
+            bottom: 0,
+            background: "var(--background)",
+            borderTop: "1px solid var(--border)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          {/* Select All / Count row */}
+          <div
+            className="flex items-center justify-between px-4 py-2"
+            style={{ borderBottom: "1px solid var(--border)" }}
+          >
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="text-sm font-semibold"
+              style={{ color: "#7C3AED" }}
+              data-ocid="mission.select_all.button"
+            >
+              {allSelected ? "Deselect All" : "Select All"}
+            </button>
+            <span className="text-sm text-muted-foreground">
+              {totalSelected} selected
+            </span>
+            <button
+              type="button"
+              onClick={handleCancelSelection}
+              className="text-sm text-muted-foreground"
+              data-ocid="mission.selection.cancel_button"
+            >
+              Cancel
+            </button>
+          </div>
+          {/* Action buttons row */}
+          <div className="flex items-center justify-around px-4 py-2">
+            <button
+              type="button"
+              disabled={totalSelected === 0}
+              onClick={() => setMissionDialogOpen(true)}
+              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              data-ocid="mission.selection.mission_button"
+            >
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "#7C3AED" }}
+              >
+                Mission
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={totalSelected === 0}
+              onClick={() => setFolderDialogOpen(true)}
+              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              data-ocid="mission.selection.folder_button"
+            >
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "#0D9488" }}
+              >
+                Folder
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={totalSelected === 0}
+              onClick={handleShareSelected}
+              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              data-ocid="mission.selection.share_button"
+            >
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "#2563EB" }}
+              >
+                Share
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={totalSelected === 0}
+              onClick={handleDeleteSelected}
+              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              data-ocid="mission.selection.delete_button"
+            >
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "#EF4444" }}
+              >
+                Delete
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Full Screen Viewer */}
       {viewerOpen && attachedFiles && attachedFiles.length > 0 && (
@@ -539,6 +876,24 @@ export default function MissionDetailFullScreenView({
         linkUrl={currentLinkUrl}
         onRetryOpen={handleRetryOpenLink}
         onCopyLink={handleCopyLink}
+      />
+
+      {/* Send to Folder dialog */}
+      <SendToFolderDialog
+        open={folderDialogOpen}
+        onOpenChange={setFolderDialogOpen}
+        fileIds={Array.from(selectedFileIds)}
+        noteIds={Array.from(selectedNoteIds).map((id) => BigInt(id))}
+        onMoveComplete={handleMoveComplete}
+      />
+
+      {/* Move to Mission dialog */}
+      <MoveToMissionDialog
+        open={missionDialogOpen}
+        onOpenChange={setMissionDialogOpen}
+        fileIds={Array.from(selectedFileIds)}
+        noteIds={Array.from(selectedNoteIds).map((id) => BigInt(id))}
+        onMoveComplete={handleMoveComplete}
       />
     </div>
   );

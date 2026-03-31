@@ -1,3 +1,5 @@
+import { useBackendActor } from "@/contexts/ActorContext";
+import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckSquare,
@@ -14,7 +16,6 @@ import { useCallback, useRef, useState } from "react";
 import type { FileMetadata, Note } from "../backend";
 import { SortDirection } from "../backend";
 import { useUpload } from "../contexts/UploadContext";
-import { useActor } from "../hooks/useActor";
 import FullScreenViewer from "./FullScreenViewer";
 import MoveToMissionDialog from "./MoveToMissionDialog";
 import SendToFolderDialog from "./SendToFolderDialog";
@@ -402,7 +403,8 @@ export default function HomeCollectionsPanel({
 }: HomeCollectionsPanelProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, status } = useBackendActor();
+  const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
 
   const { totalProgress, uploads } = useUpload();
@@ -421,7 +423,7 @@ export default function HomeCollectionsPanel({
         BigInt(500),
       );
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && status === "ready" && !!identity,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -438,7 +440,7 @@ export default function HomeCollectionsPanel({
         BigInt(500),
       );
     },
-    enabled: !!actor && !actorFetching,
+    enabled: !!actor && status === "ready" && !!identity,
     staleTime: 2 * 60 * 1000,
   });
 
