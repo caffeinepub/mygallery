@@ -1019,6 +1019,8 @@ export default function HomeCollectionsPanel({
             exitSelectionMode();
             queryClient.invalidateQueries({ queryKey: ["collections-files"] });
             queryClient.invalidateQueries({ queryKey: ["collections-notes"] });
+            queryClient.invalidateQueries({ queryKey: ["files", "mission"] });
+            queryClient.invalidateQueries({ queryKey: ["notes", "mission"] });
           }}
         />
       )}
@@ -1063,6 +1065,8 @@ export default function HomeCollectionsPanel({
             exitSelectionMode();
             queryClient.invalidateQueries({ queryKey: ["collections-files"] });
             queryClient.invalidateQueries({ queryKey: ["collections-notes"] });
+            queryClient.invalidateQueries({ queryKey: ["files", "folder"] });
+            queryClient.invalidateQueries({ queryKey: ["notes", "folder"] });
           }}
         />
       )}
