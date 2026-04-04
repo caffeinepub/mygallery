@@ -749,12 +749,16 @@ export default function MissionDetailFullScreenView({
       {/* Batch selection toolbar */}
       {selectionMode && (
         <div
-          className="fixed left-0 right-0 z-[70] flex flex-col"
+          className="fixed left-0 right-0 flex flex-col"
           style={{
-            bottom: 0,
+            bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
+            zIndex: 200,
             background: "var(--background)",
-            borderTop: "1px solid var(--border)",
-            paddingBottom: "env(safe-area-inset-bottom)",
+            borderTop: "2px solid #7C3AED",
+            borderRadius: "16px 16px 0 0",
+            boxShadow:
+              "0 -8px 32px rgba(0,0,0,0.22), 0 -2px 8px rgba(124,58,237,0.12)",
+            paddingBottom: 4,
           }}
         >
           {/* Select All / Count row */}
@@ -784,18 +788,15 @@ export default function MissionDetailFullScreenView({
             </button>
           </div>
           {/* Action buttons row */}
-          <div className="flex items-center justify-around px-4 py-2">
+          <div className="flex items-center justify-around px-4 py-3">
             <button
               type="button"
               disabled={totalSelected === 0}
               onClick={() => setMissionDialogOpen(true)}
-              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              className="flex flex-col items-center gap-1 disabled:opacity-40 min-w-[60px] py-1"
               data-ocid="mission.selection.mission_button"
             >
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "#7C3AED" }}
-              >
+              <span className="text-sm font-bold" style={{ color: "#7C3AED" }}>
                 Mission
               </span>
             </button>
@@ -803,13 +804,10 @@ export default function MissionDetailFullScreenView({
               type="button"
               disabled={totalSelected === 0}
               onClick={() => setFolderDialogOpen(true)}
-              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              className="flex flex-col items-center gap-1 disabled:opacity-40 min-w-[60px] py-1"
               data-ocid="mission.selection.folder_button"
             >
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "#0D9488" }}
-              >
+              <span className="text-sm font-bold" style={{ color: "#0D9488" }}>
                 Folder
               </span>
             </button>
@@ -817,13 +815,10 @@ export default function MissionDetailFullScreenView({
               type="button"
               disabled={totalSelected === 0}
               onClick={handleShareSelected}
-              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              className="flex flex-col items-center gap-1 disabled:opacity-40 min-w-[60px] py-1"
               data-ocid="mission.selection.share_button"
             >
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "#2563EB" }}
-              >
+              <span className="text-sm font-bold" style={{ color: "#2563EB" }}>
                 Share
               </span>
             </button>
@@ -831,13 +826,10 @@ export default function MissionDetailFullScreenView({
               type="button"
               disabled={totalSelected === 0}
               onClick={handleDeleteSelected}
-              className="flex flex-col items-center gap-1 disabled:opacity-40"
+              className="flex flex-col items-center gap-1 disabled:opacity-40 min-w-[60px] py-1"
               data-ocid="mission.selection.delete_button"
             >
-              <span
-                className="text-xs font-semibold"
-                style={{ color: "#EF4444" }}
-              >
+              <span className="text-sm font-bold" style={{ color: "#EF4444" }}>
                 Delete
               </span>
             </button>
