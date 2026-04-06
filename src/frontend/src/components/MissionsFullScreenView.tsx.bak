@@ -62,9 +62,6 @@ export default function MissionsFullScreenView({
 
   // ── Swipe handlers for tab switching ─────────────────────────────────────
   const handleSwipeTouchStart = (e: React.TouchEvent) => {
-    // Don't capture swipe if it starts on a SwipeActionsRow (mission item)
-    const target = e.target as HTMLElement;
-    if (target.closest("[data-swipe-row]")) return;
     swipeStartX.current = e.touches[0].clientX;
     swipeStartY.current = e.touches[0].clientY;
   };
