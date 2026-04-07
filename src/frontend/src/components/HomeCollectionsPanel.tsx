@@ -1,5 +1,5 @@
 import { useBackendActor } from "@/contexts/ActorContext";
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckSquare,

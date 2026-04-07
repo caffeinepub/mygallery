@@ -1,9 +1,9 @@
 import { SortDirection } from "@/backend";
 import type { FileMetadata, Folder, Mission } from "@/backend";
 import { useBackendActor } from "@/contexts/ActorContext";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 /**
  * Home-specific prefetch hook that triggers core data fetching

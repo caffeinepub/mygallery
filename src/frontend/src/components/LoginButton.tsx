@@ -1,5 +1,5 @@
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Loader2, LogIn } from "lucide-react";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { Button } from "./ui/button";
 
 export default function LoginButton() {

@@ -2,82 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="MYL - Catch your ideas and turn them into missions" />
-    <meta name="theme-color" content="#6A0DAD" />
-    <title>MYL</title>
-    
-    <!-- PWA Configuration -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Standard favicons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/generated/myl-bullseye-icon.dim_192x192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/assets/generated/myl-bullseye-icon.dim_512x512.png" />
-    
-    <!-- iOS specific icons -->
-    <link rel="apple-touch-icon" sizes="192x192" href="/assets/generated/myl-bullseye-icon.dim_192x192.png" />
-    <link rel="apple-touch-icon" href="/assets/generated/myl-bullseye-icon.dim_192x192.png" />
-    
-    <!-- iOS specific meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="MYL" />
-    
-    <!-- Additional PWA meta tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="MYL" />
-    <script type="module" crossorigin src="/assets/index-D-jDrSdX.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BzYOdX3F.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App</title>
+    <meta name="description" content="Built with caffeine.ai" />
+    <meta property="og:title" content="App" />
+    <meta property="og:description" content="Built with caffeine.ai" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script type="module" crossorigin src="/assets/index-Dxz-j7hK.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BR1X9jRF.css">
   </head>
   <body>
     <div id="root"></div>
-    
-    <!-- Service Worker Registration -->
-    <script>
-      // Register service worker for PWA installability
-      if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', {
-            updateViaCache: 'none'
-          })
-            .then((registration) => {
-              console.log('✅ Service Worker registered:', registration.scope);
-              
-              // Check for updates immediately
-              registration.update();
-              
-              // Listen for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('🔄 New service worker available');
-                      newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    }
-                  });
-                }
-              });
-              
-              // Wait for controller to be available
-              if (!navigator.serviceWorker.controller) {
-                navigator.serviceWorker.ready.then(() => {
-                  console.log('✅ Service Worker is now controlling the page');
-                });
-              }
-            })
-            .catch((error) => {
-              console.error('❌ Service Worker registration failed:', error);
-            });
-        });
-        
-        // Handle controller change (new service worker activated)
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('🔄 Service Worker controller changed - page is now controlled');
-        });
-      } else {
-        console.warn('⚠️ Service Worker not supported or not in secure context');
-      }
-    </script>
   </body>
 </html>

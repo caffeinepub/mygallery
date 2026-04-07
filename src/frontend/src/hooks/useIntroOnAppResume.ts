@@ -1,5 +1,5 @@
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useEffect } from "react";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 /**
  * Hook that detects when the app returns to the foreground (tab visibility or window focus)

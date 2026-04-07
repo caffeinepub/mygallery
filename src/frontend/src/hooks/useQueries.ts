@@ -7,8 +7,8 @@ import {
 } from "@/utils/actorInitializationMessaging";
 import { perfDiag, timeOperation } from "@/utils/performanceDiagnostics";
 import { createConcurrencyLimiter } from "@/utils/uploadConcurrency";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 // Upload concurrency limiter: 3 concurrent uploads
 const uploadLimiter = createConcurrencyLimiter(3);

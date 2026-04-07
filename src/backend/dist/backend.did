@@ -1,0 +1,207 @@
+type _ImmutableObjectStorageRefillResult = 
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _ImmutableObjectStorageRefillInformation = record {
+                                                  proposed_top_up_amount:
+                                                   opt nat;};
+type _ImmutableObjectStorageCreateCertificateResult = 
+ record {
+   blob_hash: text;
+   method: text;
+ };
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfile = record {name: text;};
+type UploadStatus = 
+ record {
+   completedFiles: nat;
+   files: vec UploadFileStatus;
+   hasPendingUploads: bool;
+   totalFiles: nat;
+ };
+type UploadResponse = record {id: text;};
+type UploadFileStatus = 
+ record {
+   endTime: opt Time;
+   fileSize: nat;
+   id: text;
+   name: text;
+   progress: nat;
+   startTime: Time;
+   status: UploadFileState;
+   uploadSpeed: opt nat;
+ };
+type UploadFileState = 
+ variant {
+   completed;
+   failed: text;
+   inProgress;
+   queued;
+ };
+type Time = int;
+type TaskView = 
+ record {
+   completed: bool;
+   task: text;
+   taskId: nat;
+ };
+type TaskStatusUpdate = 
+ record {
+   completed: bool;
+   taskId: nat;
+ };
+type Task = 
+ record {
+   completed: bool;
+   task: text;
+   taskId: nat;
+ };
+type SortDirection = 
+ variant {
+   asc;
+   desc;
+ };
+type PaginatedNotes = 
+ record {
+   hasMore: bool;
+   notes: vec Note;
+ };
+type PaginatedFiles = 
+ record {
+   files: vec FileMetadata;
+   hasMore: bool;
+ };
+type Note = 
+ record {
+   body: text;
+   createdAt: Time;
+   folderId: opt nat;
+   id: text;
+   location: opt text;
+   missionId: opt nat;
+   owner: principal;
+   title: text;
+ };
+type Mission = 
+ record {
+   created: int;
+   id: nat;
+   owner: principal;
+   tasks: vec Task;
+   title: text;
+ };
+type HealthResult = 
+ record {
+   build: text;
+   cycles: nat;
+   time: int;
+ };
+type Folder = 
+ record {
+   createdAt: Time;
+   id: nat;
+   name: text;
+   owner: principal;
+ };
+type FileMetadata = 
+ record {
+   "blob": opt ExternalBlob;
+   createdAt: Time;
+   fileLocation: opt text;
+   folderId: opt nat;
+   id: text;
+   link: opt text;
+   mimeType: text;
+   missionId: opt nat;
+   name: text;
+   owner: principal;
+   size: nat;
+ };
+type ExternalBlob = blob;
+type DiagnosticResult = 
+ record {
+   build: text;
+   cycles: nat;
+   deleteFilesLowLevelTime: nat;
+   deleteFolderTime: nat;
+   moveFilesToFolderTime: nat;
+   time: int;
+   uploadTime: nat;
+ };
+service : {
+  _immutableObjectStorageBlobsAreLive: (hashes: vec blob) -> (vec bool) query;
+  _immutableObjectStorageBlobsToDelete: () -> (vec blob) query;
+  _immutableObjectStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _immutableObjectStorageCreateCertificate: (blobHash: text) ->
+   (_ImmutableObjectStorageCreateCertificateResult);
+  _immutableObjectStorageRefillCashier: (refillInformation:
+   opt _ImmutableObjectStorageRefillInformation) ->
+   (_ImmutableObjectStorageRefillResult);
+  _immutableObjectStorageUpdateGatewayPrincipals: () -> ();
+  _initializeAccessControl: () -> ();
+  addTaskToMission: (missionId: nat, task: text) -> (Task);
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  batchRemoveFromFolder: (fileIds: vec int) -> ();
+  batchRemoveNotesFromFolder: (noteIds: vec nat) -> ();
+  createFolder: (name: text) -> (opt text);
+  createLink: (name: text, url: text, folderId: opt nat, missionId:
+   opt nat) -> (UploadResponse);
+  createMission: (title: text, tasks: vec Task) -> (nat);
+  createNote: (title: text, body: text, folderId: opt nat, missionId:
+   opt nat) -> (UploadResponse);
+  deleteFile: (id: int) -> ();
+  deleteFiles: (fileIds: vec int) -> ();
+  deleteFilesLowLevel: (fileIds: vec int) -> ();
+  deleteFolder: (folderId: nat) -> ();
+  deleteMission: (missionId: nat) -> ();
+  deleteNote: (noteId: nat) -> ();
+  deleteNotes: (noteIds: vec nat) -> ();
+  /// Admin-only method to get all files regardless of owner
+  getAllFiles: () -> (vec FileMetadata) query;
+  getAllFolders: () -> (vec Folder) query;
+  getAllNotes: () -> (vec Note) query;
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getDiagnostics: () -> (DiagnosticResult) query;
+  getFile: (fileId: int) -> (opt FileMetadata) query;
+  getFilesForMission: (missionId: opt nat) -> (vec FileMetadata) query;
+  getFilesInFolder: (folderId: nat, offset: nat, limit: nat) ->
+   (PaginatedFiles) query;
+  getHealth: () -> (HealthResult) query;
+  getLinksForUser: (user: principal) -> (vec FileMetadata) query;
+  getMission: (missionId: nat) -> (opt Mission) query;
+  getNote: (noteId: nat) -> (opt Note) query;
+  getNotesForMission: (missionId: opt nat) -> (vec Note) query;
+  getNotesInFolder: (folderId: nat, offset: nat, limit: nat) ->
+   (PaginatedNotes) query;
+  getPaginatedFiles: (sortDirection: SortDirection, offset: nat, limit:
+   nat) -> (PaginatedFiles) query;
+  getPaginatedNotes: (sortDirection: SortDirection, offset: nat, limit:
+   nat) -> (PaginatedNotes) query;
+  getTasks: (missionId: nat) -> (vec TaskView) query;
+  getUploadStatus: () -> (UploadStatus) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  isCallerAdmin: () -> (bool) query;
+  listMissions: () -> (vec Mission) query;
+  moveFileToFolder: (fileId: int, folderId: nat) -> ();
+  moveFilesToFolder: (fileIds: vec int, folderId: nat) -> ();
+  moveFilesToMission: (fileIds: vec int, missionId: nat) -> ();
+  moveNoteToFolder: (noteId: nat, folderId: nat) -> ();
+  moveNotesToFolder: (noteIds: vec nat, folderId: nat) -> ();
+  moveNotesToMission: (noteIds: vec nat, missionId: nat) -> ();
+  removeFromFolder: (fileId: int) -> ();
+  removeNoteFromFolder: (noteId: nat) -> ();
+  renameFolder: (folderId: nat, newName: text) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  toggleTaskCompletionStatus: (missionId: nat, taskStatusUpdate:
+   TaskStatusUpdate) -> ();
+  updateMission: (missionId: nat, newTitle: text, newTasks: vec Task) -> ();
+  uploadFile: (name: text, mimeType: text, size: nat, "blob": ExternalBlob,
+   missionId: opt nat) -> (UploadResponse);
+}

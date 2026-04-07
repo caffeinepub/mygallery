@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useBackendActor } from "@/contexts/ActorContext";
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import AnimatedGalleryIcon from "./AnimatedGalleryIcon";

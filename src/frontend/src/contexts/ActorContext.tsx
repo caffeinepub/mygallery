@@ -1,8 +1,11 @@
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import {
   type ErrorClassification,
   mapActorInitError,
 } from "@/utils/actorInitializationMessaging";
+import {
+  createActorWithConfig,
+  useInternetIdentity,
+} from "@caffeineai/core-infrastructure";
 import { useQueryClient } from "@tanstack/react-query";
 import type React from "react";
 import {
@@ -13,9 +16,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { backendInterface } from "../backend";
-import { createActorWithConfig } from "../config";
-import { getSecretParameter } from "../utils/urlParams";
+import { type backendInterface, createActor } from "../backend";
 
 type ActorStatus = "idle" | "initializing" | "ready" | "unavailable" | "error";
 
@@ -38,17 +39,6 @@ const ActorContext = createContext<ActorContextValue | undefined>(undefined);
 const INITIAL_RETRY_DELAY = 2000; // 2 seconds
 const MAX_RETRY_DELAY = 30000; // 30 seconds
 const BACKOFF_MULTIPLIER = 1.5;
-
-/**
- * Helper function to get normalized admin token (treats whitespace-only as absent)
- */
-function getNormalizedAdminToken(paramName: string): string | null {
-  const token = getSecretParameter(paramName);
-  if (!token || token.trim() === "") {
-    return null;
-  }
-  return token.trim();
-}
 
 export function ActorProvider({ children }: { children: React.ReactNode }) {
   const { identity, clear } = useInternetIdentity();
@@ -106,13 +96,10 @@ export function ActorProvider({ children }: { children: React.ReactNode }) {
           },
         };
 
-        const newActor = await createActorWithConfig(actorOptions);
-
-        // Only call _initializeAccessControlWithSecret if a normalized non-empty token is present
-        const adminToken = getNormalizedAdminToken("caffeineAdminToken");
-        if (adminToken) {
-          await newActor._initializeAccessControlWithSecret(adminToken);
-        }
+        const newActor = await createActorWithConfig<backendInterface>(
+          createActor,
+          actorOptions,
+        );
 
         // Success: reset retry state and set ready
         setActor(newActor);

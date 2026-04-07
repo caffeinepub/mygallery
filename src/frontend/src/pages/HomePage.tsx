@@ -10,9 +10,9 @@ import MobileOnlyLayout from "@/components/MobileOnlyLayout";
 import WelcomeIntroScreen from "@/components/WelcomeIntroScreen";
 import { useBackendActor } from "@/contexts/ActorContext";
 import { useHomePrefetch } from "@/hooks/useHomePrefetch";
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useListMissions } from "@/hooks/useMissionsQueries";
 import { useGetFolders } from "@/hooks/useQueries";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import {
   Suspense,
   lazy,
@@ -171,7 +171,7 @@ export default function HomePage() {
   }, []);
 
   const handleUploadClick = useCallback(() => {
-    setShowUploadMenu(true);
+    setShowUploadMenu((prev) => !prev);
   }, []);
 
   const handleUploadActionSelected = useCallback(() => {

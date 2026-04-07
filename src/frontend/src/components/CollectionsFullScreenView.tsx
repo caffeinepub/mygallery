@@ -16,8 +16,8 @@ import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import type { FileMetadata, Note } from "../backend";
 import { SortDirection } from "../backend";
+import { useBackendActor } from "../contexts/ActorContext";
 import { useUpload } from "../contexts/UploadContext";
-import { useActor } from "../hooks/useActor";
 import FullScreenViewer from "./FullScreenViewer";
 import MoveToMissionDialog from "./MoveToMissionDialog";
 import SendToFolderDialog from "./SendToFolderDialog";
@@ -412,7 +412,8 @@ export default function CollectionsFullScreenView({
 }: CollectionsFullScreenViewProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const { actor, isFetching: actorFetching } = useActor();
+  const { actor, status: actorStatus } = useBackendActor();
+  const actorFetching = actorStatus !== "ready";
   const queryClient = useQueryClient();
 
   // Upload progress

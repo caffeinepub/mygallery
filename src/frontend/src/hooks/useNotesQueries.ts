@@ -6,8 +6,8 @@ import {
   getActorErrorMessage,
 } from "@/utils/actorInitializationMessaging";
 import { createConcurrencyLimiter } from "@/utils/uploadConcurrency";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 // Use same concurrency limiter as file uploads for consistency
 const noteLimiter = createConcurrencyLimiter(3);

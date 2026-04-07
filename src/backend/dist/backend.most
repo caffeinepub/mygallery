@@ -1,0 +1,116 @@
+// Version: 1.0.0
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type ExternalBlob__246066408 = Blob;
+type FileMetadata__287815137 =
+  {
+    blob : ?ExternalBlob__246066408;
+    createdAt : Time__900049286;
+    fileLocation : ?Text;
+    folderId : ?Nat;
+    id : Text;
+    link : ?Text;
+    mimeType : Text;
+    missionId : ?Nat;
+    name : Text;
+    owner : Principal;
+    size : Nat
+  };
+type Folder__611226987 =
+  {createdAt : Time__900049286; id : Nat; name : Text; owner : Principal};
+type Int__270357528 = Int__616954475;
+type Int__616954475 = Int;
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type Mission__366741264 =
+  {
+    created : Int;
+    id : Nat;
+    owner : Principal;
+    tasks : [Task__972485619];
+    title : Text
+  };
+type Missions__31539237 =
+  {data : Map__605269027<Nat, Mission__366741264>; owner : Principal};
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type Note__74666102 =
+  {
+    body : Text;
+    createdAt : Time__900049286;
+    folderId : ?Nat;
+    id : Text;
+    location : ?Text;
+    missionId : ?Nat;
+    owner : Principal;
+    title : Text
+  };
+type Task__972485619 = {completed : Bool; task : Text; taskId : Nat};
+type Time__796480547 = Int__270357528;
+type Time__900049286 = Time__796480547;
+type UploadFileState__852692010 =
+  {#completed; #failed : Text; #inProgress; #queued};
+type UploadFileStatus__31866396 =
+  {
+    endTime : ?Time__900049286;
+    fileSize : Nat;
+    id : Text;
+    name : Text;
+    progress : Nat;
+    startTime : Time__900049286;
+    status : UploadFileState__852692010;
+    uploadSpeed : ?Nat
+  };
+type UserProfile__491224006 = {name : Text};
+type UserRole__1054455867 = {#admin; #guest; #user};
+actor {
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  stable var deleteFilesLowLevelTime : Nat;
+  stable var deleteFolderTime : Nat;
+  stable files :
+    {
+      var root : Node__46230540<Nat, FileMetadata__287815137>;
+      var size : Nat__490723111
+    };
+  stable folders :
+    {
+      var root : Node__46230540<Nat, Folder__611226987>;
+      var size : Nat__490723111
+    };
+  stable var moveFilesToFolderTime : Nat;
+  stable var nextFileId : Nat;
+  stable var nextFolderId : Nat;
+  stable var nextMissionId : Nat;
+  stable var nextNoteId : Nat;
+  stable notes :
+    {
+      var root : Node__46230540<Nat, Note__74666102>;
+      var size : Nat__490723111
+    };
+  stable var persistentMissions :
+    {map : Map__605269027<Principal, Missions__31539237>; nextTaskId : Nat};
+  stable var uploadStatus :
+    {
+      completedFiles : Nat;
+      files : [UploadFileStatus__31866396];
+      hasPendingUploads : Bool;
+      totalFiles : Nat
+    };
+  stable var uploadTime : Nat;
+  stable userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__491224006>;
+      var size : Nat__490723111
+    }
+};

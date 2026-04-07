@@ -5,8 +5,8 @@ import {
   getActorErrorMessage,
 } from "@/utils/actorInitializationMessaging";
 import { logMissionMutationPhase } from "@/utils/reactQueryDiagnostics";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 export function useListMissions() {
   const { actor, status } = useBackendActor();

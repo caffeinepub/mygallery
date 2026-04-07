@@ -14,17 +14,10 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface UserProfile {
-    name: string;
-}
-export interface UploadResponse {
-    id: string;
-}
 export interface PaginatedFiles {
     files: Array<FileMetadata>;
     hasMore: boolean;
 }
-export type Time = bigint;
 export interface Note {
     id: string;
     title: string;
@@ -35,12 +28,7 @@ export interface Note {
     folderId?: bigint;
     location?: string;
 }
-export interface UploadStatus {
-    files: Array<UploadFileStatus>;
-    totalFiles: bigint;
-    hasPendingUploads: boolean;
-    completedFiles: bigint;
-}
+export type Time = bigint;
 export interface Mission {
     id: bigint;
     tasks: Array<Task>;
@@ -48,10 +36,11 @@ export interface Mission {
     created: bigint;
     owner: Principal;
 }
-export interface Task {
-    task: string;
-    completed: boolean;
-    taskId: bigint;
+export interface UploadStatus {
+    files: Array<UploadFileStatus>;
+    totalFiles: bigint;
+    hasPendingUploads: boolean;
+    completedFiles: bigint;
 }
 export interface FileMetadata {
     id: string;
@@ -66,6 +55,11 @@ export interface FileMetadata {
     missionId?: bigint;
     folderId?: bigint;
 }
+export interface Task {
+    task: string;
+    completed: boolean;
+    taskId: bigint;
+}
 export interface UploadFileStatus {
     id: string;
     startTime: Time;
@@ -76,14 +70,14 @@ export interface UploadFileStatus {
     progress: bigint;
     uploadSpeed?: bigint;
 }
+export interface TaskStatusUpdate {
+    completed: boolean;
+    taskId: bigint;
+}
 export interface HealthResult {
     time: bigint;
     cycles: bigint;
     build: string;
-}
-export interface TaskStatusUpdate {
-    completed: boolean;
-    taskId: bigint;
 }
 export interface DiagnosticResult {
     time: bigint;
@@ -121,6 +115,12 @@ export interface Folder {
     owner: Principal;
     name: string;
     createdAt: Time;
+}
+export interface UserProfile {
+    name: string;
+}
+export interface UploadResponse {
+    id: string;
 }
 export enum SortDirection {
     asc = "asc",

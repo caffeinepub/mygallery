@@ -1,11 +1,11 @@
 import { ExternalBlob } from "@/backend";
 import { useBackendActor } from "@/contexts/ActorContext";
 import { useUpload } from "@/contexts/UploadContext";
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useUploadFile } from "@/hooks/useQueries";
 import { fileBytesWorker } from "@/utils/fileBytesWorkerSingleton";
 import { persistedQueue } from "@/utils/persistedUploadQueue";
 import { createConcurrencyLimiter } from "@/utils/uploadConcurrency";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useEffect, useRef } from "react";
 
 const uploadLimiter = createConcurrencyLimiter(3);

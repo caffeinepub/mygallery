@@ -8,14 +8,14 @@ import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Map "mo:core/Map";
 import Iter "mo:core/Iter";
-import Storage "blob-storage/Storage";
-import MixinStorage "blob-storage/Mixin";
-import AccessControl "authorization/access-control";
+import Storage "mo:caffeineai-object-storage/Storage";
+import MixinObjectStorage "mo:caffeineai-object-storage/Mixin";
+import AccessControl "mo:caffeineai-authorization/access-control";
 import Cycles "mo:core/Cycles";
-import MixinAuthorization "authorization/MixinAuthorization";
+import MixinAuthorization "mo:caffeineai-authorization/MixinAuthorization";
 
 actor {
-  include MixinStorage();
+    include MixinObjectStorage();
 
   public type FileMetadata = {
     id : Text;
